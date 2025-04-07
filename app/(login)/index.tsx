@@ -1,155 +1,63 @@
-import { CenteredView } from "@/components/views/CenteredView";
-import { useSession } from "@/contexts/session";
-import { AxiosError } from "axios";
-import { Link, router } from "expo-router";
-import { useState } from "react";
-import { Controller, set, useForm } from "react-hook-form";
-import { Button, StyleSheet, Text, TextInput, View } from "react-native";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useAuth } from "@/contexts/sessionAuth";
-
-const styles = StyleSheet.create({
-  text: {
-    fontSize: 24,
-    marginBottom: 16,
-  },
-  link: {
-    fontStyle: "italic",
-    marginTop: 16,
-    color: "#007BFF",
-    textDecorationLine: "underline",
-  },
-  input: {
-    width: "100%",
-    padding: 0,
-    margin: 0,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 4,
-  },
-  helperText: {
-    width: "100%",
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 8,
-    textAlign: "left",
-  },
-  error: {
-    borderWidth: 1,
-    borderColor: "red",
-    borderRadius: 4,
-  },
-  button: {
-    width: "100%",
-    padding: 12,
-    backgroundColor: "#007BFF",
-    borderRadius: 4,
-    alignItems: "center",
-  },
-});
-
-const UserSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
+import { useAuthForm } from "@/hooks/useAuthForm";
+import { AuthForm } from "@/components/AuthForm";
+import Toast from "react-native-toast-message";
 
 export default function LoginScreen() {
-    const {
-        control,
-        handleSubmit,
-        formState: { errors },
-    } = useForm({
-        resolver: zodResolver(UserSchema),
-        defaultValues: {
-        email: "",
-        password: "",
-        },
-    });
+  const auth = useAuth();
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    showPassword,
+    setShowPassword,
+    error,
+    setError,
+    isLoading,
+    setIsLoading,
+  } = useAuthForm();
 
-    const [error, setError] = useState<string | undefined>(undefined);
-    const [isLoading, setIsLoading] = useState(false);
-    
-    const auth = useAuth();
-    if (!auth) {
-        throw new Error("Auth context is undefined. Ensure you are using AuthProvider.");
+  const handleLogin = async () => {
+    if (!auth) return;
+    setIsLoading(true);
+    try {
+      await auth.login(email, password);
+    } catch (e: any) {
+      const message = e?.response?.data?.error ?? e?.message ?? "Something went wrong";
+      setError(message);
+      Toast.show({
+        type: "error",
+        text1: "Login failed",
+        text2: message,
+      });
+    } finally {
+      setIsLoading(false);
     }
-    const { login } = auth;
+  };
 
-    const handleLogin = async ({ email, password }: { email: string; password: string }) => {
-        setIsLoading(true);
-        try {
-            console.log(email, password);
-            await login(email, password);
-        } catch (e) {
-            setError(
-                e instanceof AxiosError && e.response
-                ? e.response.data.error
-                : "Something went wrong"
-            );
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    return (
-        <CenteredView>
-            <Text style={styles.text}>Login</Text>
-            {error && <Text style={{ backgroundColor: "red", color: "white", padding:8 }}>{error}</Text>}
-
-            {/* email input */}
-            <View style={{ width: "100%" }}>
-                <Controller
-                control={control}
-                name="email"
-                render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                    style={[styles.input, errors?.email ? styles.error : {}]}
-                    placeholder="Email..."
-                    editable={!isLoading}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    />
-                )}
-                />
-                <Text style={styles.helperText}>{errors?.email?.message}</Text>
-            </View>
-
-            {/* password input */}
-            <View style={{ width: "100%" }}>
-                <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                    style={[styles.input, errors?.password ? styles.error : {}]}
-                    placeholder="Password..."
-                    editable={!isLoading}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    />
-                )}
-                />
-                <Text style={styles.helperText}>{errors?.password?.message}</Text>
-            </View>
-
-            {/* login button */}
-            <View style={{ width: "100%" }}>
-                <Button
-                color="green"
-                disabled={isLoading}
-                title={isLoading ? "Loading..." : "Login"}
-                onPress={handleSubmit(handleLogin)}
-                />
-            </View>
-
-            {/* register link */}
-            <Link style={styles.link} href="./register">Register</Link>
-        </CenteredView>
-    );
+  return (
+    <AuthForm
+      title="Login"
+      email={email}
+      password={password}
+      showPassword={showPassword}
+      error={error}
+      isLoading={isLoading}
+      onEmailChange={(text) => {
+        setEmail(text);
+        setError(undefined);
+      }}
+      onPasswordChange={(text) => {
+        setPassword(text);
+        setError(undefined);
+      }}
+      togglePassword={() => setShowPassword(!showPassword)}
+      onSubmit={handleLogin}
+      buttonLabel="Login"
+      navigateLabel="Don't have an account? Register here"
+      navigateLink="/(login)/register"
+      logoSource={require("@/assets/images/logo-login.jpeg")}
+    />
+  );
 }
