@@ -51,8 +51,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
 
     const register = async (name: string, surname: string, email: string, password: string) => {
         await client.post(`/register`, { email, password, name, surname });
-        // auto login after register
-        return login(email, password);
+        router.replace("/(login)");
     };
 
     const login = async (email: string, password: string) => {
