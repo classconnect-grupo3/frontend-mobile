@@ -16,7 +16,7 @@ type AuthState = {
 
 interface AuthContextType {
     authState: AuthState;
-    register: (email: string, password: string) => Promise<any>;
+    register: (name: string, surname: string, email: string, password: string) => Promise<any>;
     login: (email: string, password: string) => Promise<any>;
     logout: () => Promise<any>;
 }
@@ -49,8 +49,8 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         loadToken();
     }, []);
 
-    const register = async (email: string, password: string) => {
-        await client.post(`/register`, { email, password });
+    const register = async (name: string, surname: string, email: string, password: string) => {
+        await client.post(`/register`, { email, password, name, surname });
         // auto login after register
         return login(email, password);
     };

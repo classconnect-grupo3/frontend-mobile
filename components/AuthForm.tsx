@@ -28,6 +28,10 @@ import {
     navigateLabel: string;
     navigateLink: "/(login)" | "/(login)/register";
     logoSource: ImageSourcePropType;
+    name?: string;
+    surname?: string;
+    onNameChange?: (text: string) => void;
+    onSurnameChange?: (text: string) => void;
   }
   
   export function AuthForm({
@@ -45,6 +49,10 @@ import {
     navigateLabel,
     navigateLink,
     logoSource,
+    name,
+    surname,
+    onNameChange,
+    onSurnameChange,
   }: AuthFormProps) {
     return (
       <KeyboardAvoidingView
@@ -62,6 +70,25 @@ import {
           <Image source={logoSource} style={styles.image} />
   
           <View style={styles.form}>
+            {/* Conditionally render name and surname */}
+            {onNameChange && (
+              <TextInput
+                style={styles.input}
+                placeholder="First Name"
+                value={name}
+                onChangeText={onNameChange}
+                autoCapitalize="words"
+              />
+            )}
+            {onSurnameChange && (
+              <TextInput
+                style={styles.input}
+                placeholder="Last Name"
+                value={surname}
+                onChangeText={onSurnameChange}
+                autoCapitalize="words"
+              />
+            )}
             <TextInput
               style={styles.input}
               placeholder="Email"
