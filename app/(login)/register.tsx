@@ -25,12 +25,24 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!auth) return;
-
-    if (!name || !surname || !email || !password) {
-      setError("Please fill in all fields.");
+  
+    if (!name?.trim()) {
+      setError("First name is required");
       return;
     }
-
+    if (!surname?.trim()) {
+      setError("Last name is required");
+      return;
+    }
+    if (!email?.trim()) {
+      setError("Email is required");
+      return;
+    }
+    if (!password?.trim()) {
+      setError("Password is required");
+      return;
+    }
+  
     setIsLoading(true);
     try {
       await auth.register(name, surname, email, password);
