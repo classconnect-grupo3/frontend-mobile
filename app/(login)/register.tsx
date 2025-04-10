@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/sessionAuth";
 import { useAuthForm } from "@/hooks/useAuthForm";
 import { AuthForm } from "@/components/AuthForm";
+import { useState } from "react";
 import Toast from "react-native-toast-message";
 
 export default function RegisterScreen() {
@@ -18,11 +19,21 @@ export default function RegisterScreen() {
     setIsLoading,
   } = useAuthForm();
 
+
+  const [name, setName] = useState("");
+  const [surname, setSurname] = useState("");
+
   const handleRegister = async () => {
     if (!auth) return;
+
+    if (!name || !surname || !email || !password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await auth.register(email, password);
+      await auth.register(name, surname, email, password);
       Toast.show({
         type: "success",
         text1: "Account created!",
@@ -43,11 +54,21 @@ export default function RegisterScreen() {
   return (
     <AuthForm
       title="Register"
+      name={name}
+      surname={surname}
       email={email}
       password={password}
       showPassword={showPassword}
       error={error}
       isLoading={isLoading}
+      onNameChange={(text) => {
+        setName(text);
+        setError(undefined);
+      }}
+      onSurnameChange={(text) => {
+        setSurname(text);
+        setError(undefined);
+      }}
       onEmailChange={(text) => {
         setEmail(text);
         setError(undefined);
