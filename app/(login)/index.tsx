@@ -20,6 +20,13 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!auth) return;
+
+    if (!email || !password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
+
     setIsLoading(true);
     try {
       await auth.login(email, password);
