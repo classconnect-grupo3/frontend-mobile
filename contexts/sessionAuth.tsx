@@ -66,9 +66,14 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
 
             setAuthState({ token, authenticated: true });
             router.replace("/(tabs)");
-
-        } catch (error) {
-            return {error: true, msg: (error as any).response.data.msg};
+        } catch (error: any) {
+            // return {error: true, msg: (error as any).response.data.msg};
+            const msg =
+            error?.response.data?.error ||
+            error?.response.data?.msg ||
+            error.message ||    
+            "Login failed";
+            throw new Error(msg);
         }
     };
 
