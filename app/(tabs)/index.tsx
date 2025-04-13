@@ -11,11 +11,12 @@ import {
 import { useAuth } from '@/contexts/sessionAuth';
 import { CountryPickerModal } from '@/components/CountryPickerModal';
 import { styles } from '@/styles/homeScreenStyles';
+import { CourseList } from '@/components/CourseList';
 
 const MOCK_COURSES = [
-  { id: '1', title: 'Calculus', teacher: 'Katherine Kim', due: 'Applications of Diff.' },
-  { id: '2', title: 'Art History', teacher: 'Robert Duffy', due: 'Spring showcase check-in' },
-  { id: '3', title: 'Biology 2', teacher: 'Rolando Johnson', due: 'Anatomy of a cell' },
+  { id: '1', title: 'TDA', teacher: 'Iñaki Llorens', due: 'TP1: Prog Dinamica' },
+  { id: '2', title: 'Redes', teacher: 'Iñaki Llorens', due: 'Leer hasta 5.4' },
+  { id: '3', title: 'Taller 1', teacher: 'Iñaki Llorens', due: 'TP Individual' },
 ];
 
 export default function HomeScreen() {
@@ -73,12 +74,7 @@ export default function HomeScreen() {
 
       <View style={styles.content}>
         <Text style={styles.title}>Your Courses</Text>
-        <FlatList
-          data={MOCK_COURSES}
-          keyExtractor={(item) => item.id}
-          renderItem={renderCourse}
-          contentContainerStyle={styles.courseList}
-        />
+        <CourseList courses={MOCK_COURSES} />
         {selectedCountry && (
           <Text style={styles.countryText}>Selected country: {selectedCountry}</Text>
         )}
