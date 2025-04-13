@@ -63,14 +63,11 @@ import {
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.text}>{title}</Text>
-  
           {error && <Text style={styles.errorText}>{error}</Text>}
   
           <Image source={logoSource} style={styles.image} />
   
           <View style={styles.form}>
-            {/* Conditionally render name and surname */}
             {onNameChange && (
               <TextInput
                 style={styles.input}

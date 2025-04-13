@@ -94,7 +94,7 @@ export default function RegisterScreen() {
       buttonLabel="Register"
       navigateLabel="Already have an account? Login here"
       navigateLink="/(login)"
-      logoSource={require("@/assets/images/logo-register.jpeg")}
+      logoSource={require("@/assets/images/thiago.jpeg")}
     />
   );
 }

@@ -57,7 +57,7 @@ export default function LoginScreen() {
       buttonLabel="Login"
       navigateLabel="Don't have an account? Register here"
       navigateLink="/(login)/register"
-      logoSource={require("@/assets/images/logo-login.jpeg")}
+      logoSource={require("@/assets/images/logo.png")}
     />
   );
 }
