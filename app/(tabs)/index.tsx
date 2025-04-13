@@ -1,13 +1,28 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  FlatList,
+  Modal,
+  Button,
+} from 'react-native';
 import { useAuth } from '@/contexts/sessionAuth';
 import { CountryPickerModal } from '@/components/CountryPickerModal';
-import { client } from '@/lib/http';
+import { styles } from '@/styles/homeScreenStyles';
+
+const MOCK_COURSES = [
+  { id: '1', title: 'Calculus', teacher: 'Katherine Kim', due: 'Applications of Diff.' },
+  { id: '2', title: 'Art History', teacher: 'Robert Duffy', due: 'Spring showcase check-in' },
+  { id: '3', title: 'Biology 2', teacher: 'Rolando Johnson', due: 'Anatomy of a cell' },
+];
 
 export default function HomeScreen() {
   const auth = useAuth();
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [showCreateCourse, setShowCreateCourse] = useState(false);
 
   useEffect(() => {
     if (auth?.authState.authenticated && !auth.authState.location) {
@@ -15,6 +30,69 @@ export default function HomeScreen() {
     }
   }, [auth]);
 
+  const handleConfirmCountry = (country: string) => {
+    setSelectedCountry(country);
+    setShowCountryModal(false);
+  };
+
+  const renderCourse = ({ item }: any) => (
+    <View style={styles.courseCard}>
+      <Text style={styles.courseTitle}>{item.title}</Text>
+      <Text style={styles.courseTeacher}>{item.teacher}</Text>
+      <Text style={styles.courseDetails}>Next: {item.due}</Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <CountryPickerModal
+        visible={showCountryModal}
+        onClose={() => setShowCountryModal(false)}
+        onConfirm={handleConfirmCountry}
+      />
+
+      <Modal visible={showCreateCourse} animationType="slide">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ fontSize: 20, marginBottom: 16 }}>Create Course (WIP)</Text>
+          <Button title="Close" onPress={() => setShowCreateCourse(false)} />
+        </View>
+      </Modal>
+
+      <View style={styles.topBar}>
+        <Image
+          source={require('@/assets/images/logo.png')}
+          style={styles.logo}
+        />
+        <TouchableOpacity onPress={() => {/* navigate to profile later */}}>
+          <Image
+            source={require('@/assets/images/tuntungsahur.jpeg')}
+            style={styles.profileIcon}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.content}>
+        <Text style={styles.title}>Your Courses</Text>
+        <FlatList
+          data={MOCK_COURSES}
+          keyExtractor={(item) => item.id}
+          renderItem={renderCourse}
+          contentContainerStyle={styles.courseList}
+        />
+        {selectedCountry && (
+          <Text style={styles.countryText}>Selected country: {selectedCountry}</Text>
+        )}
+      </View>
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setShowCreateCourse(true)}
+      >
+        <Text style={styles.fabText}>＋</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
   // const handleConfirmCountry = async (selectedCountry: string) => {
   //   try {
   //     await client.post('/users/me/location', { country: selectedCountry });
@@ -24,58 +102,3 @@ export default function HomeScreen() {
   //     console.error("Failed to save country", e);
   //   }
   // };
-
-  const handleConfirmCountry = (country: string) => {
-    setSelectedCountry(country);
-    setShowCountryModal(false);
-  };
-
-  return (
-    <View style={styles.container}>
-      <Image source={require("@/assets/images/logo.png")} style={styles.image} />
-      <CountryPickerModal
-        visible={showCountryModal}
-        onClose={() => setShowCountryModal(false)}
-        onConfirm={handleConfirmCountry}
-      />
-      <Text style={styles.topLeftText}>ClassConnect</Text>
-      <Text style={styles.contentText}>Work in progress 🚧</Text>
-      {selectedCountry && (
-        <Text style={styles.countryText}>Selected country: {selectedCountry}</Text>
-      )}
-      <Image source={require("@/assets/images/tuntungsahur.jpeg")} style={styles.image} />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  topLeftText: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  contentText: {
-    marginTop: 80,
-    textAlign: 'center',
-    fontSize: 20,
-  },
-  countryText: {
-    marginTop: 24,
-    textAlign: 'center',
-    fontSize: 16,
-    fontStyle: 'italic',
-  },
-  image: {
-    width: 200,
-    height: 200,
-    resizeMode: "contain",
-    marginBottom: 16,
-  },
-});
