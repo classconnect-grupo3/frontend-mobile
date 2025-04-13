@@ -59,8 +59,8 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         try {
           const { data } = await client.post("/login", { email, password });
           console.log("Login data: ", data);
-          const token = data.token;
-          const location = data.location ?? null;
+          const token = data.id_token;
+          const location = data.user_location ?? null;
       
           await SecureStore.setItemAsync(TOKEN_KEY, token);
           client.defaults.headers.common['Authorization'] = "Bearer ${token}";
