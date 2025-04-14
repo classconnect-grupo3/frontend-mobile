@@ -1,17 +1,17 @@
+import { CountryPickerModal } from '@/components/CountryPickerModal';
+import { CourseList } from '@/components/CourseList';
+import { useAuth } from '@/contexts/sessionAuth';
+import { client } from '@/lib/http';
+import { styles } from '@/styles/homeScreenStyles';
 import { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  FlatList,
-  Modal,
   Button,
+  Image,
+  Modal,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { useAuth } from '@/contexts/sessionAuth';
-import { CountryPickerModal } from '@/components/CountryPickerModal';
-import { styles } from '@/styles/homeScreenStyles';
-import { CourseList } from '@/components/CourseList';
 
 const MOCK_COURSES = [
   { id: '1', title: 'TDA', teacher: 'Iñaki Llorens', due: 'TP1: Prog Dinamica' },
@@ -31,9 +31,20 @@ export default function HomeScreen() {
     }
   }, [auth]);
 
-  const handleConfirmCountry = (country: string) => {
-    setSelectedCountry(country);
-    setShowCountryModal(false);
+  const handleConfirmCountry = async (selectedCountry: string) => {
+    try {
+      await client.post('/users/me/location', {
+        country: selectedCountry
+      }, {
+        headers: {
+          'Authorization': `Bearer ${auth?.authState.token}`
+        }
+      });
+      setSelectedCountry(selectedCountry);
+      setShowCountryModal(false);
+    } catch (e) {
+      console.error("Failed to save country", e); // TODO: Handle this
+    }
   };
 
   const renderCourse = ({ item }: any) => (
@@ -64,7 +75,7 @@ export default function HomeScreen() {
           source={require('@/assets/images/logo.png')}
           style={styles.logo}
         />
-        <TouchableOpacity onPress={() => {/* navigate to profile later */}}>
+        <TouchableOpacity onPress={() => {/* navigate to profile later */ }}>
           <Image
             source={require('@/assets/images/tuntungsahur.jpeg')}
             style={styles.profileIcon}
@@ -89,12 +100,3 @@ export default function HomeScreen() {
     </View>
   );
 }
-  // const handleConfirmCountry = async (selectedCountry: string) => {
-  //   try {
-  //     await client.post('/users/me/location', { country: selectedCountry });
-  //     setCountry(selectedCountry);
-  //     setShowCountryModal(false);
-  //   } catch (e) {
-  //     console.error("Failed to save country", e);
-  //   }
-  // };
