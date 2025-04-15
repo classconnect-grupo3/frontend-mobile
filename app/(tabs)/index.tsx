@@ -1,74 +1,102 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { CountryPickerModal } from '@/components/CountryPickerModal';
+import { CourseList } from '@/components/CourseList';
+import { useAuth } from '@/contexts/sessionAuth';
+import { client } from '@/lib/http';
+import { styles } from '@/styles/homeScreenStyles';
+import { useEffect, useState } from 'react';
+import {
+  Button,
+  Image,
+  Modal,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const MOCK_COURSES = [
+  { id: '1', title: 'TDA', teacher: 'Iñaki Llorens', due: 'TP1: Prog Dinamica' },
+  { id: '2', title: 'Redes', teacher: 'Iñaki Llorens', due: 'Leer hasta 5.4' },
+  { id: '3', title: 'Taller 1', teacher: 'Iñaki Llorens', due: 'TP Individual' },
+];
 
 export default function HomeScreen() {
+  const auth = useAuth();
+  const [showCountryModal, setShowCountryModal] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [showCreateCourse, setShowCreateCourse] = useState(false);
+
+  useEffect(() => {
+    if (auth?.authState.authenticated && !auth.authState.location) {
+      setShowCountryModal(true);
+    }
+  }, [auth]);
+
+  const handleConfirmCountry = async (selectedCountry: string) => {
+    try {
+      await client.post('/users/me/location', {
+        country: selectedCountry
+      }, {
+        headers: {
+          'Authorization': `Bearer ${auth?.authState.token}`
+        }
+      });
+      setSelectedCountry(selectedCountry);
+      setShowCountryModal(false);
+    } catch (e) {
+      console.error("Failed to save country", e); // TODO: Handle this
+    }
+  };
+
+  const renderCourse = ({ item }: any) => (
+    <View style={styles.courseCard}>
+      <Text style={styles.courseTitle}>{item.title}</Text>
+      <Text style={styles.courseTeacher}>{item.teacher}</Text>
+      <Text style={styles.courseDetails}>Next: {item.due}</Text>
+    </View>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
+    <View style={styles.container}>
+      <CountryPickerModal
+        visible={showCountryModal}
+        onClose={() => setShowCountryModal(false)}
+        onConfirm={handleConfirmCountry}
+      />
+
+      <Modal visible={showCreateCourse} animationType="slide">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ fontSize: 20, marginBottom: 16 }}>Create Course (WIP)</Text>
+          <Button title="Close" onPress={() => setShowCreateCourse(false)} />
+        </View>
+      </Modal>
+
+      <View style={styles.topBar}>
         <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+          source={require('@/assets/images/logo.png')}
+          style={styles.logo}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <TouchableOpacity onPress={() => {/* navigate to profile later */ }}>
+          <Image
+            source={require('@/assets/images/tuntungsahur.jpeg')}
+            style={styles.profileIcon}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.content}>
+        <Text style={styles.title}>Your Courses</Text>
+        <CourseList courses={MOCK_COURSES} />
+        {selectedCountry && (
+          <Text style={styles.countryText}>Selected country: {selectedCountry}</Text>
+        )}
+      </View>
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setShowCreateCourse(true)}
+      >
+        <Text style={styles.fabText}>＋</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});

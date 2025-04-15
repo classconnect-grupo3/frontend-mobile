@@ -10,9 +10,10 @@ import { router } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
 
 type AuthState = {
-    token: string|null;
+    token: string | null;
     authenticated: boolean;
-}
+    location?: string | null; 
+  };
 
 interface AuthContextType {
     authState: AuthState;
@@ -51,26 +52,26 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
 
     const register = async (name: string, surname: string, email: string, password: string) => {
         await client.post(`/register`, { email, password, name, surname });
-        // auto login after register
-        return login(email, password);
+        router.replace("/(login)");
     };
 
     const login = async (email: string, password: string) => {
         try {
-            const {data} = await client.post(`/login`, { email, password });
-            console.log("Login data: ", data);
-            const token = data.token;
-
-            await SecureStore.setItemAsync(TOKEN_KEY, token);
-            client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-            setAuthState({ token, authenticated: true });
-            router.replace("/(tabs)");
-
+          const { data } = await client.post("/login", { email, password });
+          console.log("Login data: ", data);
+          const token = data.id_token;
+          const location = data.user_location ?? null;
+      
+          await SecureStore.setItemAsync(TOKEN_KEY, token);
+          client.defaults.headers.common['Authorization'] = "Bearer ${token}";
+      
+          setAuthState({ token, authenticated: true, location }); 
+      
+          router.replace("/(tabs)");
         } catch (error) {
-            return {error: true, msg: (error as any).response.data.msg};
+          return { error: true, msg: (error as any).response.data.msg };
         }
-    };
+      };
 
     const logout = async () => {
         await SecureStore.deleteItemAsync(TOKEN_KEY);
