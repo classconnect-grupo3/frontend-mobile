@@ -51,7 +51,7 @@ export default function RegisterScreen() {
         text1: "Account created!",
       });
     } catch (e: any) {
-      const message = e?.response?.data?.error ?? e?.message ?? "Something went wrong";
+      const message = e?.response?.data?.detail ?? e?.message ?? "Something went wrong";
       setError(message);
     } finally {
       setIsLoading(false);

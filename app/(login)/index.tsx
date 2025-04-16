@@ -31,7 +31,16 @@ export default function LoginScreen() {
     try {
       await auth.login(email, password);
     } catch (e: any) {
-      const message = e?.response?.data?.detail ?? e?.message ?? "Something went wrong";
+      let message = "Something went wrong";
+      // If it's a FastAPI validation error
+      if (Array.isArray(e?.response?.data?.detail)) {
+        // Extract first validation message
+        message = e.response.data.detail[0]?.msg ?? message;
+      } else if (typeof e?.response?.data?.detail === "string") {
+        message = e.response.data.detail;
+      } else if (typeof e?.message === "string") {
+        message = e.message;
+      }
       setError(message);
     } finally {
       setIsLoading(false);
