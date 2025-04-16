@@ -69,7 +69,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
       
           router.replace("/(tabs)");
         } catch (error) {
-          return { error: true, msg: (error as any).response.data.msg };
+          throw error;
         }
       };
 

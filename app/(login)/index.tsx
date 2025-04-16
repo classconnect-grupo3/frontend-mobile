@@ -33,11 +33,6 @@ export default function LoginScreen() {
     } catch (e: any) {
       const message = e?.response?.data?.error ?? e?.message ?? "Something went wrong";
       setError(message);
-      Toast.show({
-        type: "error",
-        text1: "Login failed",
-        text2: message,
-      });
     } finally {
       setIsLoading(false);
     }

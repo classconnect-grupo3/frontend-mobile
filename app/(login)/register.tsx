@@ -53,11 +53,6 @@ export default function RegisterScreen() {
     } catch (e: any) {
       const message = e?.response?.data?.error ?? e?.message ?? "Something went wrong";
       setError(message);
-      Toast.show({
-        type: "error",
-        text1: "Registration failed",
-        text2: message,
-      });
     } finally {
       setIsLoading(false);
     }
