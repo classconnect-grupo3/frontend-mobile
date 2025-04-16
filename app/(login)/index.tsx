@@ -61,7 +61,8 @@ export default function LoginScreen() {
       }}
       togglePassword={() => setShowPassword(!showPassword)}
       onSubmit={handleLogin}
-      buttonLabel="Login"
+      buttonLabel="Log in"
+      loadingLabel="Logging in..."
       navigateLabel="Don't have an account? Register here"
       navigateLink="/(login)/register"
       logoSource={require("@/assets/images/logo.png")}
