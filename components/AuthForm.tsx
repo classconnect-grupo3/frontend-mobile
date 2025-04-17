@@ -25,6 +25,7 @@ import {
     togglePassword: () => void;
     onSubmit: () => void;
     buttonLabel: string;
+    loadingLabel?: string;
     navigateLabel: string;
     navigateLink: "/(login)" | "/(login)/register";
     logoSource: ImageSourcePropType;
@@ -46,6 +47,7 @@ import {
     togglePassword,
     onSubmit,
     buttonLabel,
+    loadingLabel,
     navigateLabel,
     navigateLink,
     logoSource,
@@ -114,7 +116,7 @@ import {
               disabled={isLoading}
             >
               <Text style={styles.buttonText}>
-                {isLoading ? `${buttonLabel}ing...` : buttonLabel}
+              {isLoading ? loadingLabel ?? `${buttonLabel}ing...` : buttonLabel}
               </Text>
             </TouchableOpacity>
 

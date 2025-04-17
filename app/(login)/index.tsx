@@ -31,13 +31,17 @@ export default function LoginScreen() {
     try {
       await auth.login(email, password);
     } catch (e: any) {
-      const message = e?.response?.data?.error ?? e?.message ?? "Something went wrong";
+      let message = "Something went wrong";
+      // If it's a FastAPI validation error
+      if (Array.isArray(e?.response?.data?.detail)) {
+        // Extract first validation message
+        message = e.response.data.detail[0]?.msg ?? message;
+      } else if (typeof e?.response?.data?.detail === "string") {
+        message = e.response.data.detail;
+      } else if (typeof e?.message === "string") {
+        message = e.message;
+      }
       setError(message);
-      Toast.show({
-        type: "error",
-        text1: "Login failed",
-        text2: message,
-      });
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +65,8 @@ export default function LoginScreen() {
       }}
       togglePassword={() => setShowPassword(!showPassword)}
       onSubmit={handleLogin}
-      buttonLabel="Login"
+      buttonLabel="Log in"
+      loadingLabel="Logging in..."
       navigateLabel="Don't have an account? Register here"
       navigateLink="/(login)/register"
       logoSource={require("@/assets/images/logo.png")}
