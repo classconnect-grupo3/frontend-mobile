@@ -51,7 +51,7 @@ export default function RegisterScreen() {
         text1: "Account created!",
       });
     } catch (e: any) {
-      const message = e?.response?.data?.detail ?? e?.message ?? "Something went wrong";
+      const message = e?.response?.data?.detail ?? e?.message ?? "Something went wrong"; // NOTA: quizas tengamos que considerar el caso en el que detail es una estructura y no una string, como hacemos en el login
       setError(message);
     } finally {
       setIsLoading(false);
