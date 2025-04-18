@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/sessionAuth';
 import { client } from '@/lib/http';
 import { styles } from '@/styles/homeScreenStyles';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   Button,
   Image,
@@ -21,6 +22,7 @@ const MOCK_COURSES = [
 
 export default function HomeScreen() {
   const auth = useAuth();
+  const router = useRouter();
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
@@ -75,7 +77,7 @@ export default function HomeScreen() {
           source={require('@/assets/images/logo.png')}
           style={styles.logo}
         />
-        <TouchableOpacity onPress={() => {/* navigate to profile later */ }}>
+        <TouchableOpacity onPress={() => {router.push('/profile')}}>
           <Image
             source={require('@/assets/images/tuntungsahur.jpeg')}
             style={styles.profileIcon}
