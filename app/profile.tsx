@@ -1,7 +1,48 @@
-import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useEffect, useState } from 'react';
+import { fetchUserData } from '@/services/userProfile';
 import React from 'react';
 
 export default function ProfileScreen() {
+  const [userData, setUserData] = useState<{
+    name: string;
+    surname: string;
+    email: string;
+  } | null>(null);
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const data = await fetchUserData();
+        setUserData(data);
+      } catch (err) {
+        console.error('Failed to load user:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUser();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <View style={styles.container}>
+        <Text>Failed to load user data.</Text>
+      </View>
+    );
+  }
+  
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Profile</Text>
@@ -11,7 +52,7 @@ export default function ProfileScreen() {
           source={require('@/assets/images/tuntungsahur.jpeg')}
           style={styles.profileImage}
         />
-        <Text style={styles.profileName}>Tuntung Sahur</Text>
+        <Text style={styles.profileName}>{userData.name}</Text>
       </View>
 
       {/* Name Field */}
@@ -19,7 +60,7 @@ export default function ProfileScreen() {
         <Text style={styles.label}>Name</Text>
         <TextInput
           style={styles.input}
-          value="Tuntung"
+          value={userData.name}
           editable={false} // Set to true if you want it to be editable later
         />
       </View>
@@ -28,16 +69,16 @@ export default function ProfileScreen() {
         <Text style={styles.label}>Surname</Text>
         <TextInput
           style={styles.input}
-          value="Sahur"
+          value={userData.surname}
           editable={false} // Set to true if you want it to be editable later
         />
       </View>
-      {/* Surname Field */}
+      {/* Email Field */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Email</Text>
         <TextInput
           style={styles.input}
-          value="tuntungsahur@gmail.com"
+          value={userData.email}
           editable={false} // Set to true if you want it to be editable later
         />
       </View>
