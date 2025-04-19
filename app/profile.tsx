@@ -1,5 +1,6 @@
 import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/sessionAuth';
 import { fetchUserData } from '@/services/userProfile';
 import React from 'react';
 
@@ -8,14 +9,17 @@ export default function ProfileScreen() {
     name: string;
     surname: string;
     email: string;
+    location: string;
   } | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const auth = useAuth();
 
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const data = await fetchUserData();
+        if (!auth?.authState.token) return;
+        const data = await fetchUserData(auth.authState.token);
         setUserData(data);
       } catch (err) {
         console.error('Failed to load user:', err);

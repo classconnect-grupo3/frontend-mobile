@@ -1,6 +1,11 @@
-import { client } from "@/lib/http";
+import { client } from '@/lib/http';
 
-export async function fetchUserData() {
-    const response = await client.get('/users/me');
-    return response.data; // we do not throw error, error is catched and handled in the profile.tsx file
-  }
+export async function fetchUserData(token: string) {
+  const response = await client.get('/users/me', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data.data;
+}
