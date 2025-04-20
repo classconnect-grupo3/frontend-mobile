@@ -19,10 +19,8 @@ export const styles = StyleSheet.create({
     borderRadius: 4,
   },
   errorText: {
-    backgroundColor: "red",
-    color: "white",
-    padding: 8,
-    borderRadius: 4,
+    fontSize: 12,
+    color: 'red',
     marginBottom: 8,
   },
   button: {
@@ -38,12 +36,14 @@ export const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   input: {
-    height: 44,
-    borderWidth: 1,
-    borderRadius: 4,
+    width: '100%',
     padding: 10,
-    backgroundColor: "#fff",
     marginBottom: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
+    height: 44,
   },
   togglePassword: {
     marginTop: 4,
@@ -73,4 +73,9 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: "left",
   },
+  inputError: {
+    borderColor: 'red',
+    borderWidth: 1,
+  },
+
 });
