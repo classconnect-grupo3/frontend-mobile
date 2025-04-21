@@ -30,8 +30,8 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const requestAndSaveLocation = async () => {
-      if (!auth?.authState.authenticated || auth.authState.location) return;
-  
+      if (!auth?.authState.authenticated) return;
+      
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
