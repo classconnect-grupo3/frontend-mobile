@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/sessionAuth';
 import { client } from '@/lib/http';
 import { styles } from '@/styles/homeScreenStyles';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   Button,
   Image,
@@ -12,6 +13,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
+import * as Location from 'expo-location';
 
 const MOCK_COURSES = [
   { id: '1', title: 'TDA', teacher: 'Iñaki Llorens', due: 'TP1: Prog Dinamica' },
@@ -21,31 +24,62 @@ const MOCK_COURSES = [
 
 export default function HomeScreen() {
   const auth = useAuth();
-  const [showCountryModal, setShowCountryModal] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const router = useRouter();
   const [showCreateCourse, setShowCreateCourse] = useState(false);
+  const [locationLabel, setLocationLabel] = useState<string | null>(null);
 
   useEffect(() => {
-    if (auth?.authState.authenticated && !auth.authState.location) {
-      setShowCountryModal(true);
-    }
-  }, [auth]);
-
-  const handleConfirmCountry = async (selectedCountry: string) => {
-    try {
-      await client.post('/users/me/location', {
-        country: selectedCountry
-      }, {
-        headers: {
-          'Authorization': `Bearer ${auth?.authState.token}`
+    const requestAndSaveLocation = async () => {
+      if (!auth?.authState.authenticated || auth.authState.location) return;
+  
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Toast.show({
+            type: 'error',
+            text1: 'Location permission denied',
+            text2: 'We couldn’t access your location.',
+          });
+          return;
         }
-      });
-      setSelectedCountry(selectedCountry);
-      setShowCountryModal(false);
-    } catch (e) {
-      console.error("Failed to save country", e); // TODO: Handle this
-    }
-  };
+  
+        const location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = location.coords;
+  
+        const reverse = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (reverse.length > 0) {
+          const place = reverse[0];
+          const label = `📍 ${place.city ?? place.name}, ${place.country}`;
+          setLocationLabel(label);
+        }
+  
+        await client.post(
+          '/users/me/location',
+          { latitude, longitude },
+          {
+            headers: {
+              Authorization: `Bearer ${auth.authState.token}`,
+            },
+          }
+        );
+  
+        Toast.show({
+          type: 'success',
+          text1: 'Location saved',
+          text2: 'Your location has been registered.',
+        });
+      } catch (error) {
+        console.error('Failed to get or save location', error);
+        Toast.show({
+          type: 'error',
+          text1: 'Location error',
+          text2: 'Something went wrong while saving your location.',
+        });
+      }
+    };
+  
+    requestAndSaveLocation();
+  }, [auth]);
 
   const renderCourse = ({ item }: any) => (
     <View style={styles.courseCard}>
@@ -57,12 +91,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <CountryPickerModal
-        visible={showCountryModal}
-        onClose={() => setShowCountryModal(false)}
-        onConfirm={handleConfirmCountry}
-      />
-
       <Modal visible={showCreateCourse} animationType="slide">
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ fontSize: 20, marginBottom: 16 }}>Create Course (WIP)</Text>
@@ -75,7 +103,7 @@ export default function HomeScreen() {
           source={require('@/assets/images/logo.png')}
           style={styles.logo}
         />
-        <TouchableOpacity onPress={() => {/* navigate to profile later */ }}>
+        <TouchableOpacity onPress={() => {router.push('/profile')}}>
           <Image
             source={require('@/assets/images/tuntungsahur.jpeg')}
             style={styles.profileIcon}
@@ -86,9 +114,11 @@ export default function HomeScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Your Courses</Text>
         <CourseList courses={MOCK_COURSES} />
-        {selectedCountry && (
-          <Text style={styles.countryText}>Selected country: {selectedCountry}</Text>
-        )}
+        {
+          locationLabel && (
+            <Text style={styles.countryText}>{locationLabel}</Text>
+          )
+        }
       </View>
 
       <TouchableOpacity
