@@ -3,6 +3,8 @@ import { Redirect, Stack } from "expo-router";
 import 'expo-dev-client';
 import { useAuth } from "@/contexts/sessionAuth";
 import Toast from 'react-native-toast-message';
+import { TamaguiProvider } from 'tamagui'
+import config from '../tamagui.config'
 
 // export default function App() {
 //   const { session } = useSession();

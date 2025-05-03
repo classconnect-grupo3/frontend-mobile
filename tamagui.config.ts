@@ -1,5 +1,5 @@
 import { createTamagui } from 'tamagui'
-import { config as defaultConfig } from '@tamagui/config/v3'
+import { config as defaultConfig } from '@tamagui/config'
 
 const config = createTamagui({
     ...defaultConfig,
@@ -10,7 +10,7 @@ const config = createTamagui({
         myTheme: {
             background: '#fff',
             color: '#111',
-            accent: '#3b82f6',
+            accent: '$indigo9',
             borderColor: '#ccc',
             // define more tokens if needed
         },
