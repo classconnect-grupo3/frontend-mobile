@@ -108,4 +108,20 @@ export const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 32,
   },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  input: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    color: '#000',
+  },
+  filterButton: {
+    marginLeft: 8,
+  },
 });
