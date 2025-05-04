@@ -118,9 +118,9 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Upcoming</Text>
+        <Text style={styles.title}>Upcoming Tasks</Text>
         <UpcomingTasksList tasks={MOCK_TASKS} />
-        <Text style={styles.title}>Courses</Text>
+        <Text style={styles.title}>Recent Courses</Text>
         <CourseList courses={MOCK_COURSES} />
         {
           locationLabel && (

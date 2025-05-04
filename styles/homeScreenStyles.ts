@@ -60,6 +60,10 @@ export const styles = StyleSheet.create({
     //  paddingBottom: 80,
     paddingVertical: 8,
   },
+  verticalList: {
+    gap: 12,
+    paddingBottom: 80,
+  },
   courseCard: {
     width: '100%',
     backgroundColor: '#f5f5f5',

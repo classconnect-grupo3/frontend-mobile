@@ -29,6 +29,11 @@ const styles = StyleSheet.create({
         marginRight: 12,
         borderRadius: 8,
         backgroundColor: '#f5f5f5',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     name: {
         fontWeight: 'bold',
