@@ -118,16 +118,21 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Upcoming Tasks</Text>
-        <UpcomingTasksList tasks={MOCK_TASKS} />
-        <Text style={styles.title}>Recent Courses</Text>
-        <CourseList courses={MOCK_COURSES} />
-        {
-          locationLabel && (
-            <Text style={styles.countryText}>{locationLabel}</Text>
-          )
-        }
+        <View style={styles.row}>
+          <Text style={styles.title}>Upcoming Tasks</Text>
+          <UpcomingTasksList tasks={MOCK_TASKS} />
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.title}>Recent Courses</Text>
+          <CourseList courses={MOCK_COURSES} />
+        </View>
       </View>
+
+      {
+        locationLabel && (
+          <Text style={styles.countryText}>{locationLabel}</Text>
+        )
+      }
 
 
       <TouchableOpacity

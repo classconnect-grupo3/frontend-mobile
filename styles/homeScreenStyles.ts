@@ -7,6 +7,9 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: '#fff',
   },
+  row: {
+    paddingBottom: 24,
+  },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -25,12 +28,13 @@ export const styles = StyleSheet.create({
     backgroundColor: '#ccc',
   },
   content: {
-    flex: 0,
+    flex: 1,
+
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 6,
   },
   coursesPlaceholder: {
     width: '100%',
@@ -49,6 +53,7 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: 'italic',
     color: '#666',
+    marginBottom: 12
   },
   courseGrid: {
     flexDirection: 'row',
@@ -56,7 +61,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   horizontalList: {
-    //  gap: 12,
+    gap: 12,
     //  paddingBottom: 80,
     paddingVertical: 8,
   },
