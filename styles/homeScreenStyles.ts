@@ -67,7 +67,7 @@ export const styles = StyleSheet.create({
   },
   verticalList: {
     gap: 12,
-    paddingBottom: 80,
+    paddingBottom: 24,
   },
   courseCard: {
     width: '100%',

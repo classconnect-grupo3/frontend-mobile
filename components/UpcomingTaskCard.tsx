@@ -25,6 +25,7 @@ export function UpcomingTaskCard({ task }: Props) {
 const styles = StyleSheet.create({
     card: {
         width: 200,
+        height: 120,
         padding: 12,
         borderRadius: 8,
         backgroundColor: '#f5f5f5',

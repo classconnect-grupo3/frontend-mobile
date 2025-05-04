@@ -32,6 +32,7 @@ export function WideCourseCard({ course }: Props) {
 const styles = StyleSheet.create({
   card: {
     width: '100%',
+    height: 120,
     padding: 12,
     marginRight: 12,
     borderRadius: 8,
