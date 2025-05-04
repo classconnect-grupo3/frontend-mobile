@@ -15,11 +15,17 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as Location from 'expo-location';
+import { UpcomingTasksList } from '@/components/UpcomingTaskList';
 
 const MOCK_COURSES = [
   { id: '1', title: 'TDA', teacher: 'Iñaki Llorens', due: 'TP1: Prog Dinamica' },
   { id: '2', title: 'Redes', teacher: 'Iñaki Llorens', due: 'Leer hasta 5.4' },
   { id: '3', title: 'Taller 1', teacher: 'Iñaki Llorens', due: 'TP Individual' },
+];
+const MOCK_TASKS = [
+  { id: '1', title: 'TP1: Prog Dinámica', course_name: 'TDA', due_date: '23/05/25', course_id: '1' },
+  { id: '2', title: 'Leer hasta 5.4', course_name: 'Redes', due_date: '24/05/25', course_id: '2' },
+  { id: '3', title: 'TP Individual', course_name: 'TDA', due_date: '25/05/25', course_id: '3' },
 ];
 
 export default function HomeScreen() {
@@ -31,7 +37,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const requestAndSaveLocation = async () => {
       if (!auth?.authState.authenticated) return;
-      
+
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
@@ -42,17 +48,17 @@ export default function HomeScreen() {
           });
           return;
         }
-  
+
         const location = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = location.coords;
-  
+
         const reverse = await Location.reverseGeocodeAsync({ latitude, longitude });
         if (reverse.length > 0) {
           const place = reverse[0];
           const label = `📍 ${place.city ?? place.name}, ${place.country}`;
           setLocationLabel(label);
         }
-  
+
         await client.post(
           '/users/me/location',
           { latitude, longitude },
@@ -62,7 +68,7 @@ export default function HomeScreen() {
             },
           }
         );
-  
+
         Toast.show({
           type: 'success',
           text1: 'Location saved',
@@ -77,7 +83,7 @@ export default function HomeScreen() {
         });
       }
     };
-  
+
     requestAndSaveLocation();
   }, [auth]);
 
@@ -103,7 +109,7 @@ export default function HomeScreen() {
           source={require('@/assets/images/logo.png')}
           style={styles.logo}
         />
-        <TouchableOpacity onPress={() => {router.push('/profile')}}>
+        <TouchableOpacity onPress={() => { router.push('/profile') }}>
           <Image
             source={require('@/assets/images/tuntungsahur.jpeg')}
             style={styles.profileIcon}
@@ -112,7 +118,9 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Your Courses</Text>
+        <Text style={styles.title}>Upcoming</Text>
+        <UpcomingTasksList tasks={MOCK_TASKS} />
+        <Text style={styles.title}>Courses</Text>
         <CourseList courses={MOCK_COURSES} />
         {
           locationLabel && (
@@ -120,6 +128,7 @@ export default function HomeScreen() {
           )
         }
       </View>
+
 
       <TouchableOpacity
         style={styles.fab}

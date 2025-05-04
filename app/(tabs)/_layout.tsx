@@ -31,6 +31,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
+          headerTitleAlign: 'left',
           tabBarIcon: ({ color }: { color: string }) => <FontAwesome size={28} name="home" color={color} />,
         }}
       />
@@ -38,6 +39,7 @@ export default function TabLayout() {
         name="search"
         options={{
           title: 'Search',
+          headerTitleAlign: 'left',
           tabBarIcon: ({ color }: { color: string }) => <FontAwesome name="search" size={28} color={color} />,
         }}
       />
@@ -45,6 +47,7 @@ export default function TabLayout() {
         name="my-courses"
         options={{
           title: 'My Courses',
+          headerTitleAlign: 'left',
           tabBarIcon: ({ color }: { color: string }) => <FontAwesome size={28} name="bars" color={color} />,
         }}
       />

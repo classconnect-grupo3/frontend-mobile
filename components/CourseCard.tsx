@@ -31,10 +31,12 @@ export function CourseCard({ course }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    width: '100%',
+    width: 200,
+    padding: 12,
+    marginRight: 12,
+    borderRadius: 8,
     backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    padding: 16,
+
     marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
