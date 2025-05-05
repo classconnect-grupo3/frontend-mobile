@@ -9,6 +9,7 @@ import {
     Modal,
 } from 'react-native';
 import { UpcomingTasksList } from '@/components/UpcomingTaskList';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const MOCK_COURSES = [
     { id: '1', title: 'TDA', teacher: 'Iñaki Llorens', due: 'TP1: Prog Dinamica' },
@@ -66,6 +67,13 @@ export default function MyCoursesScreen() {
                     >
                         <Text style={localStyles.pageButtonText}>Next</Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={() => { router.push('/profile') }}
+                        style={localStyles.createCourseButton}
+                    >
+                        <MaterialCommunityIcons name="book-plus-multiple" size={28} color='white' />
+                    </TouchableOpacity>
                 </View>
             </View>
         </View>
@@ -75,22 +83,31 @@ export default function MyCoursesScreen() {
 const localStyles = StyleSheet.create({
     paginationContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'center',
         marginTop: 16,
+        marginBottom: 12,
     },
     pageButton: {
         backgroundColor: '#007AFF',
         padding: 10,
         borderRadius: 6,
+        margin: 4,
     },
     pageButtonText: {
         color: 'white',
     },
     pageIndicator: {
+        margin: 4,
         fontSize: 16,
     },
     disabledButton: {
         backgroundColor: '#ccc',
     },
+    createCourseButton: {
+        margin: 6,
+        backgroundColor: '#007AFF',
+        padding: 10,
+        borderRadius: 6,
+    }
 });
