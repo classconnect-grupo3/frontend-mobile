@@ -1,15 +1,14 @@
 import { VerticalCourseList } from '@/components/VerticalCourseList';
 import { styles } from '@/styles/homeScreenStyles';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { View, FlatList, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { router, useRouter } from 'expo-router';
 import {
     Button,
     Image,
     Modal,
-    Text,
-    TouchableOpacity,
-    View
 } from 'react-native';
+import { UpcomingTasksList } from '@/components/UpcomingTaskList';
 
 const MOCK_COURSES = [
     { id: '1', title: 'TDA', teacher: 'Iñaki Llorens', due: 'TP1: Prog Dinamica' },
@@ -20,27 +19,18 @@ const MOCK_COURSES = [
     { id: '6', title: 'Organización de Datos', teacher: 'Iñaki Llorens', due: 'TP Individual' },
 ];
 
-export default function HomeScreen() {
-    const router = useRouter();
-    const [showCreateCourse, setShowCreateCourse] = useState(false);
+const COURSES_PER_PAGE = 4;
 
-    const renderCourse = ({ item }: any) => (
-        <View style={styles.courseCard}>
-            <Text style={styles.courseTitle}>{item.title}</Text>
-            <Text style={styles.courseTeacher}>{item.teacher}</Text>
-            <Text style={styles.courseDetails}>Next: {item.due}</Text>
-        </View>
-    );
+export default function MyCoursesScreen() {
+    const [page, setPage] = useState(1);
+
+    const totalPages = Math.ceil(MOCK_COURSES.length / COURSES_PER_PAGE);
+    const start = (page - 1) * COURSES_PER_PAGE;
+    const end = start + COURSES_PER_PAGE;
+    const paginatedCourses = MOCK_COURSES.slice(start, end);
 
     return (
         <View style={styles.container}>
-            <Modal visible={showCreateCourse} animationType="slide">
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 20, marginBottom: 16 }}>Create Course (WIP)</Text>
-                    <Button title="Close" onPress={() => setShowCreateCourse(false)} />
-                </View>
-            </Modal>
-
             <View style={styles.topBar}>
                 <Image
                     source={require('@/assets/images/logo.png')}
@@ -55,17 +45,52 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.content}>
-                <Text style={styles.title}>My Courses</Text>
-                <VerticalCourseList courses={MOCK_COURSES} />
+                <VerticalCourseList courses={paginatedCourses} />
+                <View style={localStyles.paginationContainer}>
+                    <TouchableOpacity
+                        onPress={() => setPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={page === 1}
+                        style={[localStyles.pageButton, page === 1 && localStyles.disabledButton]}
+                    >
+                        <Text style={localStyles.pageButtonText}>Previous</Text>
+                    </TouchableOpacity>
+
+                    <Text style={localStyles.pageIndicator}>
+                        Page {page} of {totalPages}
+                    </Text>
+
+                    <TouchableOpacity
+                        onPress={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={page === totalPages}
+                        style={[localStyles.pageButton, page === totalPages && localStyles.disabledButton]}
+                    >
+                        <Text style={localStyles.pageButtonText}>Next</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
-
-
-            <TouchableOpacity
-                style={styles.fab}
-                onPress={() => setShowCreateCourse(true)}
-            >
-                <Text style={styles.fabText}>＋</Text>
-            </TouchableOpacity>
         </View>
     );
 }
+
+const localStyles = StyleSheet.create({
+    paginationContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 16,
+    },
+    pageButton: {
+        backgroundColor: '#007AFF',
+        padding: 10,
+        borderRadius: 6,
+    },
+    pageButtonText: {
+        color: 'white',
+    },
+    pageIndicator: {
+        fontSize: 16,
+    },
+    disabledButton: {
+        backgroundColor: '#ccc',
+    },
+});
