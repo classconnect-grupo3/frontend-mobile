@@ -8,7 +8,7 @@
    npm install
    ```
 
-2. Start the app
+2. Start the app  
 
    ```bash
     npx expo start

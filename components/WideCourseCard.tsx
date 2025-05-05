@@ -11,7 +11,7 @@ interface Props {
   course: Course;
 }
 
-export function CourseCard({ course }: Props) {
+export function WideCourseCard({ course }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -31,12 +31,12 @@ export function CourseCard({ course }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 200,
+    width: '100%',
     height: 120,
     padding: 12,
+    marginRight: 12,
     borderRadius: 8,
     backgroundColor: '#f5f5f5',
-    marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

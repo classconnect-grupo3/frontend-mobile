@@ -7,6 +7,9 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: '#fff',
   },
+  row: {
+    paddingBottom: 24,
+  },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -26,12 +29,12 @@ export const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    alignItems: 'center',
+
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 6,
   },
   coursesPlaceholder: {
     width: '100%',
@@ -50,16 +53,22 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: 'italic',
     color: '#666',
+    marginBottom: 12
   },
   courseGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  courseList: {
+  horizontalList: {
     gap: 12,
-    paddingBottom: 80,
-  },  
+    //  paddingBottom: 80,
+    paddingVertical: 8,
+  },
+  verticalList: {
+    gap: 12,
+    paddingBottom: 24,
+  },
   courseCard: {
     width: '100%',
     backgroundColor: '#f5f5f5',
@@ -107,5 +116,21 @@ export const styles = StyleSheet.create({
     color: 'white',
     fontSize: 28,
     lineHeight: 32,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  input: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    color: '#000',
+  },
+  filterButton: {
+    marginLeft: 8,
   },
 });
