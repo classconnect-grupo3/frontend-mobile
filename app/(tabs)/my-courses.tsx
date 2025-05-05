@@ -69,7 +69,7 @@ export default function MyCoursesScreen() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        onPress={() => { router.push('/profile') }}
+                        onPress={() => { router.push('/create-course') }}
                         style={localStyles.createCourseButton}
                     >
                         <MaterialCommunityIcons name="book-plus-multiple" size={28} color='white' />
