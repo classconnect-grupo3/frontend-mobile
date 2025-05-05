@@ -26,7 +26,7 @@ export default function CreateCourseScreen() {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.title}>Create Course</Text>
+            <Text style={styles.title}>Create a new course</Text>
 
             <TextInput
                 style={styles.input}
@@ -68,14 +68,14 @@ export default function CreateCourseScreen() {
             />
 
             <TouchableOpacity
-                style={[styles.submitButton, !isFormComplete && styles.disabled]}
+                style={[styles.createButton, !isFormComplete && styles.disabled]}
                 disabled={!isFormComplete}
                 onPress={() => {
-                    // You can handle submission logic later
-                    console.log('Submitted');
+                    // You can handle logic later
+                    console.log('Created');
                 }}
             >
-                <Text style={styles.submitText}>Submit</Text>
+                <Text style={styles.createText}>Create</Text>
             </TouchableOpacity>
         </ScrollView>
     );
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 15
     },
-    submitButton: {
+    createButton: {
         backgroundColor: '#007bff',
         padding: 15,
         alignItems: 'center',
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     disabled: {
         backgroundColor: '#aaa'
     },
-    submitText: {
+    createText: {
         color: '#fff',
         fontWeight: 'bold'
     }
