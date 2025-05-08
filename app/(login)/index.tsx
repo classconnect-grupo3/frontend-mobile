@@ -18,6 +18,7 @@ import { styles } from '@/styles/loginStyle';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons'; 
+import React from 'react';
 
 const schema = z.object({
   email: z.string().email('Must be a valid email'),

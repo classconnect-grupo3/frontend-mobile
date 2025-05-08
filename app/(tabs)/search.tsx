@@ -4,6 +4,8 @@ import { styles as homeStyles } from '@/styles/homeScreenStyles';
 import { Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import React from 'react';
+import Header from '@/components/Header';
 
 export default function SearchScreen() {
     const router = useRouter();
@@ -11,18 +13,7 @@ export default function SearchScreen() {
 
     return (
         <View style={homeStyles.container}>
-            <View style={homeStyles.topBar}>
-                <Image
-                    source={require('@/assets/images/logo.png')}
-                    style={homeStyles.logo}
-                />
-                <TouchableOpacity onPress={() => router.push('/profile')}>
-                    <Image
-                        source={require('@/assets/images/tuntungsahur.jpeg')}
-                        style={homeStyles.profileIcon}
-                    />
-                </TouchableOpacity>
-            </View>
+            <Header/>
 
             <View style={localStyles.searchBar}>
                 <TextInput

@@ -3,12 +3,7 @@ import { Redirect, Stack } from "expo-router";
 import 'expo-dev-client';
 import { useAuth } from "@/contexts/sessionAuth";
 import Toast from 'react-native-toast-message';
-
-// export default function App() {
-//   const { session } = useSession();
-//   if (!session) return <Redirect href="/(login)" />;
-//   return <Redirect href="/(tabs)" />;
-// }
+import React from "react";
 
 export default function App() {
     const authContext = useAuth();
@@ -26,7 +21,7 @@ export default function App() {
         );
     } else {
         return (<>
-            <Redirect href="/(login)" />
+            <Redirect href="/(tabs)" />
             <Toast />
         </>
         );
