@@ -49,6 +49,7 @@ export default function TabLayout() {
           title: 'My Courses',
           headerTitleAlign: 'left',
           tabBarIcon: ({ color }: { color: string }) => <FontAwesome size={28} name="bars" color={color} />,
+          headerShown: false,
         }}
       />
     </Tabs>

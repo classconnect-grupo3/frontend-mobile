@@ -16,6 +16,7 @@ type AuthState = {
   };
 
 interface AuthContextType {
+    loginWithGoogle(id_token: string): unknown;
     authState: AuthState;
     register: (name: string, surname: string, email: string, password: string) => Promise<any>;
     login: (email: string, password: string) => Promise<any>;
@@ -57,7 +58,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
 
     const login = async (email: string, password: string) => {
         try {
-          const { data } = await client.post("/login", { email, password });
+          const { data } = await client.post("/login/email", { email, password });
           console.log("Login data: ", data);
           const token = data.id_token;
           const location = data.user_location ?? null;
@@ -66,6 +67,25 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
           client.defaults.headers.common['Authorization'] = "Bearer ${token}";
       
           setAuthState({ token, authenticated: true, location }); 
+      
+          router.replace("/(tabs)");
+        } catch (error) {
+          throw error;
+        }
+      };
+
+      const loginWithGoogle = async (idToken: string) => {
+        try {
+          const { data } = await client.post("/login/google", { id_token: idToken });
+          console.log("Google Login data: ", data);
+      
+          const token = data.id_token;
+          const location = data.user_location ?? null;
+      
+          await SecureStore.setItemAsync(TOKEN_KEY, token);
+          client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+          setAuthState({ token, authenticated: true, location });
       
           router.replace("/(tabs)");
         } catch (error) {
@@ -85,6 +105,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         authState,
         register,
         login,
+        loginWithGoogle,
         logout,
     };
 

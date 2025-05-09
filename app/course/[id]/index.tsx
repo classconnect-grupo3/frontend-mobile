@@ -3,12 +3,26 @@ import { useCourses } from '@/contexts/CoursesContext';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useState } from 'react';
 import React from 'react';
+import { AntDesign } from '@expo/vector-icons'; // asegúrate de tener este paquete
+import { NewTaskModal } from '@/components/NewTaskModal';
+
+const MOCK_TASKS = [
+    { id: '1', title: 'TP1', description: 'Entrega del TP1, formato: zip con codigo', deadline: '2025-06-30' },
+  ]
+
+const alumnos = Array.from({ length: 20 }, (_, i) => `Padron: ${i + 1}`);
+const docentesTitulares = ['Iñaki Llorens', 'Martín Morilla'];
+const docentesAuxiliares = ['Emiliano Gómez', 'Martín Masivo', 'Fede FIUBA'];
 
 export default function CourseViewScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { courses } = useCourses();
   const [showMaterials, setShowMaterials] = useState(false);
+  const [showAlumnos, setShowAlumnos] = useState(false);
+  const [showForo, setShowForo] = useState(false);
+  const [tasks, setTasks] = useState(MOCK_TASKS);
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
   const course = courses.find((c) => c.id === id);
 
@@ -36,31 +50,115 @@ export default function CourseViewScreen() {
       </View>
 
       {/* Course Info */}
-      <Text style={styles.section}>{course.title}</Text>
-      <Text style={styles.section}>Tareas</Text>
-      <Text style={styles.section}>Modulo 1: Capa de Aplicacion</Text>
+      <Text style={styles.courseTitle}>{course.title}</Text>
+      <Text style={styles.sectionHeader}>Tareas</Text>
 
-      {/* Collapsible Material Section */}
-      <TouchableOpacity onPress={() => setShowMaterials(!showMaterials)} style={styles.materialToggle}>
-        <Text>📁 Click para desplegar material</Text>
+      <TouchableOpacity onPress={() => setShowTaskModal(true)} style={styles.addButton}>
+        <Text style={styles.addButtonText}>+ Agregar tarea</Text>
       </TouchableOpacity>
+
+      {tasks.map((task) => (
+        <View key={task.id} style={styles.taskCard}>
+          <Text style={styles.taskTitle}>{task.title}</Text>
+          <Text>{task.description}</Text>
+          <Text style={styles.taskDeadline}>⏰ {task.deadline}</Text>
+          <TouchableOpacity onPress={() => setTasks(tasks.filter(t => t.id !== task.id))}>
+            <Text style={styles.taskDelete}>Eliminar</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+
+      <NewTaskModal
+        visible={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+        onCreate={(task) => setTasks((prev) => [...prev, { ...task, id: Date.now().toString(), description: task.description || '' }])}
+      />
+
+      <Text style={styles.sectionHeader}>Modulo 1: Capa de Aplicacion</Text>
+
+      <TouchableOpacity
+        style={styles.materialToggle}
+        onPress={() => setShowMaterials(!showMaterials)}
+      >
+        <View style={styles.materialToggleRow}>
+          <AntDesign
+            name={showMaterials ? 'up' : 'down'}
+            size={16}
+            color="#333"
+            style={styles.arrowIcon}
+          />
+          <Text style={styles.materialToggleText}>Ver material</Text>
+        </View>
+      </TouchableOpacity>
+
       {showMaterials && (
         <View style={styles.materialLinks}>
-          <Text>• link 1</Text>
-          <Text>• link 2</Text>
-          <Text>• link 3</Text>
+          <Text>• Introducción al curso</Text>
+          <Text>• Presentación de la cátedra</Text>
+          <Text>• PDF: Sistemas Distribuidos - Módulo 1</Text>
         </View>
       )}
 
-      {/* Navigation */}
-      <TouchableOpacity style={styles.actionButton}>
-        <Text>Ver Alumnos</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.actionButton}>
-        <Text>Ver Docentes</Text>
+      {/* foro */}
+
+      <TouchableOpacity
+        style={styles.materialToggle}
+        onPress={() => setShowForo(!showForo)}
+      >
+        <View style={styles.materialToggleRow}>
+          <AntDesign
+            name={showForo ? 'up' : 'down'}
+            size={16}
+            color="#333"
+            style={styles.arrowIcon}
+          />
+          <Text style={styles.materialToggleText}>Ver foro</Text>
+        </View>
       </TouchableOpacity>
 
-      {/* Bottom nav is likely already handled in layout/tab router */}
+      {showForo && (
+        <View style={styles.materialLinks}>
+          <Text>Proximamente...</Text>
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={styles.materialToggle}
+        onPress={() => setShowAlumnos(!showAlumnos)}
+      >
+        <View style={styles.materialToggleRow}>
+          <AntDesign
+            name={showAlumnos ? 'up' : 'down'}
+            size={16}
+            color="#333"
+            style={styles.arrowIcon}
+          />
+          <Text style={styles.materialToggleText}>Ver alumnos</Text>
+        </View>
+      </TouchableOpacity>
+
+      {showAlumnos && (
+        <View style={styles.listContainer}>
+          {alumnos.map((a, i) => (
+            <Text key={i} style={styles.listItem}>• {a}</Text>
+          ))}
+        </View>
+      )}
+
+        <Text style={styles.sectionHeader}>Docentes Titulares</Text>
+        <View style={styles.listContainer}>
+          {docentesTitulares.map((d, i) => (
+            <Text key={i} style={styles.listItem}>• {d}</Text>
+          ))}
+        </View>
+
+        <Text style={styles.sectionHeader}>Docentes auxiliares</Text>
+        <View style={styles.listContainer}>
+          {docentesAuxiliares.map((d, i) => (
+            <Text key={i} style={styles.listItem}>• {d}</Text>
+          ))}
+        </View>
+
     </ScrollView>
   );
 }
@@ -99,15 +197,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontSize: 16,
   },
-  materialToggle: {
-    backgroundColor: '#e2e2e2',
-    padding: 12,
-    borderRadius: 6,
+    materialToggle: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     marginBottom: 8,
   },
   materialLinks: {
-    paddingLeft: 16,
+    backgroundColor: '#f9f9f9',
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 12,
+    paddingLeft: 20,
   },
   actionButton: {
     backgroundColor: '#ddd',
@@ -120,4 +222,88 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     marginTop: 16,
   },
+  materialToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  arrowIcon: {
+    marginRight: 8,
+  },
+  materialToggleText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  courseTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginTop: 12,
+    paddingHorizontal: 8,
+  },
+  taskCard: {
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+
+  taskTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+
+  taskDeadline: {
+    color: '#666',
+    marginTop: 4,
+  },
+
+  taskDelete: {
+    color: 'red',
+    marginTop: 8,
+  },
+
+  newTaskForm: {
+    marginTop: 12,
+    marginBottom: 24,
+  },
+
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 8,
+  },
+
+  addButton: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+
+  addButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  listContainer: {
+    paddingLeft: 12,
+    marginBottom: 16,
+  },
+
+  listItem: {
+    fontSize: 15,
+    marginBottom: 4,
+  },
 });
+
+export const options = {
+  headerShown: false,
+};
