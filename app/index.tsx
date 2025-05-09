@@ -21,7 +21,7 @@ export default function App() {
         );
     } else {
         return (<>
-            <Redirect href="/(tabs)" />
+            <Redirect href="/(login)" />
             <Toast />
         </>
         );
