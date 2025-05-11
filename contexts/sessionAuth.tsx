@@ -16,10 +16,10 @@ type AuthState = {
   };
 
 interface AuthContextType {
-    loginWithGoogle(id_token: string): unknown;
     authState: AuthState;
     register: (name: string, surname: string, email: string, password: string) => Promise<any>;
     login: (email: string, password: string) => Promise<any>;
+    loginWithGoogle(id_token: string): unknown;
     logout: () => Promise<any>;
 }
 
