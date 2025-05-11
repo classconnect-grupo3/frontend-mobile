@@ -27,7 +27,7 @@ export default function CreateCourseScreen() {
   const { addCourse } = useCourses();
   const router = useRouter();
   const [showStartPicker, setShowStartPicker] = useState(false);
-    const [showEndPicker, setShowEndPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
   const {
     control,

@@ -18,6 +18,7 @@ import { styles } from '@/styles/loginStyle';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons'; 
+import React from 'react';
 
 const schema = z.object({
   name: z.string().min(1, 'First name is required'),
@@ -83,9 +84,9 @@ export default function RegisterScreen() {
                 <>
                   {field === 'password' ? (
                     <>
-                      <View style={[styles.input, errors[field] && styles.inputError, { flexDirection: 'row', alignItems: 'center' }]}>
+                      <View style={[errors[field] && styles.inputError, { flexDirection: 'row', alignItems: 'center' }]}>
                         <TextInput
-                          style={{ flex: 1 }}
+                          style={styles.input}
                           placeholder="Password"
                           value={value}
                           onBlur={onBlur}

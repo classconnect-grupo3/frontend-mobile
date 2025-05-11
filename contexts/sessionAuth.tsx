@@ -58,7 +58,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
 
     const login = async (email: string, password: string) => {
         try {
-          const { data } = await client.post("/login/email", { email, password });
+          const { data } = await client.post("/login", { email, password });
           console.log("Login data: ", data);
           const token = data.id_token;
           const location = data.user_location ?? null;
@@ -70,6 +70,9 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
       
           router.replace("/(tabs)");
         } catch (error) {
+          console.log("Login error: ", error);
+          console.log("email: ", email);
+          console.log("password: ", password);
           throw error;
         }
       };

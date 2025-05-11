@@ -1,15 +1,14 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import React, { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { Modal, Platform, TextInput, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { z } from 'zod';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'El título es obligatorio'),
   description: z.string().optional(),
-  deadline: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato debe ser YYYY-MM-DD'),
+  deadline: z.date({ required_error: 'La fecha es obligatoria' }),
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
@@ -17,7 +16,7 @@ type TaskFormData = z.infer<typeof taskSchema>;
 interface Props {
   visible: boolean;
   onClose: () => void;
-  onCreate: (task: TaskFormData) => void;
+  onCreate: (task: { title: string; description?: string; deadline: string }) => void;
 }
 
 export function NewTaskModal({ visible, onClose, onCreate }: Props) {
@@ -25,14 +24,24 @@ export function NewTaskModal({ visible, onClose, onCreate }: Props) {
     control,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isValid },
   } = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
     mode: 'onChange',
   });
 
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const deadline = watch('deadline');
+
   const submit = (data: TaskFormData) => {
-    onCreate(data);
+    onCreate({
+      title: data.title,
+      description: data.description,
+      deadline: data.deadline.toISOString(),
+    });
     reset();
     onClose();
   };
@@ -42,33 +51,78 @@ export function NewTaskModal({ visible, onClose, onCreate }: Props) {
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <Text style={styles.title}>Nueva Tarea</Text>
+          <Text style={{ marginBottom: 12, color: '#333' }}>
+            Agrega una nueva tarea para tus alumnos.
+          </Text>
+          {/* Título */}
+          <Text style={styles.subtitle}>Titulo</Text>
+          <View style={styles.inputGroup}>
+            <Controller
+              control={control}
+              name="title"
+              render={({ field }) => (
+                <>
+                  <TextInput
+                    style={[styles.input, errors.title && styles.inputError]}
+                    placeholder="Título"
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    onChangeText={field.onChange}
+                  />
+                  {errors.title && <Text style={styles.errorText}>{errors.title.message}</Text>}
+                </>
+              )}
+            />
+          </View>
 
-          {['title', 'description', 'deadline'].map((field) => (
-            <View key={field} style={styles.inputGroup}>
-              <Controller
-                control={control}
-                name={field as keyof TaskFormData}
-                render={({ field: { value, onChange, onBlur } }) => (
-                  <>
-                    <TextInput
-                      style={[styles.input, errors[field as keyof TaskFormData] && styles.inputError]}
-                      placeholder={
-                        field === 'deadline' ? 'YYYY-MM-DD' :
-                        field === 'title' ? 'Título' : 'Descripción'
-                      }
-                      value={value}
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                    />
-                    {errors[field as keyof TaskFormData] && (
-                      <Text style={styles.errorText}>{errors[field as keyof TaskFormData]?.message}</Text>
-                    )}
-                  </>
-                )}
-              />
-            </View>
-          ))}
+          {/* Descripción */}
+          <Text style={styles.subtitle}>Descripción</Text>
+          <View style={styles.inputGroup}>
+            <Controller
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Descripción"
+                  value={field.value}
+                  onBlur={field.onBlur}
+                  onChangeText={field.onChange}
+                />
+              )}
+            />
+          </View>
 
+          {/* Fecha (picker) */}
+          <Text style={styles.subtitle}>Fecha de Entrega</Text>
+          <View style={styles.inputGroup}>
+            <Text style={{ marginBottom: 6 }}>Deadline</Text>
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={{ color: '#333' }}>
+                {deadline ? new Date(deadline).toLocaleDateString() : 'Seleccionar fecha'}
+              </Text>
+            </TouchableOpacity>
+            {errors.deadline && <Text style={styles.errorText}>{errors.deadline.message}</Text>}
+          </View>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={deadline ?? new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, date) => {
+                setShowDatePicker(false);
+                if (date) {
+                  setValue('deadline', date, { shouldValidate: true });
+                }
+              }}
+            />
+          )}
+
+          {/* Botón de enviar */}
           <TouchableOpacity
             onPress={handleSubmit(submit)}
             style={[styles.button, !isValid && { backgroundColor: '#ccc' }]}
@@ -92,6 +146,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#00000088',
     justifyContent: 'center',
     alignItems: 'center',
+    color: '#333',
   },
   modal: {
     width: '85%',
@@ -105,15 +160,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
     textAlign: 'center',
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 6,
+    color: '#333',
   },
   inputGroup: {
     marginBottom: 12,
+    color: '#333',
   },
   input: {
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
     padding: 10,
+    color: '#333',
   },
   inputError: {
     borderColor: 'red',
