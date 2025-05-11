@@ -4,6 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useAuth } from '@/contexts/sessionAuth';
 import { client } from '@/lib/http';
 import { router } from 'expo-router';
+import React from 'react';
 
 export default function LocationScreen() {
   const auth = useAuth();

@@ -1,4 +1,6 @@
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import React from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface Course {
   id: string;
@@ -13,19 +15,21 @@ interface Props {
 
 export function WideCourseCard({ course }: Props) {
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.info}>
-          <Text style={styles.title}>{course.title}</Text>
-          <Text style={styles.teacher}>{course.teacher}</Text>
+    <TouchableOpacity onPress={() => router.push(`/course/${course.id}`)}>
+      <View style={styles.card}>
+        <View style={styles.header}>
+          <View style={styles.info}>
+            <Text style={styles.title}>{course.title}</Text>
+            <Text style={styles.teacher}>{course.teacher}</Text>
+          </View>
+          <Image
+            source={require('@/assets/images/profile-placeholder.jpeg')}
+            style={styles.avatar}
+          />
         </View>
-        <Image
-          source={require('@/assets/images/profile-placeholder.jpeg')}
-          style={styles.avatar}
-        />
+        <Text style={styles.due}>Next: {course.due}</Text>
       </View>
-      <Text style={styles.due}>Next: {course.due}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 

@@ -20,6 +20,7 @@ import Toast from 'react-native-toast-message';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, Controller } from 'react-hook-form';
+import React from 'react';
 
 const schema = z.object({
   name: z.string().min(1, 'First name is required'),

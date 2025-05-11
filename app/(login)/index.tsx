@@ -16,8 +16,15 @@ import { useAuth } from '@/contexts/sessionAuth';
 import { useRouter } from 'expo-router';
 import { styles } from '@/styles/loginStyle';
 import { Link } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons'; 
+import React from 'react';
+
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const schema = z.object({
   email: z.string().email('Must be a valid email'),
@@ -44,6 +51,33 @@ export default function LoginScreen() {
     },
   });
 
+  // Google Sign-In
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, 
+    redirectUri: makeRedirectUri({
+      useProxy: true,
+    }),
+    scopes: ['openid', 'profile', 'email'],
+    responseType: 'id_token',
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+
+      // ✅ Llamamos al backend a través del contexto auth
+      if (auth && id_token) {
+        auth.loginWithGoogle(id_token).catch((e: any) => {
+          Toast.show({
+            type: 'error',
+            text1: 'Google Login failed',
+            text2: e?.message ?? 'Something went wrong',
+          });
+        });
+      }
+    }
+  }, [response]);
+
   const onSubmit = async (data: FormData) => {
     try {
       if (auth) {
@@ -54,7 +88,7 @@ export default function LoginScreen() {
     } catch (e: any) {
       Toast.show({
         type: 'error',
-        text1: 'Registration failed',
+        text1: 'Login failed',
         text2: e?.response?.data?.detail ?? e?.message ?? 'Something went wrong',
       });
     }
@@ -133,6 +167,15 @@ export default function LoginScreen() {
             <Text style={styles.buttonText}>
               {isSubmitting ? "Logging in..." : "Login"}
             </Text>
+          </TouchableOpacity>
+
+          {/* Botón Login con Google */}
+          <TouchableOpacity
+            style={[styles.button, { marginTop: 10, backgroundColor: '#DB4437' }]}
+            onPress={() => promptAsync()}
+            disabled={!request}
+          >
+            <Text style={styles.buttonText}>Login con Google</Text>
           </TouchableOpacity>
 
           <Link style={[styles.link, { marginTop: 12 }]} href="/(login)/register">

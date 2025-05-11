@@ -1,13 +1,8 @@
 import { View, FlatList } from 'react-native';
 import { styles } from '@/styles/homeScreenStyles';
 import { CourseCard } from './CourseCard';
-
-interface Course {
-  id: string;
-  title: string;
-  teacher: string;
-  due: string;
-}
+import { Course } from '@/contexts/CoursesContext';
+import React from 'react';
 
 interface CourseListProps {
   courses: Course[];

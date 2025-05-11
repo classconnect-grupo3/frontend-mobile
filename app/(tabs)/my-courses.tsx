@@ -10,43 +10,30 @@ import {
 } from 'react-native';
 import { UpcomingTasksList } from '@/components/UpcomingTaskList';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-const MOCK_COURSES = [
-    { id: '1', title: 'TDA', teacher: 'Iñaki Llorens', due: 'TP1: Prog Dinamica' },
-    { id: '2', title: 'Redes', teacher: 'Iñaki Llorens', due: 'Leer hasta 5.4' },
-    { id: '3', title: 'Taller 1', teacher: 'Iñaki Llorens', due: 'TP Individual' },
-    { id: '4', title: 'Taller 2', teacher: 'Iñaki Llorens', due: 'TP1: Prog Dinamica' },
-    { id: '5', title: 'Taller de Ciberseguridad y Criptografia', teacher: 'Iñaki Llorens', due: 'Leer hasta 5.4' },
-    { id: '6', title: 'Organización de Datos', teacher: 'Iñaki Llorens', due: 'TP Individual' },
-];
+import React from 'react';
+import { useCourses } from '@/contexts/CoursesContext';
+import Header from '@/components/Header';
 
 const COURSES_PER_PAGE = 4;
 
 export default function MyCoursesScreen() {
     const [page, setPage] = useState(1);
+    const {courses, addCourse} = useCourses();
 
-    const totalPages = Math.ceil(MOCK_COURSES.length / COURSES_PER_PAGE);
+    const totalPages = Math.ceil(courses.length / COURSES_PER_PAGE);
     const start = (page - 1) * COURSES_PER_PAGE;
     const end = start + COURSES_PER_PAGE;
-    const paginatedCourses = MOCK_COURSES.slice(start, end);
+    const paginatedCourses = courses.slice(start, end);
 
     return (
         <View style={styles.container}>
-            <View style={styles.topBar}>
-                <Image
-                    source={require('@/assets/images/logo.png')}
-                    style={styles.logo}
-                />
-                <TouchableOpacity onPress={() => { router.push('/profile') }}>
-                    <Image
-                        source={require('@/assets/images/tuntungsahur.jpeg')}
-                        style={styles.profileIcon}
-                    />
-                </TouchableOpacity>
-            </View>
+            <Header/>
 
             <View style={styles.content}>
-                <VerticalCourseList courses={paginatedCourses} />
+                <VerticalCourseList courses={paginatedCourses.map(course => ({
+                    ...course,
+                    due: course.due || '',
+                }))} />
                 <View style={localStyles.paginationContainer}>
                     <TouchableOpacity
                         onPress={() => setPage((prev) => Math.max(prev - 1, 1))}

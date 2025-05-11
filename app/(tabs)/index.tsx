@@ -16,12 +16,10 @@ import {
 import Toast from 'react-native-toast-message';
 import * as Location from 'expo-location';
 import { UpcomingTasksList } from '@/components/UpcomingTaskList';
+import React from 'react';
+import { useCourses } from '@/contexts/CoursesContext';
+import Header from '@/components/Header';
 
-const MOCK_COURSES = [
-  { id: '1', title: 'TDA', teacher: 'Iñaki Llorens', due: 'TP1: Prog Dinamica' },
-  { id: '2', title: 'Redes', teacher: 'Iñaki Llorens', due: 'Leer hasta 5.4' },
-  { id: '3', title: 'Taller 1', teacher: 'Iñaki Llorens', due: 'TP Individual' },
-];
 const MOCK_TASKS = [
   { id: '1', title: 'TP1: Prog Dinámica', course_name: 'TDA', due_date: '23/05/25', course_id: '1' },
   { id: '2', title: 'Leer hasta 5.4', course_name: 'Redes', due_date: '24/05/25', course_id: '2' },
@@ -33,6 +31,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [locationLabel, setLocationLabel] = useState<string | null>(null);
+  const {courses, addCourse} = useCourses();
 
   useEffect(() => {
     const requestAndSaveLocation = async () => {
@@ -44,6 +43,11 @@ export default function HomeScreen() {
           Toast.show({
             type: 'error',
             text1: 'Location permission denied',
+            // export default function App() {
+            //   const { session } = useSession();
+            //   if (!session) return <Redirect href="/(login)" />;
+            //   return <Redirect href="/(tabs)" />;
+            // }
             text2: 'We couldn’t access your location.',
           });
           return;
@@ -104,18 +108,7 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      <View style={styles.topBar}>
-        <Image
-          source={require('@/assets/images/logo.png')}
-          style={styles.logo}
-        />
-        <TouchableOpacity onPress={() => { router.push('/profile') }}>
-          <Image
-            source={require('@/assets/images/tuntungsahur.jpeg')}
-            style={styles.profileIcon}
-          />
-        </TouchableOpacity>
-      </View>
+      <Header/>
 
       <View style={styles.content}>
         <View style={styles.row}>
@@ -124,7 +117,7 @@ export default function HomeScreen() {
         </View>
         <View style={styles.row}>
           <Text style={styles.title}>Recent Courses</Text>
-          <CourseList courses={MOCK_COURSES} />
+          <CourseList courses={courses} />
         </View>
       </View>
 

@@ -9,14 +9,20 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.classconnect.firebase"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.inakillorens.classconnectfrontendmobile"
+      "googleServicesFile": "./google-services.json",
+      "package": "com.classconnect.firebase",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -35,7 +41,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-location"
+      "expo-location",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true
