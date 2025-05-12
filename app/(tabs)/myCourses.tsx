@@ -13,17 +13,26 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { useCourses } from '@/contexts/CoursesContext';
 import Header from '@/components/Header';
+import { CreateCourseModal } from '@/components/CreateCourseModal';
+import { fetchUserData } from '@/services/userProfile';
+import { useAuth } from '@/contexts/sessionAuth';
 
 const COURSES_PER_PAGE = 4;
 
 export default function MyCoursesScreen() {
     const [page, setPage] = useState(1);
     const {courses, addCourse} = useCourses();
+    const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
+    const { reloadCourses } = useCourses();
 
-    const totalPages = Math.ceil(courses.length / COURSES_PER_PAGE);
+    const totalPages = Math.ceil(courses?.length ?? 0 / COURSES_PER_PAGE);
     const start = (page - 1) * COURSES_PER_PAGE;
     const end = start + COURSES_PER_PAGE;
-    const paginatedCourses = courses.slice(start, end);
+    const paginatedCourses = courses?.slice(start, end) ?? [];
+
+    // useEffect(() => {
+    //     reloadCourses();
+    // }, []);
 
     return (
         <View style={styles.container}>
@@ -32,7 +41,6 @@ export default function MyCoursesScreen() {
             <View style={styles.content}>
                 <VerticalCourseList courses={paginatedCourses.map(course => ({
                     ...course,
-                    due: course.due || '',
                 }))} />
                 <View style={localStyles.paginationContainer}>
                     <TouchableOpacity
@@ -56,11 +64,15 @@ export default function MyCoursesScreen() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        onPress={() => { router.push('/create-course') }}
+                        onPress={() => setShowCreateCourseModal(true)}
                         style={localStyles.createCourseButton}
                     >
                         <MaterialCommunityIcons name="book-plus-multiple" size={28} color='white' />
                     </TouchableOpacity>
+                    <CreateCourseModal 
+                        visible={showCreateCourseModal} 
+                        onClose={() => setShowCreateCourseModal(false)} 
+                    />
                 </View>
             </View>
         </View>

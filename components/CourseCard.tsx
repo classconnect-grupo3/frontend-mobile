@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 
 interface Course {
@@ -48,14 +49,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+    color: '#333',
   },
   info: {
     flex: 1,
     marginRight: 12,
+    color: '#333',
   },
   title: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#333',
   },
   teacher: {
     fontSize: 14,

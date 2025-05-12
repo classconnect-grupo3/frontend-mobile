@@ -13,6 +13,11 @@ type AuthState = {
     token: string | null;
     authenticated: boolean;
     location?: string | null; 
+    user?: {
+        id: string;
+        name: string;
+        surname: string;
+    }
   };
 
 interface AuthContextType {
@@ -34,18 +39,49 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
     const [authState, setAuthState] = useState<AuthState>({
         token: null,
         authenticated: false,
+        location: null,
+        user: undefined,
     });
+
+    const fetchUser = async (token: string) => {
+      try {
+        const { data } = await client.get('/users/me', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log('User data fetched:', data);
+
+        const user = {
+          id: data.data.uid,
+          name: data.data.name,
+          surname: data.data.surname,
+        }
+
+        console.log('User data for saved in fetchUser:', user);
+
+        return user;
+      } catch (e) {
+        console.error('Failed to fetch user info:', e);
+        return undefined;
+      }
+    };
 
     useEffect(() => {
         const loadToken = async () => {
             const token = await SecureStore.getItemAsync(TOKEN_KEY);
 
-            console.log("stored: ", token);
-
             if (token) {
                 client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                const user = await fetchUser(token);
 
-                setAuthState({ token, authenticated: true });
+                setAuthState((prev) => ({
+                  ...prev,
+                  token, 
+                  authenticated: true, 
+                  user 
+                }));
             }
         };
         loadToken();
@@ -57,44 +93,44 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
     };
 
     const login = async (email: string, password: string) => {
-        try {
-          const { data } = await client.post("/login", { email, password });
-          console.log("Login data: ", data);
-          const token = data.id_token;
-          const location = data.user_location ?? null;
-      
-          await SecureStore.setItemAsync(TOKEN_KEY, token);
-          client.defaults.headers.common['Authorization'] = "Bearer ${token}";
-      
-          setAuthState({ token, authenticated: true, location }); 
-      
-          router.replace("/(tabs)");
-        } catch (error) {
-          console.log("Login error: ", error);
-          console.log("email: ", email);
-          console.log("password: ", password);
-          throw error;
-        }
-      };
+      try {
+        const { data } = await client.post("/login", { email, password });
+        const token = data.id_token;
+        const location = data.user_location ?? null;
 
-      const loginWithGoogle = async (idToken: string) => {
-        try {
-          const { data } = await client.post("/login/google", { id_token: idToken });
-          console.log("Google Login data: ", data);
-      
-          const token = data.id_token;
-          const location = data.user_location ?? null;
-      
-          await SecureStore.setItemAsync(TOKEN_KEY, token);
-          client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-          setAuthState({ token, authenticated: true, location });
-      
-          router.replace("/(tabs)");
-        } catch (error) {
-          throw error;
-        }
-      };
+        await SecureStore.setItemAsync(TOKEN_KEY, token);
+        client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+        const user = await fetchUser(token);
+
+        console.log('User data for saved in login:', user);
+
+        setAuthState({ token, authenticated: true, location, user });
+
+        router.replace("/(tabs)");
+      } catch (error) {
+        throw error;
+      }
+    };
+
+    const loginWithGoogle = async (idToken: string) => {
+      try {
+        const { data } = await client.post("/login/google", { id_token: idToken });
+        console.log("Google Login data: ", data);
+    
+        const token = data.id_token;
+        const location = data.user_location ?? null;
+    
+        await SecureStore.setItemAsync(TOKEN_KEY, token);
+        client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    
+        setAuthState({ token, authenticated: true, location });
+    
+        router.replace("/(tabs)");
+      } catch (error) {
+        throw error;
+      }
+    };
 
     const logout = async () => {
         await SecureStore.deleteItemAsync(TOKEN_KEY);

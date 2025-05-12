@@ -1,13 +1,7 @@
+import { Course } from '@/contexts/CoursesContext';
 import { router } from 'expo-router';
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-
-interface Course {
-  id: string;
-  title: string;
-  teacher: string;
-  due: string;
-}
 
 interface Props {
   course: Course;
@@ -27,7 +21,8 @@ export function WideCourseCard({ course }: Props) {
             style={styles.avatar}
           />
         </View>
-        <Text style={styles.due}>Next: {course.due}</Text>
+        <Text style={styles.due}>Starting date: {course.startingDate}</Text>
+        <Text style={styles.due}>End date: {course.endDate}</Text>
       </View>
     </TouchableOpacity>
   );
