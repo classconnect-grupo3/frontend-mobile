@@ -137,4 +137,9 @@ export const styles = StyleSheet.create({
   filterButton: {
     marginLeft: 8,
   },
+  emptyText: {
+      color: '#666',
+      marginBottom: 16,
+      textAlign: 'center',
+  },
 });

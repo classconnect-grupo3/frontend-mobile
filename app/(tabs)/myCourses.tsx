@@ -1,8 +1,7 @@
 import { VerticalCourseList } from '@/components/courses/VerticalCourseList';
 import { styles } from '@/styles/homeScreenStyles';
-import { styles as paginationStyles } from '@/styles/paginationStyles';
 import { useEffect, useState } from 'react';
-import { View, FlatList, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, FlatList, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { router, useRouter } from 'expo-router';
 import {
     Button,
@@ -12,84 +11,90 @@ import {
 import { UpcomingTasksList } from '@/components/UpcomingTaskList';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
-import { useCourses } from '@/contexts/CoursesContext';
+import { Course, useCourses } from '@/contexts/CoursesContext';
 import Header from '@/components/Header';
 import { CreateCourseModal } from '@/components/courses/CreateCourseModal';
 import { fetchUserData } from '@/services/userProfile';
 import { useAuth } from '@/contexts/sessionAuth';
+import { WideCourseCard } from '@/components/courses/WideCourseCard';
 
 const COURSES_PER_PAGE = 4;
 
 export default function MyCoursesScreen() {
-    const [page, setPage] = useState(1);
     const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
     const { courses, reloadCourses, isLoadingCourses } = useCourses();
 
-    const totalPages = Math.ceil(courses?.length ?? 0 / COURSES_PER_PAGE);
-    const start = (page - 1) * COURSES_PER_PAGE;
-    const end = start + COURSES_PER_PAGE;
-    const paginatedCourses = courses?.slice(start, end) ?? [];
+    const teachingCourses = courses;
+    const enrolledCourses: Course[] = [];
 
     useEffect(() => {
         reloadCourses();
     }, []);
 
     return (
-        <View style={styles.container}>
-            <Header/>
+    <View style={styles.container}>
+      <Header />
 
-            {isLoadingCourses ? (
-                <ActivityIndicator size="large" style={{ marginTop: 40 }} />
-                ) : (
-                <VerticalCourseList courses={paginatedCourses} />
-                )}
+      <ScrollView contentContainerStyle={localStyles.scrollContent}>
+        <Text style={styles.title}>Courses in which I teach</Text>
+        {isLoadingCourses ? (
+          <ActivityIndicator size="large" style={{ marginVertical: 24 }} />
+        ) : teachingCourses.length === 0 ? (
+          <Text style={styles.emptyText}>No courses found.</Text>
+        ) : (
+          teachingCourses.map(course => (
+            <WideCourseCard key={course.id} course={course} />
+          ))
+        )}
 
-            <View style={styles.content}>
-                <VerticalCourseList courses={paginatedCourses.map(course => ({
-                    ...course,
-                }))} />
-                <View style={paginationStyles.paginationContainer}>
-                    <TouchableOpacity
-                        onPress={() => setPage((prev) => Math.max(prev - 1, 1))}
-                        disabled={page === 1}
-                        style={[paginationStyles.pageButton, page === 1 && paginationStyles.disabledButton]}
-                    >
-                        <Text style={paginationStyles.pageButtonText}>Previous</Text>
-                    </TouchableOpacity>
+        <Text style={[styles.title, { marginTop: 32 }]}>Courses which I attend</Text>
+        {enrolledCourses.length === 0 ? (
+          <Text style={styles.emptyText}>You are not enrolled in any courses.</Text>
+        ) : (
+          enrolledCourses.map(course => (
+            <WideCourseCard key={course.id} course={course} />
+          ))
+        )}
+      </ScrollView>
 
-                    <Text style={paginationStyles.pageIndicator}>
-                        Page {page} of {totalPages}
-                    </Text>
-
-                    <TouchableOpacity
-                        onPress={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-                        disabled={page === totalPages}
-                        style={[paginationStyles.pageButton, page === totalPages && paginationStyles.disabledButton]}
-                    >
-                        <Text style={paginationStyles.pageButtonText}>Next</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        onPress={() => setShowCreateCourseModal(true)}
-                        style={localStyles.createCourseButton}
-                    >
-                        <MaterialCommunityIcons name="book-plus-multiple" size={28} color='white' />
-                    </TouchableOpacity>
-                    <CreateCourseModal 
-                        visible={showCreateCourseModal} 
-                        onClose={() => setShowCreateCourseModal(false)} 
-                    />
-                </View>
-            </View>
+      <View style={localStyles.addButtonWrapper}>
+          <TouchableOpacity
+            onPress={() => setShowCreateCourseModal(true)}
+            style={localStyles.createCourseButton}
+          >
+            <MaterialCommunityIcons name="book-plus-multiple" size={28} color="white" />
+          </TouchableOpacity>
         </View>
-    );
+
+      <CreateCourseModal
+        visible={showCreateCourseModal}
+        onClose={() => setShowCreateCourseModal(false)}
+      />
+    </View>
+  );
 }
 
 const localStyles = StyleSheet.create({
+    scrollContent: {
+        padding: 16,
+        paddingBottom: 32,
+    },
+    addButtonWrapper: {
+        position: 'absolute',
+        bottom: 24,
+        right: 24,
+        zIndex: 10,
+    },
     createCourseButton: {
-        margin: 6,
         backgroundColor: '#007AFF',
-        padding: 10,
-        borderRadius: 6,
-    }
+        padding: 16,
+        borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 4,
+        elevation: 5,
+    },
 });

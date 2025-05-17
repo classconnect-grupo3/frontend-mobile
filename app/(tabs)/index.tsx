@@ -127,13 +127,6 @@ export default function HomeScreen() {
         )
       }
 
-
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setShowCreateCourse(true)}
-      >
-        <Text style={styles.fabText}>＋</Text>
-      </TouchableOpacity>
     </View>
   );
 }
