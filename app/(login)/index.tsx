@@ -82,6 +82,7 @@ export default function LoginScreen() {
     try {
       if (auth) {
         await auth.login(data.email, data.password);
+        console.log('Login successful');
       } else {
         throw new Error('Authentication context is not available');
       }
@@ -112,9 +113,9 @@ export default function LoginScreen() {
                 <>
                   {field === 'password' ? (
                     <>
-                      <View style={[styles.input, errors[field] && styles.inputError, { flexDirection: 'row', alignItems: 'center' }]}>
+                      <View style={[ errors[field] && styles.inputError, { flexDirection: 'row', alignItems: 'center' }]}>
                         <TextInput
-                          style={{ flex: 1 }}
+                          style={styles.input}
                           placeholder="Password"
                           value={value}
                           onBlur={onBlur}

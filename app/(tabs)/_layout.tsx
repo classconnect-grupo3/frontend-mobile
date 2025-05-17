@@ -44,7 +44,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="my-courses"
+        name="myCourses"
         options={{
           title: 'My Courses',
           headerTitleAlign: 'left',

@@ -29,12 +29,13 @@ export const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-
+    color: '#333',
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 6,
+    color: '#333',
   },
   coursesPlaceholder: {
     width: '100%',
@@ -46,7 +47,7 @@ export const styles = StyleSheet.create({
     marginBottom: 24,
   },
   placeholderText: {
-    color: '#888',
+    color: '#000',
     fontSize: 16,
   },
   countryText: {
@@ -59,6 +60,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    color: '#333',
   },
   horizontalList: {
     gap: 12,
@@ -80,11 +82,13 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    color: '#333',
   },
   courseTitle: {
     fontWeight: 'bold',
     fontSize: 16,
     marginBottom: 4,
+    color: '#333',
   },
   courseTeacher: {
     fontSize: 14,
@@ -113,7 +117,7 @@ export const styles = StyleSheet.create({
     elevation: 5,
   },
   fabText: {
-    color: 'white',
+    color: '#333',
     fontSize: 28,
     lineHeight: 32,
   },
@@ -132,5 +136,10 @@ export const styles = StyleSheet.create({
   },
   filterButton: {
     marginLeft: 8,
+  },
+  emptyText: {
+      color: '#666',
+      marginBottom: 16,
+      textAlign: 'center',
   },
 });

@@ -43,6 +43,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     backgroundColor: '#fff',
+    color: '#000',
     height: 44,
   },
   togglePassword: {
