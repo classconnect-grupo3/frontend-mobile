@@ -29,6 +29,11 @@ interface AuthContextType {
 }
 
 const TOKEN_KEY = 'session';
+const USER_ID_KEY = 'user_id';
+const USER_LOCATION_KEY = 'user_location';
+const USER_NAME_KEY = 'user_name';
+const USER_SURNAME_KEY = 'user_surname';
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -69,36 +74,38 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
     };
 
     useEffect(() => {
-        const loadToken = async () => {
-            const token = await SecureStore.getItemAsync(TOKEN_KEY);
+      const loadToken = async () => {
+        try {
+          const token = await SecureStore.getItemAsync(TOKEN_KEY);
+          const userId = await SecureStore.getItemAsync(USER_ID_KEY);
+          const userName = await SecureStore.getItemAsync(USER_NAME_KEY);
+          const userSurname = await SecureStore.getItemAsync(USER_SURNAME_KEY);
+          const userLocation = await SecureStore.getItemAsync(USER_LOCATION_KEY);
 
-            if (token) {
-                client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                // const user = await fetchUser(token);
+          if (token && userId && userName && userSurname) {
+            const user = {
+              id: userId,
+              name: userName,
+              surname: userSurname,
+            };
 
-                // if (user) {
-                //     setAuthState((prev) => ({
-                //     ...prev,
-                //     token, 
-                //     authenticated: true
-                //   }));
-                // } else {
-                //   setAuthState((prev) => ({
-                //     ...prev,
-                //     token, 
-                //     authenticated: true, 
-                //     user 
-                //   }));
-                // }
+            client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-                setAuthState((prev) => ({
-                    ...prev,
-                    token, 
-                    authenticated: true
-                  }));
-            }
-        };
-        loadToken();
+            setAuthState({
+              token,
+              authenticated: true,
+              user,
+              location: userLocation ?? null,
+            });
+          } else {
+            console.log('⛔ Datos de usuario incompletos en SecureStore');
+          }
+        } catch (e) {
+          console.error('Error loading auth state from SecureStore', e);
+        }
+      };
+
+      loadToken();
     }, []);
 
     const register = async (name: string, surname: string, email: string, password: string) => {
@@ -109,13 +116,24 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
     const login = async (email: string, password: string) => {
       try {
         const { data } = await client.post("/login/email", { email, password });
+        console.log("Login data: ", data);
         const token = data.id_token;
-        const location = data.user_location ?? null;
+        const user_info = data.user_info;
+        const user = {
+          id: user_info.uid,
+          name: user_info.name,
+          surname: user_info.surname,
+        }
+        const location = 'pending'
 
         await SecureStore.setItemAsync(TOKEN_KEY, token);
+        await SecureStore.setItemAsync(USER_ID_KEY, user.id);
+        await SecureStore.setItemAsync(USER_NAME_KEY, user.name);
+        await SecureStore.setItemAsync(USER_SURNAME_KEY, user.surname);
+
         client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-        const user = await fetchUser(token);
+        // const user = await fetchUser(token);
 
         console.log('User data for saved in login:', user);
 

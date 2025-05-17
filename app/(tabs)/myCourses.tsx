@@ -1,5 +1,6 @@
-import { VerticalCourseList } from '@/components/VerticalCourseList';
+import { VerticalCourseList } from '@/components/courses/VerticalCourseList';
 import { styles } from '@/styles/homeScreenStyles';
+import { styles as paginationStyles } from '@/styles/paginationStyles';
 import { useEffect, useState } from 'react';
 import { View, FlatList, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { router, useRouter } from 'expo-router';
@@ -13,7 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { useCourses } from '@/contexts/CoursesContext';
 import Header from '@/components/Header';
-import { CreateCourseModal } from '@/components/CreateCourseModal';
+import { CreateCourseModal } from '@/components/courses/CreateCourseModal';
 import { fetchUserData } from '@/services/userProfile';
 import { useAuth } from '@/contexts/sessionAuth';
 
@@ -47,25 +48,25 @@ export default function MyCoursesScreen() {
                 <VerticalCourseList courses={paginatedCourses.map(course => ({
                     ...course,
                 }))} />
-                <View style={localStyles.paginationContainer}>
+                <View style={paginationStyles.paginationContainer}>
                     <TouchableOpacity
                         onPress={() => setPage((prev) => Math.max(prev - 1, 1))}
                         disabled={page === 1}
-                        style={[localStyles.pageButton, page === 1 && localStyles.disabledButton]}
+                        style={[paginationStyles.pageButton, page === 1 && paginationStyles.disabledButton]}
                     >
-                        <Text style={localStyles.pageButtonText}>Previous</Text>
+                        <Text style={paginationStyles.pageButtonText}>Previous</Text>
                     </TouchableOpacity>
 
-                    <Text style={localStyles.pageIndicator}>
+                    <Text style={paginationStyles.pageIndicator}>
                         Page {page} of {totalPages}
                     </Text>
 
                     <TouchableOpacity
                         onPress={() => setPage((prev) => Math.min(prev + 1, totalPages))}
                         disabled={page === totalPages}
-                        style={[localStyles.pageButton, page === totalPages && localStyles.disabledButton]}
+                        style={[paginationStyles.pageButton, page === totalPages && paginationStyles.disabledButton]}
                     >
-                        <Text style={localStyles.pageButtonText}>Next</Text>
+                        <Text style={paginationStyles.pageButtonText}>Next</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -85,29 +86,6 @@ export default function MyCoursesScreen() {
 }
 
 const localStyles = StyleSheet.create({
-    paginationContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 16,
-        marginBottom: 12,
-    },
-    pageButton: {
-        backgroundColor: '#007AFF',
-        padding: 10,
-        borderRadius: 6,
-        margin: 4,
-    },
-    pageButtonText: {
-        color: 'white',
-    },
-    pageIndicator: {
-        margin: 4,
-        fontSize: 16,
-    },
-    disabledButton: {
-        backgroundColor: '#ccc',
-    },
     createCourseButton: {
         margin: 6,
         backgroundColor: '#007AFF',

@@ -1,6 +1,7 @@
 import { View, TextInput, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { styles as homeStyles } from '@/styles/homeScreenStyles';
+import { styles as searchBarStyles } from '@/styles/searchBarStyles';
 import { Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -15,39 +16,39 @@ export default function SearchScreen() {
         <View style={homeStyles.container}>
             <Header/>
 
-            <View style={localStyles.searchBar}>
+            <View style={searchBarStyles.searchBar}>
                 <TextInput
                     placeholder="Search"
-                    style={localStyles.input}
+                    style={searchBarStyles.input}
                     placeholderTextColor="#999"
                 />
-                <TouchableOpacity style={localStyles.filterButton}>
+                <TouchableOpacity style={searchBarStyles.filterButton}>
                     <FontAwesome name="filter" size={20} color="#333" />
                 </TouchableOpacity>
             </View>
 
             {/* Selection buttons */}
-            <View style={localStyles.toggleContainer}>
+            <View style={searchBarStyles.toggleContainer}>
                 <TouchableOpacity
                     style={[
-                        localStyles.toggleButton,
-                        selectedTab === 'courses' && localStyles.selectedButton,
+                        searchBarStyles.toggleButton,
+                        selectedTab === 'courses' && searchBarStyles.selectedButton,
                     ]}
                     onPress={() => setSelectedTab('courses')}
                 >
-                    <Text style={selectedTab === 'courses' ? localStyles.selectedText : localStyles.unselectedText}>
+                    <Text style={selectedTab === 'courses' ? searchBarStyles.selectedText : searchBarStyles.unselectedText}>
                         Courses
                     </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     style={[
-                        localStyles.toggleButton,
-                        selectedTab === 'users' && localStyles.selectedButton,
+                        searchBarStyles.toggleButton,
+                        selectedTab === 'users' && searchBarStyles.selectedButton,
                     ]}
                     onPress={() => setSelectedTab('users')}
                 >
-                    <Text style={selectedTab === 'users' ? localStyles.selectedText : localStyles.unselectedText}>
+                    <Text style={selectedTab === 'users' ? searchBarStyles.selectedText : searchBarStyles.unselectedText}>
                         Users
                     </Text>
                 </TouchableOpacity>
@@ -55,44 +56,3 @@ export default function SearchScreen() {
         </View>
     );
 }
-
-const localStyles = StyleSheet.create({
-    searchBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    input: {
-        flex: 1,
-        backgroundColor: '#eee',
-        padding: 10,
-        borderRadius: 8,
-    },
-    filterButton: {
-        marginLeft: 10,
-        padding: 10,
-        backgroundColor: '#ddd',
-        borderRadius: 8,
-    },
-    toggleContainer: {
-        flexDirection: 'row',
-        marginTop: 12,
-    },
-    toggleButton: {
-        flex: 1,
-        paddingVertical: 12,
-        backgroundColor: '#f0f0f0',
-        alignItems: 'center',
-        borderRadius: 8,
-        marginHorizontal: 4,
-    },
-    selectedButton: {
-        backgroundColor: '#007AFF',
-    },
-    selectedText: {
-        color: '#fff',
-        fontWeight: 'bold',
-    },
-    unselectedText: {
-        color: '#333',
-    },
-});

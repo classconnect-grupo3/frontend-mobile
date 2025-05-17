@@ -1,6 +1,6 @@
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import CreateCourseScreen from '@/components/CreateCourseScreen';
+import CreateCourseScreen from '@/components/courses/CreateCourseScreen';
 import React from 'react';
 
 

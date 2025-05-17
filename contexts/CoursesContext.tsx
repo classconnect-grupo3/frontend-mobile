@@ -6,11 +6,11 @@ import { courseClient } from '@/lib/courseClient';
 export interface Course {
   id: string;
   title: string;
-  description?: string;
-  teacher: string;
-  startingDate: string;
-  endDate: string;
-  capacity?: number;
+  description: string;
+  teacher_name: string;
+  start_date: string;
+  end_date: string;
+  capacity: number;
 }
 
 interface CoursesContextType {
@@ -69,7 +69,9 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
           Authorization: `Bearer ${authState.token}`,
         },
       });
+      console.log('Courses reloaded:', data);
       setCourses(data);
+      console.log('Courses state updated:', courses);
     } catch (e) {
       console.error('Error reloading courses:', e);
     } finally {

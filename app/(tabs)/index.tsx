@@ -1,5 +1,5 @@
 import { CountryPickerModal } from '@/components/CountryPickerModal';
-import { CourseList } from '@/components/CourseList';
+import { CourseList } from '@/components/courses/CourseList';
 import { useAuth } from '@/contexts/sessionAuth';
 import { client } from '@/lib/http';
 import { styles } from '@/styles/homeScreenStyles';

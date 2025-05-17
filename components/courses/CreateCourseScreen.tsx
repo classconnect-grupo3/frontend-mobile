@@ -3,7 +3,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCourses } from '../contexts/CoursesContext';
+import { useCourses } from '../../contexts/CoursesContext';
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import React, { useEffect, useState } from 'react';
