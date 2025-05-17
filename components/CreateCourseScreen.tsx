@@ -74,7 +74,6 @@ export default function CreateCourseScreen( { onClose }: Props) {
       Toast.show({ type: 'success', text1: 'Course created!' });
       reloadCourses();
       onClose();
-
     } catch (e: any) {
       console.error('Error creating course:', {
         message: e.message,

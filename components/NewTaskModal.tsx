@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Modal, Platform, TextInput, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { z } from 'zod';
+import { styles } from '@/styles/modalStyle';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'El título es obligatorio'),
@@ -139,68 +140,3 @@ export function NewTaskModal({ visible, onClose, onCreate }: Props) {
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: '#00000088',
-    justifyContent: 'center',
-    alignItems: 'center',
-    color: '#333',
-  },
-  modal: {
-    width: '85%',
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    elevation: 4,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-    color: '#333',
-  },
-  subtitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    color: '#333',
-  },
-  inputGroup: {
-    marginBottom: 12,
-    color: '#333',
-  },
-  input: {
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    color: '#333',
-  },
-  inputError: {
-    borderColor: 'red',
-  },
-  errorText: {
-    fontSize: 12,
-    color: 'red',
-    marginTop: 4,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  cancel: {
-    color: '#007AFF',
-    textAlign: 'center',
-    marginTop: 12,
-  },
-});

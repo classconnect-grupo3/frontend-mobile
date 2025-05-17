@@ -1,7 +1,7 @@
 import { VerticalCourseList } from '@/components/VerticalCourseList';
 import { styles } from '@/styles/homeScreenStyles';
 import { useEffect, useState } from 'react';
-import { View, FlatList, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, FlatList, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { router, useRouter } from 'expo-router';
 import {
     Button,
@@ -21,22 +21,27 @@ const COURSES_PER_PAGE = 4;
 
 export default function MyCoursesScreen() {
     const [page, setPage] = useState(1);
-    const {courses, addCourse} = useCourses();
     const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
-    const { reloadCourses } = useCourses();
+    const { courses, reloadCourses, isLoadingCourses } = useCourses();
 
     const totalPages = Math.ceil(courses?.length ?? 0 / COURSES_PER_PAGE);
     const start = (page - 1) * COURSES_PER_PAGE;
     const end = start + COURSES_PER_PAGE;
     const paginatedCourses = courses?.slice(start, end) ?? [];
 
-    // useEffect(() => {
-    //     reloadCourses();
-    // }, []);
+    useEffect(() => {
+        reloadCourses();
+    }, []);
 
     return (
         <View style={styles.container}>
             <Header/>
+
+            {isLoadingCourses ? (
+                <ActivityIndicator size="large" style={{ marginTop: 40 }} />
+                ) : (
+                <VerticalCourseList courses={paginatedCourses} />
+                )}
 
             <View style={styles.content}>
                 <VerticalCourseList courses={paginatedCourses.map(course => ({

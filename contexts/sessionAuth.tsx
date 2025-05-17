@@ -12,8 +12,8 @@ import * as SecureStore from 'expo-secure-store';
 type AuthState = {
     token: string | null;
     authenticated: boolean;
-    location?: string | null; 
-    user?: {
+    location: string | null; 
+    user: {
         id: string;
         name: string;
         surname: string;
@@ -74,14 +74,28 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
 
             if (token) {
                 client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                const user = await fetchUser(token);
+                // const user = await fetchUser(token);
+
+                // if (user) {
+                //     setAuthState((prev) => ({
+                //     ...prev,
+                //     token, 
+                //     authenticated: true
+                //   }));
+                // } else {
+                //   setAuthState((prev) => ({
+                //     ...prev,
+                //     token, 
+                //     authenticated: true, 
+                //     user 
+                //   }));
+                // }
 
                 setAuthState((prev) => ({
-                  ...prev,
-                  token, 
-                  authenticated: true, 
-                  user 
-                }));
+                    ...prev,
+                    token, 
+                    authenticated: true
+                  }));
             }
         };
         loadToken();
@@ -94,7 +108,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
 
     const login = async (email: string, password: string) => {
       try {
-        const { data } = await client.post("/login", { email, password });
+        const { data } = await client.post("/login/email", { email, password });
         const token = data.id_token;
         const location = data.user_location ?? null;
 
@@ -109,6 +123,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
 
         router.replace("/(tabs)");
       } catch (error) {
+        console.error('Login error:', error);
         throw error;
       }
     };

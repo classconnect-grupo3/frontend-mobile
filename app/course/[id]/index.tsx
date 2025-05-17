@@ -1,10 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourses } from '@/contexts/CoursesContext';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal } from 'react-native';
 import { useState } from 'react';
 import React from 'react';
 import { AntDesign } from '@expo/vector-icons'; // asegúrate de tener este paquete
 import { NewTaskModal } from '@/components/NewTaskModal';
+import { styles as modalStyles } from '@/styles/modalStyle';
+import { courseClient } from '@/lib/courseClient';
+import Toast from 'react-native-toast-message';
+import { useAuth } from '@/contexts/sessionAuth';
 
 const MOCK_TASKS = [
     { id: '1', title: 'TP1', description: 'Entrega del TP1, formato: zip con codigo', deadline: '2025-06-30' },
@@ -23,8 +27,11 @@ export default function CourseViewScreen() {
   const [showForo, setShowForo] = useState(false);
   const [tasks, setTasks] = useState(MOCK_TASKS);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const course = courses.find((c) => c.id === id);
+
+  const { authState } = useAuth();
 
   if (!course) {
     return (
@@ -37,6 +44,26 @@ export default function CourseViewScreen() {
       </View>
     );
   }
+
+  const handleDeleteCourse = async () => {
+    console.log('Deleting course with ID:', id);
+    
+    try {
+      await courseClient.delete(`/courses/${id}`, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`, 
+        },
+      });
+
+      Toast.show({ type: 'success', text1: 'Curso eliminado' });
+      setShowConfirmModal(false);
+      router.replace('/(tabs)/my-courses'); // redirigir
+    } catch (e) {
+      console.error('Error deleting course:', e);
+      Toast.show({ type: 'error', text1: 'Error al eliminar el curso' });
+      setShowConfirmModal(false);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -54,7 +81,7 @@ export default function CourseViewScreen() {
       <Text style={styles.sectionHeader}>Tareas</Text>
 
       <TouchableOpacity onPress={() => setShowTaskModal(true)} style={styles.addButton}>
-        <Text style={styles.addButtonText}>+ Agregar tarea</Text>
+        <Text style={styles.buttonText}>+ Agregar tarea</Text>
       </TouchableOpacity>
 
       {tasks.map((task) => (
@@ -158,6 +185,29 @@ export default function CourseViewScreen() {
             <Text key={i} style={styles.listItem}>• {d}</Text>
           ))}
         </View>
+
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => setShowConfirmModal(true)}
+        >
+          <Text style={styles.buttonText}>Eliminar curso</Text>
+        </TouchableOpacity>
+
+        <Modal visible={showConfirmModal} transparent animationType="fade">
+          <View style={modalStyles.overlay}>
+            <View style={modalStyles.modal}>
+              <Text style={modalStyles.title}>¿Estás seguro que querés eliminar este curso?</Text>
+              <View style={modalStyles.modalButtons}>
+                <TouchableOpacity onPress={() => setShowConfirmModal(false)} style={modalStyles.cancelButton}>
+                  <Text style={modalStyles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleDeleteCourse} style={modalStyles.confirmDeleteButton}>
+                  <Text style={modalStyles.confirmDeleteText}>Eliminar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
     </ScrollView>
   );
@@ -289,7 +339,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  addButtonText: {
+  buttonText: {
     color: '#fff',
     fontWeight: 'bold',
   },
@@ -301,6 +351,12 @@ const styles = StyleSheet.create({
   listItem: {
     fontSize: 15,
     marginBottom: 4,
+  },
+  deleteButton: {
+    backgroundColor: 'red',
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
   },
 });
 
