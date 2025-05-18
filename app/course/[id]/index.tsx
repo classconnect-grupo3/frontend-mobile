@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourses } from '@/contexts/CoursesContext';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image } from 'react-native';
 import { useState } from 'react';
 import React from 'react';
 import { AntDesign } from '@expo/vector-icons'; // asegúrate de tener este paquete
@@ -59,7 +59,7 @@ export default function CourseViewScreen() {
 
       Toast.show({ type: 'success', text1: 'Curso eliminado' });
       setShowConfirmModal(false);
-      router.replace('/(tabs)/my-courses'); // redirigir
+      router.replace({ pathname: '/(tabs)/myCourses' }); // redirigir
     } catch (e) {
       console.error('Error deleting course:', e);
       Toast.show({ type: 'error', text1: 'Error al eliminar el curso' });
@@ -68,18 +68,22 @@ export default function CourseViewScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={homeScreenStyles.container}>
+    <ScrollView contentContainerStyle={courseStyles.scrollContainer}>
       {/* Top bar */}
       <View style={homeScreenStyles.topBar}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={courseStyles.back}>←</Text>
         </TouchableOpacity>
+        <Text style={homeScreenStyles.title}>{course.title}</Text>
         <Text style={courseStyles.role}>rol: Docente</Text>
-        <View style={homeScreenStyles.profileIcon} />
+        <Image 
+            source={require('@/assets/images/profile-placeholder.jpeg')}
+            style={homeScreenStyles.profileIcon}
+        />
       </View>
 
       {/* Course Info */}
-      <Text style={homeScreenStyles.title}>{course.title}</Text>
+      
       <Text style={courseStyles.sectionHeader}>Tareas</Text>
 
       <TouchableOpacity onPress={() => setShowTaskModal(true)} style={courseStyles.addButton}>
@@ -89,7 +93,7 @@ export default function CourseViewScreen() {
       {tasks.map((task) => (
         <View key={task.id} style={courseStyles.taskCard}>
           <Text style={courseStyles.taskTitle}>{task.title}</Text>
-          <Text>{task.description}</Text>
+          <Text style={courseStyles.taskDescription}>{task.description}</Text>
           <Text style={courseStyles.taskDeadline}>⏰ {task.deadline}</Text>
           <TouchableOpacity onPress={() => setTasks(tasks.filter(t => t.id !== task.id))}>
             <Text style={courseStyles.taskDelete}>Eliminar</Text>
@@ -121,10 +125,10 @@ export default function CourseViewScreen() {
       </TouchableOpacity>
 
       {showMaterials && (
-        <View style={courseStyles.materialLinks}>
-          <Text>• Introducción al curso</Text>
-          <Text>• Presentación de la cátedra</Text>
-          <Text>• PDF: Sistemas Distribuidos - Módulo 1</Text>
+        <View style={courseStyles.materialLinks}> 
+          <Text style={courseStyles.materialLink}>• Introducción al curso</Text>
+          <Text style={courseStyles.materialLink}>• Presentación de la cátedra</Text>
+          <Text style={courseStyles.materialLink}>• PDF: Sistemas Distribuidos - Módulo 1</Text>
         </View>
       )}
 
@@ -141,13 +145,13 @@ export default function CourseViewScreen() {
             color="#333"
             style={courseStyles.arrowIcon}
           />
-          <Text style={courseStyles.materialToggleText}>Ver foro</Text>
+          <Text style={courseStyles.materialToggleText}>Foro</Text>
         </View>
       </TouchableOpacity>
 
       {showForo && (
         <View style={courseStyles.materialLinks}>
-          <Text>Proximamente...</Text>
+          <Text style={courseStyles.materialLink}>Proximamente...</Text>
         </View>
       )}
 

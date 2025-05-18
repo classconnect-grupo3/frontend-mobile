@@ -14,7 +14,7 @@ export default function Header() {
             />
             <TouchableOpacity onPress={() => router.push('/profile')}>
                 <Image
-                    source={require('@/assets/images/tuntungsahur.jpeg')}
+                    source={require('@/assets/images/profile-placeholder.jpeg')}
                     style={homeStyles.profileIcon}
                 />
             </TouchableOpacity>

@@ -1,6 +1,11 @@
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
+  scrollContainer: {
+    paddingTop: 48,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+  },
   back: {
     fontSize: 24,
   },
@@ -9,6 +14,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#eee',
     padding: 6,
     borderRadius: 8,
+    color: '#333',
   },
   section: {
     backgroundColor: '#f1f1f1',
@@ -30,7 +36,12 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 12,
     paddingLeft: 20,
+   
   },
+  materialLink: {
+    fontSize: 16,
+    color: '#333',
+  }, 
   actionButton: {
     backgroundColor: '#ddd',
     padding: 12,
@@ -52,6 +63,7 @@ export const styles = StyleSheet.create({
   materialToggleText: {
     fontSize: 16,
     fontWeight: '500',
+    color: '#333',
   },
   sectionHeader: {
     fontSize: 18,
@@ -59,6 +71,7 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 12,
     paddingHorizontal: 8,
+    color: '#333',
   },
   taskCard: {
     backgroundColor: '#f5f5f5',
@@ -70,8 +83,12 @@ export const styles = StyleSheet.create({
   taskTitle: {
     fontWeight: 'bold',
     fontSize: 16,
+    color: '#333',
   },
-
+  taskDescription: {
+    fontSize: 16,
+    color: '#333',
+  },
   taskDeadline: {
     color: '#666',
     marginTop: 4,
@@ -111,8 +128,9 @@ export const styles = StyleSheet.create({
   },
 
   listItem: {
-    fontSize: 15,
+    fontSize: 16,
     marginBottom: 4,
+    color: '#333',
   },
   deleteButton: {
     backgroundColor: 'red',
