@@ -197,4 +197,19 @@ export const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#ccc',
   },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end', // ✅ alineado a la derecha
+    backgroundColor: '#e0e0e0', // gris claro
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  editButtonText: {
+    color: '#333',
+    fontWeight: '500',
+    marginLeft: 6,
+  },
 });

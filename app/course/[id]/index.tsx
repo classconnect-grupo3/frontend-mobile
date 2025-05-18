@@ -11,6 +11,8 @@ import { styles as homeScreenStyles } from '@/styles/homeScreenStyles';
 import { courseClient } from '@/lib/courseClient';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '@/contexts/sessionAuth';
+import { EditCourseModal } from '@/components/courses/EditCourseModal';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const MOCK_TASKS = [
     { id: '1', title: 'TP1', description: 'Entrega del TP1, formato: zip con codigo', deadline: '2025-06-30' },
@@ -23,13 +25,14 @@ const docentesAuxiliares = ['Emiliano Gómez', 'Martín Masivo', 'Fede FIUBA'];
 export default function CourseViewScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { courses } = useCourses();
+  const { courses, reloadCourses } = useCourses();
   const [showMaterials, setShowMaterials] = useState(false);
   const [showAlumnos, setShowAlumnos] = useState(false);
   const [showForo, setShowForo] = useState(false);
   const [tasks, setTasks] = useState(MOCK_TASKS);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const course = courses.find((c) => c.id === id);
 
@@ -81,6 +84,32 @@ export default function CourseViewScreen() {
             style={homeScreenStyles.profileIcon}
         />
       </View>
+
+      <View style={homeScreenStyles.topBar}>
+        <Text style={courseStyles.taskTitle}>Description</Text>
+        <Text style={courseStyles.taskDescription}>{course.description}</Text>
+      </View>
+
+      <View style={homeScreenStyles.topBar}>
+        <Text style={courseStyles.taskTitle}>Capacity</Text>
+        <Text style={courseStyles.taskDescription}>{course.capacity} students</Text>
+      </View>
+
+      
+
+      <TouchableOpacity
+        style={courseStyles.editButton}
+        onPress={() => setShowEditModal(true)}
+      >
+        <MaterialIcons name="edit" size={18} color="#333" />
+        <Text style={courseStyles.editButtonText}>Editar curso</Text>
+      </TouchableOpacity>
+      <EditCourseModal
+        visible={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        course={course}
+        onSuccess={reloadCourses}
+      />
 
       {/* Course Info */}
       
