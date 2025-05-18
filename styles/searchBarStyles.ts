@@ -10,6 +10,9 @@ export const styles = StyleSheet.create({
         backgroundColor: '#eee',
         padding: 10,
         borderRadius: 8,
+        borderColor: '#ccc',
+        borderWidth: 1,
+        color: '#000',
     },
     filterButton: {
         marginLeft: 10,
