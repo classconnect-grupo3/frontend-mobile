@@ -137,7 +137,7 @@ export default function ProfileScreen() {
 
         <View style={styles.profileRow}>
           <Image
-            source={require('@/assets/images/tuntungsahur.jpeg')}
+            source={require('@/assets/images/profile-placeholder.jpeg')}
             style={styles.profileImage}
           />
           <Text style={styles.profileName}>{userData.name}</Text>

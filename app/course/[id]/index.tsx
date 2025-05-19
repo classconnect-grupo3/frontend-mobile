@@ -1,10 +1,18 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourses } from '@/contexts/CoursesContext';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image } from 'react-native';
 import { useState } from 'react';
 import React from 'react';
 import { AntDesign } from '@expo/vector-icons'; // asegúrate de tener este paquete
 import { NewTaskModal } from '@/components/NewTaskModal';
+import { styles as modalStyles } from '@/styles/modalStyle';
+import { styles as courseStyles } from '@/styles/courseStyles';
+import { styles as homeScreenStyles } from '@/styles/homeScreenStyles';
+import { courseClient } from '@/lib/courseClient';
+import Toast from 'react-native-toast-message';
+import { useAuth } from '@/contexts/sessionAuth';
+import { EditCourseModal } from '@/components/courses/EditCourseModal';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const MOCK_TASKS = [
     { id: '1', title: 'TP1', description: 'Entrega del TP1, formato: zip con codigo', deadline: '2025-06-30' },
@@ -17,53 +25,107 @@ const docentesAuxiliares = ['Emiliano Gómez', 'Martín Masivo', 'Fede FIUBA'];
 export default function CourseViewScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { courses } = useCourses();
+  const { courses, reloadCourses } = useCourses();
   const [showMaterials, setShowMaterials] = useState(false);
   const [showAlumnos, setShowAlumnos] = useState(false);
   const [showForo, setShowForo] = useState(false);
   const [tasks, setTasks] = useState(MOCK_TASKS);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const course = courses.find((c) => c.id === id);
 
+  const { authState } = useAuth();
+
   if (!course) {
     return (
-      <View style={styles.container}>
+      <View style={homeScreenStyles.container}>
         <Text>404</Text>
         <Text>Course not found</Text>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.link}>← Back</Text>
+          <Text style={courseStyles.link}>← Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
+  const handleDeleteCourse = async () => {
+    console.log('Deleting course with ID:', id);
+
+    try {
+      await courseClient.delete(`/courses/${id}`, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`, 
+        },
+      });
+
+      Toast.show({ type: 'success', text1: 'Curso eliminado' });
+      setShowConfirmModal(false);
+      router.replace({ pathname: '/(tabs)/myCourses' }); // redirigir
+    } catch (e) {
+      console.error('Error deleting course:', e);
+      Toast.show({ type: 'error', text1: 'Error al eliminar el curso' });
+      setShowConfirmModal(false);
+    }
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={courseStyles.scrollContainer}>
       {/* Top bar */}
-      <View style={styles.topBar}>
+      <View style={homeScreenStyles.topBar}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.back}>←</Text>
+          <Text style={courseStyles.back}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.role}>rol: Docente</Text>
-        <View style={styles.avatar} />
+        <Text style={homeScreenStyles.title}>{course.title}</Text>
+        <Text style={courseStyles.role}>rol: Docente</Text>
+        <Image 
+            source={require('@/assets/images/profile-placeholder.jpeg')}
+            style={homeScreenStyles.profileIcon}
+        />
       </View>
 
-      {/* Course Info */}
-      <Text style={styles.courseTitle}>{course.title}</Text>
-      <Text style={styles.sectionHeader}>Tareas</Text>
+      <View style={homeScreenStyles.topBar}>
+        <Text style={courseStyles.taskTitle}>Description</Text>
+        <Text style={courseStyles.taskDescription}>{course.description}</Text>
+      </View>
 
-      <TouchableOpacity onPress={() => setShowTaskModal(true)} style={styles.addButton}>
-        <Text style={styles.addButtonText}>+ Agregar tarea</Text>
+      <View style={homeScreenStyles.topBar}>
+        <Text style={courseStyles.taskTitle}>Capacity</Text>
+        <Text style={courseStyles.taskDescription}>{course.capacity} students</Text>
+      </View>
+
+      
+
+      <TouchableOpacity
+        style={courseStyles.editButton}
+        onPress={() => setShowEditModal(true)}
+      >
+        <MaterialIcons name="edit" size={18} color="#333" />
+        <Text style={courseStyles.editButtonText}>Editar curso</Text>
+      </TouchableOpacity>
+      <EditCourseModal
+        visible={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        course={course}
+        onSuccess={reloadCourses}
+      />
+
+      {/* Course Info */}
+      
+      <Text style={courseStyles.sectionHeader}>Tareas</Text>
+
+      <TouchableOpacity onPress={() => setShowTaskModal(true)} style={courseStyles.addButton}>
+        <Text style={courseStyles.buttonText}>+ Agregar tarea</Text>
       </TouchableOpacity>
 
       {tasks.map((task) => (
-        <View key={task.id} style={styles.taskCard}>
-          <Text style={styles.taskTitle}>{task.title}</Text>
-          <Text>{task.description}</Text>
-          <Text style={styles.taskDeadline}>⏰ {task.deadline}</Text>
+        <View key={task.id} style={courseStyles.taskCard}>
+          <Text style={courseStyles.taskTitle}>{task.title}</Text>
+          <Text style={courseStyles.taskDescription}>{task.description}</Text>
+          <Text style={courseStyles.taskDeadline}>⏰ {task.deadline}</Text>
           <TouchableOpacity onPress={() => setTasks(tasks.filter(t => t.id !== task.id))}>
-            <Text style={styles.taskDelete}>Eliminar</Text>
+            <Text style={courseStyles.taskDelete}>Eliminar</Text>
           </TouchableOpacity>
         </View>
       ))}
@@ -74,235 +136,117 @@ export default function CourseViewScreen() {
         onCreate={(task) => setTasks((prev) => [...prev, { ...task, id: Date.now().toString(), description: task.description || '' }])}
       />
 
-      <Text style={styles.sectionHeader}>Modulo 1: Capa de Aplicacion</Text>
+      <Text style={courseStyles.sectionHeader}>Modulo 1: Capa de Aplicacion</Text>
 
       <TouchableOpacity
-        style={styles.materialToggle}
+        style={courseStyles.materialToggle}
         onPress={() => setShowMaterials(!showMaterials)}
       >
-        <View style={styles.materialToggleRow}>
+        <View style={courseStyles.materialToggleRow}>
           <AntDesign
             name={showMaterials ? 'up' : 'down'}
             size={16}
             color="#333"
-            style={styles.arrowIcon}
+            style={courseStyles.arrowIcon}
           />
-          <Text style={styles.materialToggleText}>Ver material</Text>
+          <Text style={courseStyles.materialToggleText}>Ver material</Text>
         </View>
       </TouchableOpacity>
 
       {showMaterials && (
-        <View style={styles.materialLinks}>
-          <Text>• Introducción al curso</Text>
-          <Text>• Presentación de la cátedra</Text>
-          <Text>• PDF: Sistemas Distribuidos - Módulo 1</Text>
+        <View style={courseStyles.materialLinks}> 
+          <Text style={courseStyles.materialLink}>• Introducción al curso</Text>
+          <Text style={courseStyles.materialLink}>• Presentación de la cátedra</Text>
+          <Text style={courseStyles.materialLink}>• PDF: Sistemas Distribuidos - Módulo 1</Text>
         </View>
       )}
 
       {/* foro */}
 
       <TouchableOpacity
-        style={styles.materialToggle}
+        style={courseStyles.materialToggle}
         onPress={() => setShowForo(!showForo)}
       >
-        <View style={styles.materialToggleRow}>
+        <View style={courseStyles.materialToggleRow}>
           <AntDesign
             name={showForo ? 'up' : 'down'}
             size={16}
             color="#333"
-            style={styles.arrowIcon}
+            style={courseStyles.arrowIcon}
           />
-          <Text style={styles.materialToggleText}>Ver foro</Text>
+          <Text style={courseStyles.materialToggleText}>Foro</Text>
         </View>
       </TouchableOpacity>
 
       {showForo && (
-        <View style={styles.materialLinks}>
-          <Text>Proximamente...</Text>
+        <View style={courseStyles.materialLinks}>
+          <Text style={courseStyles.materialLink}>Proximamente...</Text>
         </View>
       )}
 
       <TouchableOpacity
-        style={styles.materialToggle}
+        style={courseStyles.materialToggle}
         onPress={() => setShowAlumnos(!showAlumnos)}
       >
-        <View style={styles.materialToggleRow}>
+        <View style={courseStyles.materialToggleRow}>
           <AntDesign
             name={showAlumnos ? 'up' : 'down'}
             size={16}
             color="#333"
-            style={styles.arrowIcon}
+            style={courseStyles.arrowIcon}
           />
-          <Text style={styles.materialToggleText}>Ver alumnos</Text>
+          <Text style={courseStyles.materialToggleText}>Ver alumnos</Text>
         </View>
       </TouchableOpacity>
 
       {showAlumnos && (
-        <View style={styles.listContainer}>
+        <View style={courseStyles.listContainer}>
           {alumnos.map((a, i) => (
-            <Text key={i} style={styles.listItem}>• {a}</Text>
+            <Text key={i} style={courseStyles.listItem}>• {a}</Text>
           ))}
         </View>
       )}
 
-        <Text style={styles.sectionHeader}>Docentes Titulares</Text>
-        <View style={styles.listContainer}>
+        <Text style={courseStyles.sectionHeader}>Docentes Titulares</Text>
+        <View style={courseStyles.listContainer}>
           {docentesTitulares.map((d, i) => (
-            <Text key={i} style={styles.listItem}>• {d}</Text>
+            <Text key={i} style={courseStyles.listItem}>• {d}</Text>
           ))}
         </View>
 
-        <Text style={styles.sectionHeader}>Docentes auxiliares</Text>
-        <View style={styles.listContainer}>
+        <Text style={courseStyles.sectionHeader}>Docentes auxiliares</Text>
+        <View style={courseStyles.listContainer}>
           {docentesAuxiliares.map((d, i) => (
-            <Text key={i} style={styles.listItem}>• {d}</Text>
+            <Text key={i} style={courseStyles.listItem}>• {d}</Text>
           ))}
         </View>
+
+        <TouchableOpacity
+          style={courseStyles.deleteButton}
+          onPress={() => setShowConfirmModal(true)}
+        >
+          <Text style={courseStyles.buttonText}>Eliminar curso</Text>
+        </TouchableOpacity>
+
+        <Modal visible={showConfirmModal} transparent animationType="fade">
+          <View style={modalStyles.overlay}>
+            <View style={modalStyles.modal}>
+              <Text style={modalStyles.title}>¿Estás seguro que querés eliminar este curso?</Text>
+              <View style={modalStyles.modalButtons}>
+                <TouchableOpacity onPress={() => setShowConfirmModal(false)} style={modalStyles.cancelButton}>
+                  <Text style={modalStyles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleDeleteCourse} style={modalStyles.confirmDeleteButton}>
+                  <Text style={modalStyles.confirmDeleteText}>Eliminar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    backgroundColor: '#fff',
-    flexGrow: 1,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  back: {
-    fontSize: 24,
-  },
-  role: {
-    fontSize: 16,
-    backgroundColor: '#eee',
-    padding: 6,
-    borderRadius: 8,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    backgroundColor: '#ccc',
-    borderRadius: 18,
-  },
-  section: {
-    backgroundColor: '#f1f1f1',
-    padding: 12,
-    borderRadius: 6,
-    marginBottom: 8,
-    fontSize: 16,
-  },
-    materialToggle: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  materialLinks: {
-    backgroundColor: '#f9f9f9',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    paddingLeft: 20,
-  },
-  actionButton: {
-    backgroundColor: '#ddd',
-    padding: 12,
-    borderRadius: 6,
-    marginBottom: 8,
-    alignItems: 'center',
-  },
-  link: {
-    color: '#007AFF',
-    marginTop: 16,
-  },
-  materialToggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  arrowIcon: {
-    marginRight: 8,
-  },
-  materialToggleText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  courseTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-
-  sectionHeader: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 12,
-    paddingHorizontal: 8,
-  },
-  taskCard: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-
-  taskTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-
-  taskDeadline: {
-    color: '#666',
-    marginTop: 4,
-  },
-
-  taskDelete: {
-    color: 'red',
-    marginTop: 8,
-  },
-
-  newTaskForm: {
-    marginTop: 12,
-    marginBottom: 24,
-  },
-
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    padding: 8,
-    marginBottom: 8,
-  },
-
-  addButton: {
-    backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-
-  addButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  listContainer: {
-    paddingLeft: 12,
-    marginBottom: 16,
-  },
-
-  listItem: {
-    fontSize: 15,
-    marginBottom: 4,
-  },
-});
 
 export const options = {
   headerShown: false,
