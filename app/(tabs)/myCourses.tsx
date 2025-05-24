@@ -25,7 +25,26 @@ export default function MyCoursesScreen() {
     const { courses, reloadCourses, isLoadingCourses } = useCourses();
 
     const teachingCourses = courses;
-    const enrolledCourses: Course[] = [];
+    // export interface Course {
+    //   id: string;
+    //   title: string;
+    //   description: string;
+    //   teacher_name: string;
+    //   start_date: string;
+    //   end_date: string;
+    //   capacity: number;
+    // }
+    const enrolledCourses: Course[] = [
+      {
+        "id": "68190388fed5b74a2ad9c0b5",
+        "title": "Algoritmos y Programacion 1", 
+        "description": "En este curso se dictan los basicos de la programacion en el lenguaje Python",
+        "teacher_name": "Diego Essaya",
+        "start_date": "0001-01-01T00:00:00Z", 
+        "end_date": "0001-01-01T00:00:00Z", 
+        "capacity": 60, 
+      }
+    ];
 
     useEffect(() => {
         reloadCourses();
@@ -52,7 +71,11 @@ export default function MyCoursesScreen() {
           <Text style={styles.emptyText}>You are not enrolled in any courses.</Text>
         ) : (
           enrolledCourses.map(course => (
-            <WideCourseCard key={course.id} course={course} />
+            <WideCourseCard
+              key={course.id}
+              course={course}
+              onPress={() => router.push(`/course/${course.id}/student`)}
+            />
           ))
         )}
       </ScrollView>
