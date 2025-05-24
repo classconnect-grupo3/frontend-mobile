@@ -33,7 +33,7 @@ export default function SearchScreen() {
     try {
       setLoading(true);
       // client.defaults.headers.common['Authorization'] = `Bearer ${auth?.authState.token}`;
-      const { data } = await client.get(`/users/search?q=${search}`, {
+      const { data } = await client.get(`/users/search?query=${search}`, {
         headers: {
           Authorization: `Bearer ${auth?.authState.token}`,
         },
