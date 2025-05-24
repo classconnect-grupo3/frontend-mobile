@@ -5,8 +5,15 @@ import { BaseCourseCard } from './BaseCourseCard';
 
 interface Props {
   course: Course;
+  onPress?: () => void;
 }
 
-export function WideCourseCard({ course }: Props) {
-  return <BaseCourseCard course={course} cardStyle={styles.wideCard} />;
+export function WideCourseCard({ course, onPress }: Props) {
+  return (
+    <BaseCourseCard
+      course={course}
+      cardStyle={styles.wideCard}
+      onPress={onPress}
+    />
+  );
 }

@@ -7,11 +7,13 @@ import React from "react";
 interface BaseProps {
   course: Course;
   cardStyle: object;
+  onPress?: () => void;
 }
 
-export function BaseCourseCard({ course, cardStyle }: BaseProps) {
+export function BaseCourseCard({ course, cardStyle, onPress }: BaseProps) {
+  const handlePress = onPress ?? (() => router.push(`/course/${course.id}`));
   return (
-    <TouchableOpacity onPress={() => router.push(`/course/${course.id}`)}>
+    <TouchableOpacity onPress={handlePress}>
       <View style={cardStyle}>
         <View style={styles.header}>
           <View style={styles.info}>

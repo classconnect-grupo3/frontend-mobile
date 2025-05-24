@@ -12,6 +12,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/sessionAuth';
 import { CourseCard } from '@/components/courses/CourseCard';
 import { WideCourseCard } from '@/components/courses/WideCourseCard';
+import { EnrollModal } from '@/components/courses/EnrollModal';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function SearchScreen() {
   const [users, setUsers] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
   const auth = useAuth();
 
   useEffect(() => {
@@ -146,11 +148,20 @@ export default function SearchScreen() {
               data={courses}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <WideCourseCard course={item} /> 
+                <WideCourseCard course={item} onPress={() => setSelectedCourse(item)} /> 
               )}
             />
           )}
         </View>
+      )}
+
+      {selectedCourse && (
+        <EnrollModal
+          visible={true}
+          onClose={() => setSelectedCourse(null)}
+          courseId={selectedCourse.id}
+          courseTitle={selectedCourse.title}
+        />
       )}
     </View>
   );
