@@ -165,6 +165,8 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     color: '#333',
+    flexShrink: 1, 
+    flexGrow: 1, 
   },
   header: {
     flexDirection: 'row',
@@ -177,6 +179,8 @@ export const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
     color: '#333',
+    flexShrink: 1, 
+    flexGrow: 1, 
   },
   title: {
     fontSize: 16,
@@ -190,6 +194,7 @@ export const styles = StyleSheet.create({
   due: {
     fontSize: 13,
     color: '#888',
+    flexWrap: 'wrap',
   },
   avatar: {
     width: 36,

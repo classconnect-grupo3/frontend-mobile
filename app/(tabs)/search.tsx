@@ -10,24 +10,31 @@ import Header from '@/components/Header';
 import { UserCard } from '@/components/users/UserCard';
 import React from 'react';
 import { useAuth } from '@/contexts/sessionAuth';
+import { CourseCard } from '@/components/courses/CourseCard';
+import { WideCourseCard } from '@/components/courses/WideCourseCard';
 
 export default function SearchScreen() {
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState<'courses' | 'users'>('users');
   const [search, setSearch] = useState('');
   const [users, setUsers] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const auth = useAuth();
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (selectedTab === 'users' && search.trim()) {
-        fetchUsers();
+      if (search.trim()) {
+        if (selectedTab === 'users') {
+          fetchUsers();
+        } else {
+          fetchCourses();
+        }
       }
-    }, 500); // debounce
+    }, 500);
 
     return () => clearTimeout(timeout);
-  }, [search]);
+  }, [search, selectedTab]);
 
   const fetchUsers = async () => {
     try {
@@ -42,6 +49,25 @@ export default function SearchScreen() {
     } catch (e) {
       console.error('Error searching users:', e);
       setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      // client.defaults.headers.common['Authorization'] = `Bearer ${auth?.authState.token}`;
+      const { data } = await client.get(`/courses/title/${search}`, {
+        headers: {
+          Authorization: `Bearer ${auth?.authState.token}`,
+        },
+      });
+      console.log('Courses fetched:', data);
+      setCourses(data);
+    } catch (e) {
+      console.error('Error searching courses:', e);
+      setCourses([]);
     } finally {
       setLoading(false);
     }
@@ -103,6 +129,24 @@ export default function SearchScreen() {
               keyExtractor={(item) => item.uid}
               renderItem={({ item }) => (
                 <UserCard name={item.name} surname={item.surname} />
+              )}
+            />
+          )}
+        </View>
+      )}
+
+      {selectedTab === 'courses' && (
+        <View style={{ paddingHorizontal: 16 }}>
+          {loading ? (
+            <Text style={{ paddingVertical: 16, color: '#333' }}>Searching...</Text>
+          ) : courses === undefined || courses.length === 0 ? (
+            <Text style={{ paddingVertical: 16, color: '#333' }}>No courses found</Text>
+          ) : (
+            <FlatList
+              data={courses}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <WideCourseCard course={item} /> 
               )}
             />
           )}
