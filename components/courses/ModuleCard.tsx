@@ -70,7 +70,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
           <TextInput
             value={title}
             onChangeText={setTitle}
-            style={styles.title}
+            style={styles.editTitle}
             placeholder="Module Title"
           />
         ) : (
@@ -87,10 +87,10 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
               onChangeText={setDescription}
               multiline
               placeholder="Module Description"
-              style={{ color: '#444', marginBottom: 12 }}
+              style={styles.editDescription}
             />
           ) : (
-            <Text style={{ color: '#444', marginBottom: 12 }}>{description}</Text>
+            <Text style={styles.description}>{description}</Text>
           )}
 
           <Text style={styles.heading}>Resources</Text>
@@ -157,6 +157,34 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+
+  description: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 12,
+  },
+
+  editTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    borderBottomWidth: 1,
+    borderRadius: 8,
+    padding: 8,
+    borderColor: '#ccc',
+    paddingBottom: 8,
+  },
+
+  editDescription: {
+    borderBottomWidth: 1,
+    color: '#333',
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 8,
+    fontSize: 14,
+    textAlignVertical: 'top', 
+    marginBottom: 12,
   },
 });
 
