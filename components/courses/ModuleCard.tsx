@@ -57,9 +57,6 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
         borderRadius: 16,
         padding: 16,
         marginBottom: 12,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
         elevation: 4,
       }}>
       <TouchableOpacity
@@ -96,10 +93,11 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
             <Text style={{ color: '#444', marginBottom: 12 }}>{description}</Text>
           )}
 
-          <Text style={{ fontWeight: '600', marginBottom: 8 }}>Resources</Text>
+          <Text style={styles.heading}>Resources</Text>
           <FlatList
             data={moduleData.resources}
             keyExtractor={(item) => item.id}
+            style={{ marginBottom: 12 , marginTop: 8 }}
             renderItem={({ item }) => (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                 <Feather name="file-text" size={16} color="#555" style={{ marginRight: 8 }} />
@@ -108,7 +106,9 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
             )}
           />
 
-          <Button title="Add Resource" onPress={() => onAddResource(moduleData.id)} />
+          <TouchableOpacity onPress={() => onAddResource(moduleData.id)} style={styles.addResourceButton}>
+            <Text style={styles.buttonText}>+ Agregar recurso</Text>
+            </TouchableOpacity>
 
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
             {editMode ? (
@@ -138,11 +138,26 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: '#333',
   },
+  heading: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: '#333',
+  },
   file: {
     fontSize: 12,
     color: '#555',
   },
-});
+  addResourceButton: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
 
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+});
 
 export default ModuleCard;
