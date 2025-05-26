@@ -98,11 +98,22 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
           <FlatList
             data={moduleData.resources}
             keyExtractor={(item) => item.id}
-            style={{ marginTop: 8 }}
+            style={{ marginTop: 8, backgroundColor: '#f9f9f9', padding: 8, borderRadius: 8 }}
             renderItem={({ item }) => (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, marginTop: 4 }}>
                 <Feather name="file-text" size={16} color="#555" style={{ marginRight: 8 }} />
                 <Text style={styles.file}>{item.name}</Text>
+                { editMode && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      const updatedResources = moduleData.resources.filter((res) => res.id !== item.id);
+                      onUpdateModule({ ...moduleData, resources: updatedResources });
+                    }}
+                    style={{ marginLeft: 'auto' , flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.deleteResource}>Eliminar</Text>
+                    <Entypo name="cross" size={16} color="#ff0000" />
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           />
@@ -205,6 +216,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 6,
   },
+
+  deleteResource: {
+    color: '#ff0000',
+    fontSize: 12,
+    marginEnd: 4,
+  }
 });
 
 export default ModuleCard;
