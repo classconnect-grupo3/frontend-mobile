@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './sessionAuth';
 import { fetchUserData } from '@/services/userProfile';
 import { courseClient } from '@/lib/courseClient';
@@ -33,23 +33,35 @@ export const useCourses = () => {
 export const CoursesProvider = ({ children }: { children: React.ReactNode }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(false);
-  const { authState } = useAuth();
+  const auth = useAuth();
+  if (!auth) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  const { authState } = auth;
 
-  const loadCourses = async () => {
+  const loadCourses = async () => { // why is this not used?
     const teacherId = authState.user?.id;
 
+    if (!teacherId) {
+      console.warn('No teacher ID found — skipping course load.');
+      setCourses([]); // Prevent null fallback
+      return;
+    }
+  
     console.log('Loading courses for teacher:', teacherId);
+  
     try {
       const { data } = await courseClient.get(`/courses/teacher/${teacherId}`, {
         headers: {
           Authorization: `Bearer ${authState.token}`,
         },
       });
-
+  
       console.log('Courses loaded:', data);
-      setCourses(data);
+      setCourses(data ?? []);
     } catch (e) {
       console.error('Error loading courses:', e);
+      setCourses([]);
     }
   };
 
@@ -77,20 +89,20 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
     } finally {
       setIsLoadingCourses(false);
     }
-};
+  };
 
   const addCourse = (course: Course) => {
     setCourses((prev) => [...prev, course]);
   };
 
   useEffect(() => {
-    console.log('Loading courses for user:', authState.user);
-    if (!authState.user) return;
-
-    if (authState.user?.id && authState.token) {
-      reloadCourses();
+    if (!authState.authenticated) {
+      console.log('⏳ Auth not ready yet');
+      return;
     }
-  }, [authState.user?.id]);
+  
+    reloadCourses();
+  }, [authState.user?.id, authState.token]);
 
   return (
     <CoursesContext.Provider value={{ courses, addCourse, reloadCourses, isLoadingCourses }}>

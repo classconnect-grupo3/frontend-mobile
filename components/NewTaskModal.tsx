@@ -14,13 +14,15 @@ const taskSchema = z.object({
 
 type TaskFormData = z.infer<typeof taskSchema>;
 
-interface Props {
+interface TaskProps {
   visible: boolean;
   onClose: () => void;
-  onCreate: (task: { title: string; description?: string; deadline: string }) => void;
+  onCreate: (task: {
+    title: string; description?: string; deadline: string 
+}) => void;
 }
 
-export function NewTaskModal({ visible, onClose, onCreate }: Props) {
+export function NewTaskModal({ visible, onClose, onCreate }: TaskProps) {
   const {
     control,
     handleSubmit,
