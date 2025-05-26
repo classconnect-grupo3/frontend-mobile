@@ -11,6 +11,7 @@ export interface Course {
   start_date: string;
   end_date: string;
   capacity: number;
+  role: 'teacher' | 'student';
 }
 
 interface CoursesContextType {
@@ -35,49 +36,43 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
   const [isLoadingCourses, setIsLoadingCourses] = useState(false);
   const { authState } = useAuth();
 
-  const loadCourses = async () => {
-    const teacherId = authState.user?.id;
-
-    console.log('Loading courses for teacher:', teacherId);
-    try {
-      const { data } = await courseClient.get(`/courses/teacher/${teacherId}`, {
-        headers: {
-          Authorization: `Bearer ${authState.token}`,
-        },
-      });
-
-      console.log('Courses loaded:', data);
-      setCourses(data);
-    } catch (e) {
-      console.error('Error loading courses:', e);
-    }
-  };
-
   const reloadCourses = async () => {
-    console.log("AUTH STATE: ", authState);
-    const teacherId = authState.user?.id;
-    if (!teacherId) {
-      console.warn('❌ No teacher ID available to reload courses');
+    const userId = authState.user?.id;
+    if (!userId) {
+      console.warn('❌ No user ID available to reload courses');
       return;
     }
-    console.log('Reloading courses for teacher:', teacherId);
-    console.log(`Sending: GET /courses/teacher/${teacherId}`);
+
     try {
       setIsLoadingCourses(true);
-      const { data } = await courseClient.get(`/courses/teacher/${teacherId}`, {
+
+      const { data } = await courseClient.get(`/courses/user/${userId}`, {
         headers: {
           Authorization: `Bearer ${authState.token}`,
         },
       });
-      console.log('Courses reloaded:', data);
-      setCourses(data);
-      console.log('Courses state updated:', courses);
+
+      console.log('Courses from API:', data);
+
+      const teacherCourses = data.teacher.map((c: any) => ({
+        ...c,
+        role: 'teacher',
+      }));
+
+      const studentCourses = data.student.map((c: any) => ({
+        ...c,
+        role: 'student',
+      }));
+
+      const allCourses = [...teacherCourses, ...studentCourses];
+
+      setCourses(allCourses);
     } catch (e) {
       console.error('Error reloading courses:', e);
     } finally {
       setIsLoadingCourses(false);
     }
-};
+  };
 
   const addCourse = (course: Course) => {
     setCourses((prev) => [...prev, course]);

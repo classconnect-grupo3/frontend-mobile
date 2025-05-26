@@ -1,33 +1,43 @@
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
-import { courseClient } from '@/lib/courseClient';
+import { courseClient as client } from '@/lib/courseClient';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '@/contexts/sessionAuth';
 import React from 'react';
 import { styles } from '@/styles/modalStyle';
+import { useCourses } from '@/contexts/CoursesContext';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   courseId: string;
   courseTitle: string;
+  studentId: string;
 }
 
-export function EnrollModal({ visible, onClose, courseId, courseTitle }: Props) {
+export function EnrollModal({ visible, onClose, courseId, courseTitle, studentId }: Props) {
   const { authState } = useAuth();
+  const {  reloadCourses } = useCourses();
 
   const handleConfirm = async () => {
     try {
-      await courseClient.post(`/courses/${courseId}/enroll`, {
+      const body = {
+        student_id: studentId,
+      };
+
+      const r = await client.post(`/courses/${courseId}/enroll`, body, {
         headers: {
           Authorization: `Bearer ${authState.token}`,
         },
+
       });
+      console.log('Inscripcion exitosa');
       Toast.show({ type: 'success', text1: 'Inscripción exitosa' });
+      setTimeout(onClose, 500); 
+      reloadCourses();
     } catch (e) {
       Toast.show({ type: 'error', text1: 'No se pudo inscribir' });
-    } finally {
-      onClose();
-    }
+      setTimeout(onClose, 500); 
+    } 
   };
 
   return (

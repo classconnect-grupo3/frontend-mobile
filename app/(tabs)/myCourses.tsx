@@ -18,33 +18,12 @@ import { fetchUserData } from '@/services/userProfile';
 import { useAuth } from '@/contexts/sessionAuth';
 import { WideCourseCard } from '@/components/courses/WideCourseCard';
 
-const COURSES_PER_PAGE = 4;
-
 export default function MyCoursesScreen() {
     const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
     const { courses, reloadCourses, isLoadingCourses } = useCourses();
 
-    const teachingCourses = courses;
-    // export interface Course {
-    //   id: string;
-    //   title: string;
-    //   description: string;
-    //   teacher_name: string;
-    //   start_date: string;
-    //   end_date: string;
-    //   capacity: number;
-    // }
-    const enrolledCourses: Course[] = [
-      {
-        "id": "68190388fed5b74a2ad9c0b5",
-        "title": "Algoritmos y Programacion 1", 
-        "description": "En este curso se dictan los basicos de la programacion en el lenguaje Python",
-        "teacher_name": "Diego Essaya",
-        "start_date": "0001-01-01T00:00:00Z", 
-        "end_date": "0001-01-01T00:00:00Z", 
-        "capacity": 60, 
-      }
-    ];
+    const teachingCourses = courses.filter(c => c.role === 'teacher');
+    const enrolledCourses = courses.filter(c => c.role === 'student');
 
     useEffect(() => {
         reloadCourses();

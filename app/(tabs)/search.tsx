@@ -6,6 +6,7 @@ import { styles as createCourseStyles } from '@/styles/createCourseStyles';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { courseClient as client } from '@/lib/courseClient';
+import { localCourseClient } from '@/lib/localCourseClient';
 import Header from '@/components/Header';
 import { UserCard } from '@/components/users/UserCard';
 import React from 'react';
@@ -59,7 +60,6 @@ export default function SearchScreen() {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      // client.defaults.headers.common['Authorization'] = `Bearer ${auth?.authState.token}`;
       const { data } = await client.get(`/courses/title/${search}`, {
         headers: {
           Authorization: `Bearer ${auth?.authState.token}`,
@@ -141,7 +141,7 @@ export default function SearchScreen() {
         <View style={{ paddingHorizontal: 16 }}>
           {loading ? (
             <Text style={{ paddingVertical: 16, color: '#333' }}>Searching...</Text>
-          ) : courses === undefined || courses.length === 0 ? (
+          ) : courses === undefined || courses === null || courses.length === 0 ? (
             <Text style={{ paddingVertical: 16, color: '#333' }}>No courses found</Text>
           ) : (
             <FlatList
@@ -161,6 +161,7 @@ export default function SearchScreen() {
           onClose={() => setSelectedCourse(null)}
           courseId={selectedCourse.id}
           courseTitle={selectedCourse.title}
+          studentId={auth?.authState.user?.id}
         />
       )}
     </View>
