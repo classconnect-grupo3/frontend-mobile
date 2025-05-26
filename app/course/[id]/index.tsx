@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourses } from '@/contexts/CoursesContext';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image, FlatList } from 'react-native';
 import { useState } from 'react';
 import React from 'react';
 import { AntDesign } from '@expo/vector-icons';
@@ -13,6 +13,8 @@ import Toast from 'react-native-toast-message';
 import { useAuth } from '@/contexts/sessionAuth';
 import { EditCourseModal } from '@/components/courses/EditCourseModal';
 import { MaterialIcons } from '@expo/vector-icons';
+import ModuleCard from '@/components/courses/ModuleCard';
+import type { ModuleData } from '@/components/courses/ModuleCard';
 
 const MOCK_TASKS = [
     { id: '1', title: 'TP1', description: 'Entrega del TP1, formato: zip con codigo', deadline: '2025-06-30' },
@@ -20,6 +22,25 @@ const MOCK_TASKS = [
 const MOCK_EXAMS = [
     { id: '1', title: 'Examen Parcial', description: 'Examen parcial de la materia', date: '2025-07-15' },
   ];
+const MOCK_MODULES = [
+  {
+    id: '1',
+    title: 'Introduction to Algebra',
+    description: 'Learn about variables, equations, and basic algebraic structures.',
+    resources: [
+      { id: 'r1', name: 'Lecture Slides'},
+      { id: 'r2', name: 'Practice Problems'},
+    ],
+  },
+  {
+    id: '2',
+    title: 'Linear Equations',
+    description: 'Explore linear equations and their graphs.',
+    resources: [
+      { id: 'r3', name: 'Video Explanation'},
+    ],
+  },
+];
 
 const alumnos = Array.from({ length: 20 }, (_, i) => `Padron: ${i + 1}`);
 const docentesTitulares = ['Iñaki Llorens', 'Martín Morilla'];
@@ -35,6 +56,7 @@ export default function CourseViewScreen() {
   const [showForo, setShowForo] = useState(false);
   const [tasks, setTasks] = useState(MOCK_TASKS);
   const [exams, setExams] = useState(MOCK_EXAMS);
+  const [modules, setModules] = useState(MOCK_MODULES);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showExamModal, setShowExamModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -78,6 +100,32 @@ export default function CourseViewScreen() {
       Toast.show({ type: 'error', text1: 'Error al eliminar el curso' });
       setShowConfirmModal(false);
     }
+  };
+
+
+  const handleUpdateModule = (updatedModule: ModuleData) => {
+    setModules((prev) =>
+      prev.map((mod) => (mod.id === updatedModule.id ? updatedModule : mod))
+    );
+  };
+
+  const handleAddResource = (moduleId: string) => {
+    setModules((prev) =>
+      prev.map((mod) =>
+        mod.id === moduleId
+          ? {
+              ...mod,
+              resources: [
+                ...mod.resources,
+                {
+                  id: `r${Date.now()}`,
+                  name: 'New Resource',
+                },
+              ],
+            }
+          : mod
+      )
+    );
   };
 
   return (
@@ -179,30 +227,20 @@ export default function CourseViewScreen() {
         }
       />
 
-      <Text style={courseStyles.sectionHeader}>Modulo 1: Capa de Aplicacion</Text>
-
-      <TouchableOpacity
-        style={courseStyles.materialToggle}
-        onPress={() => setShowMaterials(!showMaterials)}
-      >
-        <View style={courseStyles.materialToggleRow}>
-          <AntDesign
-            name={showMaterials ? 'up' : 'down'}
-            size={16}
-            color="#333"
-            style={courseStyles.arrowIcon}
+    <Text style={courseStyles.sectionHeader}>Módulos</Text>
+      <FlatList
+        data={modules}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ModuleCard
+            key={item.id}
+            moduleData={item}
+            onUpdateModule={handleUpdateModule}
+            onAddResource={handleAddResource}
           />
-          <Text style={courseStyles.materialToggleText}>Ver material</Text>
-        </View>
-      </TouchableOpacity>
-
-      {showMaterials && (
-        <View style={courseStyles.materialLinks}> 
-          <Text style={courseStyles.materialLink}>• Introducción al curso</Text>
-          <Text style={courseStyles.materialLink}>• Presentación de la cátedra</Text>
-          <Text style={courseStyles.materialLink}>• PDF: Sistemas Distribuidos - Módulo 1</Text>
-        </View>
-      )}
+        )}
+        contentContainerStyle={{ padding: 4 }}
+      />
 
       {/* foro */}
 
@@ -294,3 +332,4 @@ export default function CourseViewScreen() {
 export const options = {
   headerShown: false,
 };
+
