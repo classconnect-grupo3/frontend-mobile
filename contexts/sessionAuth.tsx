@@ -1,4 +1,4 @@
-import {
+import React, {
     useContext,
     createContext,
     type PropsWithChildren,
@@ -17,14 +17,14 @@ type AuthState = {
         id: string;
         name: string;
         surname: string;
-    }
+    } | null;
   };
 
 interface AuthContextType {
     authState: AuthState;
     register: (name: string, surname: string, email: string, password: string) => Promise<any>;
     login: (email: string, password: string) => Promise<any>;
-    loginWithGoogle(id_token: string): unknown;
+    loginWithGoogle(id_token: string): Promise<any>;
     logout: () => Promise<any>;
 }
 
@@ -45,7 +45,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         token: null,
         authenticated: false,
         location: null,
-        user: undefined,
+        user: null,
     });
 
     const fetchUser = async (token: string) => {
@@ -157,7 +157,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         await SecureStore.setItemAsync(TOKEN_KEY, token);
         client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     
-        setAuthState({ token, authenticated: true, location });
+        setAuthState({ token, authenticated: true, location, user: { id: '', name: '', surname: '' } });
     
         router.replace("/(tabs)");
       } catch (error) {
@@ -169,7 +169,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         await SecureStore.deleteItemAsync(TOKEN_KEY);
         client.defaults.headers.common['Authorization'] = '';
 
-        setAuthState({ token: null, authenticated: false });
+        setAuthState({ token: null, authenticated: false, location: null, user: { id: '', name: '', surname: '' } });
         router.replace("/(login)");
     };
 

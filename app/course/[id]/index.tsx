@@ -3,7 +3,7 @@ import { useCourses } from '@/contexts/CoursesContext';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image } from 'react-native';
 import { useState } from 'react';
 import React from 'react';
-import { AntDesign } from '@expo/vector-icons'; // asegúrate de tener este paquete
+import { AntDesign } from '@expo/vector-icons';
 import { NewTaskModal } from '@/components/NewTaskModal';
 import { styles as modalStyles } from '@/styles/modalStyle';
 import { styles as courseStyles } from '@/styles/courseStyles';
@@ -41,7 +41,11 @@ export default function CourseViewScreen() {
 
   const course = courses.find((c) => c.id === id);
 
-  const { authState } = useAuth();
+  const auth = useAuth();
+  if (!auth) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  const { authState } = auth;
 
   if (!course) {
     return (
@@ -168,7 +172,7 @@ export default function CourseViewScreen() {
               ...exam,
               id: Date.now().toString(),
               description: exam.description || '',
-              date: exam.date || '',
+              date: exam.deadline || '',
             },
           ])
         }

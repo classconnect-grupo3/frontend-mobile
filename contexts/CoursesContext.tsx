@@ -33,7 +33,9 @@ export const useCourses = () => {
 export const CoursesProvider = ({ children }: { children: React.ReactNode }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(false);
-  const { authState } = useAuth();
+
+  const authContext = useAuth();
+  const authState = authContext?.authState;
 
   const loadCourses = async () => {
     const teacherId = authState.user?.id;
