@@ -17,6 +17,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 const MOCK_TASKS = [
     { id: '1', title: 'TP1', description: 'Entrega del TP1, formato: zip con codigo', deadline: '2025-06-30' },
   ]
+const MOCK_EXAMS = [
+    { id: '1', title: 'Examen Parcial', description: 'Examen parcial de la materia', date: '2025-07-15' },
+  ];
 
 const alumnos = Array.from({ length: 20 }, (_, i) => `Padron: ${i + 1}`);
 const docentesTitulares = ['Iñaki Llorens', 'Martín Morilla'];
@@ -30,7 +33,9 @@ export default function CourseViewScreen() {
   const [showAlumnos, setShowAlumnos] = useState(false);
   const [showForo, setShowForo] = useState(false);
   const [tasks, setTasks] = useState(MOCK_TASKS);
+  const [exams, setExams] = useState(MOCK_EXAMS);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showExamModal, setShowExamModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -134,6 +139,39 @@ export default function CourseViewScreen() {
         visible={showTaskModal}
         onClose={() => setShowTaskModal(false)}
         onCreate={(task) => setTasks((prev) => [...prev, { ...task, id: Date.now().toString(), description: task.description || '' }])}
+      />
+
+      <Text style={courseStyles.sectionHeader}>Exámenes</Text>
+
+      <TouchableOpacity onPress={() => setShowExamModal(true)} style={courseStyles.addButton}>
+        <Text style={courseStyles.buttonText}>+ Agregar examen</Text>
+      </TouchableOpacity>
+
+      {exams.map((exam) => (
+        <View key={exam.id} style={courseStyles.taskCard}>
+          <Text style={courseStyles.taskTitle}>{exam.title}</Text>
+          <Text style={courseStyles.taskDescription}>{exam.description}</Text>
+          <Text style={courseStyles.taskDeadline}>📅 {exam.date}</Text>
+          <TouchableOpacity onPress={() => setExams(exams.filter(e => e.id !== exam.id))}>
+            <Text style={courseStyles.taskDelete}>Eliminar</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+
+      <NewTaskModal
+        visible={showExamModal}
+        onClose={() => setShowExamModal(false)}
+        onCreate={(exam) =>
+          setExams((prev) => [
+            ...prev,
+            {
+              ...exam,
+              id: Date.now().toString(),
+              description: exam.description || '',
+              date: exam.date || '',
+            },
+          ])
+        }
       />
 
       <Text style={courseStyles.sectionHeader}>Modulo 1: Capa de Aplicacion</Text>
