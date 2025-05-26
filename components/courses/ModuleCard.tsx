@@ -42,6 +42,11 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
   };
 
   const toggleEditMode = () => {
+    if (editMode) {
+      // Exiting edit mode → reset unsaved changes
+      setTitle(moduleData.title);
+      setDescription(moduleData.description);
+    }
     setEditMode(!editMode);
   };
 
@@ -122,14 +127,18 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
             <Text style={styles.buttonText}>+ Agregar recurso</Text>
           </TouchableOpacity>
 
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16, gap: 8 }}>
             {editMode ? (
               <>
-                <TouchableOpacity onPress={saveChanges} style={{ marginRight: 8 }}>
-                  <AntDesign name="save" size={20} color="green" />
+                <TouchableOpacity 
+                  style={styles.cancelButton} 
+                  onPress={toggleEditMode}>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={toggleEditMode}>
-                  <AntDesign name="close" size={20} color="red" />
+                <TouchableOpacity 
+                  style={styles.saveButton} 
+                  onPress={saveChanges}>
+                  <Text style={styles.saveButtonText}>Guardar</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -211,10 +220,40 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 
+  saveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: 'green',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: '#e0e0e0',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+
   editButtonText: {
     color: '#333',
     fontWeight: '500',
     marginLeft: 6,
+  },
+
+  saveButtonText: {
+    color: 'white',
+    fontWeight: '500',
+  },
+
+  cancelButtonText: {
+    color: '#333',
+    fontWeight: '500',
   },
 
   deleteResource: {
