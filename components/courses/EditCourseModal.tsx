@@ -43,7 +43,11 @@ export function EditCourseModal({ visible, onClose, course, onSuccess }: {
 
   const startDate = watch('startDate');
   const endDate = watch('endDate');
-  const { authState } = useAuth();
+    const authContext = useAuth();
+    if (!authContext) {
+        return null;
+    }
+    const { authState } = authContext;
 
   const onSubmit = async (data: FormData) => {
     try {

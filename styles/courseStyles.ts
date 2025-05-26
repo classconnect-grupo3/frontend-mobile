@@ -66,8 +66,8 @@ export const styles = StyleSheet.create({
     color: '#333',
   },
   sectionHeader: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: 'bold',
     marginBottom: 8,
     marginTop: 12,
     paddingHorizontal: 8,
