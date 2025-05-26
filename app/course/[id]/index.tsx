@@ -122,6 +122,10 @@ export default function CourseViewScreen() {
     );
   };
 
+  const handleDeleteModule = (moduleId: string) => {
+    setModules((prevModules) => prevModules.filter((mod) => mod.id !== moduleId));
+  };
+
   const handleAddResource = (moduleId: string) => {
     setModules((prev) =>
       prev.map((mod) =>
@@ -250,6 +254,7 @@ export default function CourseViewScreen() {
             moduleData={item}
             onUpdateModule={handleUpdateModule}
             onAddResource={handleAddResource}
+            onDeleteModule={handleDeleteModule}
           />
         )}
         contentContainerStyle={{ padding: 4 }}
