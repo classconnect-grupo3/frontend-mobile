@@ -33,11 +33,13 @@ export const useCourses = () => {
 export const CoursesProvider = ({ children }: { children: React.ReactNode }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(false);
+  const auth = useAuth();
+  if (!auth) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  const { authState } = auth;
 
-  const authContext = useAuth();
-  const authState = authContext?.authState;
-
-  const loadCourses = async () => {
+  const loadCourses = async () => { // why is this not used?
     const teacherId = authState.user?.id;
 
     if (!teacherId) {
@@ -87,14 +89,14 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
     } finally {
       setIsLoadingCourses(false);
     }
-};
+  };
 
   const addCourse = (course: Course) => {
     setCourses((prev) => [...prev, course]);
   };
 
   useEffect(() => {
-    if (!authState.user?.id || !authState.token) {
+    if (!authState.authenticated) {
       console.log('⏳ Auth not ready yet');
       return;
     }

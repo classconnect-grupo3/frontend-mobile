@@ -27,6 +27,7 @@ const docentesAuxiliares = ['Emiliano Gómez', 'Martín Masivo', 'Fede FIUBA'];
 
 export default function CourseViewScreen() {
   const { id } = useLocalSearchParams();
+  console.log('Course ID:', id);
   const router = useRouter();
   const { courses, reloadCourses } = useCourses();
   const [showMaterials, setShowMaterials] = useState(false);

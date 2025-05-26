@@ -77,33 +77,30 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
       const loadToken = async () => {
         try {
           const token = await SecureStore.getItemAsync(TOKEN_KEY);
-          const userId = await SecureStore.getItemAsync(USER_ID_KEY);
-          const userName = await SecureStore.getItemAsync(USER_NAME_KEY);
-          const userSurname = await SecureStore.getItemAsync(USER_SURNAME_KEY);
-          const userLocation = await SecureStore.getItemAsync(USER_LOCATION_KEY);
-
-          if (token && userId && userName && userSurname) {
-            const user = {
-              id: userId,
-              name: userName,
-              surname: userSurname,
-            };
-
-            client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-            setAuthState({
-              token,
-              authenticated: true,
-              user,
-              location: userLocation ?? null,
-            });
-          } else {
-            console.log('⛔ Datos de usuario incompletos en SecureStore');
+          if (!token) return;
+      
+          const user = await fetchUser(token);
+          if (!user) {
+            console.warn('❌ Invalid or expired token, logging out');
+            await SecureStore.deleteItemAsync(TOKEN_KEY);
+            return;
           }
+      
+          client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+          const location = await SecureStore.getItemAsync(USER_LOCATION_KEY);
+      
+          setAuthState({
+            token,
+            authenticated: true,
+            user,
+            location: location ?? null,
+          });
         } catch (e) {
           console.error('Error loading auth state from SecureStore', e);
         }
       };
+      
 
       loadToken();
     }, []);
