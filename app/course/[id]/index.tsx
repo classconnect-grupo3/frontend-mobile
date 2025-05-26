@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourses } from '@/contexts/CoursesContext';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image, FlatList } from 'react-native';
 import { useState } from 'react';
 import React from 'react';
 import { AntDesign } from '@expo/vector-icons';
@@ -228,14 +228,19 @@ export default function CourseViewScreen() {
       />
 
     <Text style={courseStyles.sectionHeader}>Módulos</Text>
-      {MOCK_MODULES.map((module) => (
-        <ModuleCard
-          key={module.id}
-          moduleData={module}
-          onUpdateModule={handleUpdateModule}
-          onAddResource={handleAddResource}
-        />
-      ))}
+      <FlatList
+        data={modules}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ModuleCard
+            key={item.id}
+            moduleData={item}
+            onUpdateModule={handleUpdateModule}
+            onAddResource={handleAddResource}
+          />
+        )}
+        contentContainerStyle={{ padding: 4 }}
+      />
 
       {/* foro */}
 
