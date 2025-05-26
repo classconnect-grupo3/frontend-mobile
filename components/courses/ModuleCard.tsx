@@ -10,7 +10,7 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
-import { AntDesign, Feather, Entypo } from '@expo/vector-icons';
+import { AntDesign, Feather, Entypo, MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet } from 'react-native';
 
 if (Platform.OS === 'android') {
@@ -54,10 +54,11 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
     <View
       style={{
         backgroundColor: '#fff',
-        borderRadius: 16,
+        borderRadius: 12,
         padding: 16,
         marginBottom: 12,
         elevation: 4,
+        shadowOpacity: 0.05,
       }}>
       <TouchableOpacity
         onPress={toggleExpanded}
@@ -93,11 +94,11 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
             <Text style={styles.description}>{description}</Text>
           )}
 
-          <Text style={styles.heading}>Resources</Text>
+          <Text style={styles.heading}>Recursos</Text>
           <FlatList
             data={moduleData.resources}
             keyExtractor={(item) => item.id}
-            style={{ marginBottom: 12 , marginTop: 8 }}
+            style={{ marginTop: 8 }}
             renderItem={({ item }) => (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                 <Feather name="file-text" size={16} color="#555" style={{ marginRight: 8 }} />
@@ -108,7 +109,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
 
           <TouchableOpacity onPress={() => onAddResource(moduleData.id)} style={styles.addResourceButton}>
             <Text style={styles.buttonText}>+ Agregar recurso</Text>
-            </TouchableOpacity>
+          </TouchableOpacity>
 
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
             {editMode ? (
@@ -121,8 +122,11 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
                 </TouchableOpacity>
               </>
             ) : (
-              <TouchableOpacity onPress={toggleEditMode}>
-                <Entypo name="edit" size={20} color="black" />
+              <TouchableOpacity 
+                style={styles.editButton} 
+                onPress={toggleEditMode}>
+                <MaterialIcons name="edit" size={18} color="#333" />
+                <Text style={styles.editButtonText}>Editar módulo</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -148,15 +152,14 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   addResourceButton: {
-    backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
+    padding: 4,
+    alignItems: 'flex-start',
   },
 
   buttonText: {
-    color: '#fff',
+    color: 'green',
     fontWeight: 'bold',
+    fontSize: 14,
   },
 
   description: {
@@ -185,6 +188,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlignVertical: 'top', 
     marginBottom: 12,
+  },
+
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: '#e0e0e0',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+
+  editButtonText: {
+    color: '#333',
+    fontWeight: '500',
+    marginLeft: 6,
   },
 });
 

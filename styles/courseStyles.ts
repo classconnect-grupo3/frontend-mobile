@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 8,
-    marginTop: 12,
+    marginTop: 16,
     paddingHorizontal: 8,
     color: '#333',
   },
@@ -77,7 +77,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     padding: 12,
     borderRadius: 8,
-    marginBottom: 12,
+    marginTop: 12,
   },
 
   taskTitle: {
