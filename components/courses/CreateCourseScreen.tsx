@@ -33,7 +33,11 @@ export default function CreateCourseScreen( { onClose }: Props) {
   const [showEndPicker, setShowEndPicker] = useState(false);
   const { reloadCourses } = useCourses();
 
-  const { authState } = useAuth();
+  const auth = useAuth();
+  if (!auth) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  const { authState } = auth;
 
   const {
     control,
