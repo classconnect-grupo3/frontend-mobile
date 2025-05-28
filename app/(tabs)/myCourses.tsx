@@ -18,14 +18,12 @@ import { fetchUserData } from '@/services/userProfile';
 import { useAuth } from '@/contexts/sessionAuth';
 import { WideCourseCard } from '@/components/courses/WideCourseCard';
 
-const COURSES_PER_PAGE = 4;
-
 export default function MyCoursesScreen() {
     const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
     const { courses, reloadCourses, isLoadingCourses } = useCourses();
 
-    const teachingCourses = courses;
-    const enrolledCourses: Course[] = [];
+    const teachingCourses = courses.filter(c => c.role === 'teacher');
+    const enrolledCourses = courses.filter(c => c.role === 'student');
 
     useEffect(() => {
         reloadCourses();
@@ -52,7 +50,11 @@ export default function MyCoursesScreen() {
           <Text style={styles.emptyText}>You are not enrolled in any courses.</Text>
         ) : (
           enrolledCourses.map(course => (
-            <WideCourseCard key={course.id} course={course} />
+            <WideCourseCard
+              key={course.id}
+              course={course}
+              onPress={() => router.push(`/course/${course.id}/student`)}
+            />
           ))
         )}
       </ScrollView>
