@@ -29,6 +29,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     marginBottom: 8,
+    marginTop: 16,
   },
   materialLinks: {
     backgroundColor: '#f9f9f9',
@@ -66,10 +67,10 @@ export const styles = StyleSheet.create({
     color: '#333',
   },
   sectionHeader: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: 'bold',
     marginBottom: 8,
-    marginTop: 12,
+    marginTop: 16,
     paddingHorizontal: 8,
     color: '#333',
   },
@@ -77,7 +78,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     padding: 12,
     borderRadius: 8,
-    marginBottom: 12,
+    marginTop: 12,
   },
 
   taskTitle: {
@@ -105,6 +106,7 @@ export const styles = StyleSheet.create({
   },  
   input: {
     borderWidth: 1,
+    color: '#333',
     borderColor: '#ccc',
     borderRadius: 6,
     padding: 8,
@@ -205,8 +207,8 @@ export const styles = StyleSheet.create({
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-end', // ✅ alineado a la derecha
-    backgroundColor: '#e0e0e0', // gris claro
+    alignSelf: 'flex-end',
+    backgroundColor: '#e0e0e0',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -216,5 +218,43 @@ export const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
     marginLeft: 6,
+  },
+  addModuleText: {
+    color: 'green',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  modalBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    elevation: 5,
+  },
+  modalTitle: {
+    color: '#333',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: 'white',
+    fontWeight: '600',
   },
 });

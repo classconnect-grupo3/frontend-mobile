@@ -37,7 +37,7 @@ export default function MyCoursesScreen() {
         <Text style={styles.title}>Courses in which I teach</Text>
         {isLoadingCourses ? (
           <ActivityIndicator size="large" style={{ marginVertical: 24 }} />
-        ) : teachingCourses.length === 0 ? (
+        ) : (teachingCourses?.length ?? 0) === 0 ? (
           <Text style={styles.emptyText}>No courses found.</Text>
         ) : (
           teachingCourses.map(course => (

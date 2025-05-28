@@ -1,9 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourses } from '@/contexts/CoursesContext';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image, FlatList, TextInput } from 'react-native';
 import { useState } from 'react';
 import React from 'react';
-import { AntDesign } from '@expo/vector-icons'; // asegúrate de tener este paquete
+import { AntDesign } from '@expo/vector-icons';
 import { NewTaskModal } from '@/components/NewTaskModal';
 import { styles as modalStyles } from '@/styles/modalStyle';
 import { styles as courseStyles } from '@/styles/courseStyles';
@@ -13,10 +13,34 @@ import Toast from 'react-native-toast-message';
 import { useAuth } from '@/contexts/sessionAuth';
 import { EditCourseModal } from '@/components/courses/EditCourseModal';
 import { MaterialIcons } from '@expo/vector-icons';
+import ModuleCard from '@/components/courses/ModuleCard';
+import type { ModuleData } from '@/components/courses/ModuleCard';
 
 const MOCK_TASKS = [
     { id: '1', title: 'TP1', description: 'Entrega del TP1, formato: zip con codigo', deadline: '2025-06-30' },
   ]
+const MOCK_EXAMS = [
+    { id: '1', title: 'Examen Parcial', description: 'Examen parcial de la materia', date: '2025-07-15' },
+  ];
+const MOCK_MODULES = [
+  {
+    id: '1',
+    title: 'Introduction to Algebra',
+    description: 'Learn about variables, equations, and basic algebraic structures.',
+    resources: [
+      { id: 'r1', name: 'Lecture Slides'},
+      { id: 'r2', name: 'Practice Problems'},
+    ],
+  },
+  {
+    id: '2',
+    title: 'Linear Equations',
+    description: 'Explore linear equations and their graphs.',
+    resources: [
+      { id: 'r3', name: 'Video Explanation'},
+    ],
+  },
+];
 
 const alumnos = Array.from({ length: 20 }, (_, i) => `Padron: ${i + 1}`);
 const docentesTitulares = ['Iñaki Llorens', 'Martín Morilla'];
@@ -24,19 +48,28 @@ const docentesAuxiliares = ['Emiliano Gómez', 'Martín Masivo', 'Fede FIUBA'];
 
 export default function CourseViewScreen() {
   const { id } = useLocalSearchParams();
+  console.log('Course ID:', id);
   const router = useRouter();
   const { courses, reloadCourses } = useCourses();
-  const [showMaterials, setShowMaterials] = useState(false);
   const [showAlumnos, setShowAlumnos] = useState(false);
-  const [showForo, setShowForo] = useState(false);
   const [tasks, setTasks] = useState(MOCK_TASKS);
+  const [exams, setExams] = useState(MOCK_EXAMS);
+  const [modules, setModules] = useState(MOCK_MODULES);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showExamModal, setShowExamModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
 
   const course = courses.find((c) => c.id === id);
 
-  const { authState } = useAuth();
+  const auth = useAuth();
+  if (!auth) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  const { authState } = auth;
 
   if (!course) {
     return (
@@ -68,6 +101,48 @@ export default function CourseViewScreen() {
       Toast.show({ type: 'error', text1: 'Error al eliminar el curso' });
       setShowConfirmModal(false);
     }
+  };
+
+  const handleAddModule = () => {
+    const newModule: ModuleData = {
+      id: Date.now().toString(),
+      title: newTitle.trim() || 'Nuevo módulo',
+      description: newDescription.trim(),
+      resources: [],
+    };
+    setModules([...modules, newModule]);
+    setNewTitle('');
+    setNewDescription('');
+    setModalVisible(false);
+  };
+
+  const handleUpdateModule = (updatedModule: ModuleData) => {
+    setModules((prev) =>
+      prev.map((mod) => (mod.id === updatedModule.id ? updatedModule : mod))
+    );
+  };
+
+  const handleDeleteModule = (moduleId: string) => {
+    setModules((prevModules) => prevModules.filter((mod) => mod.id !== moduleId));
+  };
+
+  const handleAddResource = (moduleId: string) => {
+    setModules((prev) =>
+      prev.map((mod) =>
+        mod.id === moduleId
+          ? {
+              ...mod,
+              resources: [
+                ...mod.resources,
+                {
+                  id: `r${Date.now()}`,
+                  name: 'New Resource',
+                },
+              ],
+            }
+          : mod
+      )
+    );
   };
 
   return (
@@ -136,53 +211,97 @@ export default function CourseViewScreen() {
         onCreate={(task) => setTasks((prev) => [...prev, { ...task, id: Date.now().toString(), description: task.description || '' }])}
       />
 
-      <Text style={courseStyles.sectionHeader}>Modulo 1: Capa de Aplicacion</Text>
+      <Text style={courseStyles.sectionHeader}>Exámenes</Text>
 
-      <TouchableOpacity
-        style={courseStyles.materialToggle}
-        onPress={() => setShowMaterials(!showMaterials)}
-      >
-        <View style={courseStyles.materialToggleRow}>
-          <AntDesign
-            name={showMaterials ? 'up' : 'down'}
-            size={16}
-            color="#333"
-            style={courseStyles.arrowIcon}
-          />
-          <Text style={courseStyles.materialToggleText}>Ver material</Text>
-        </View>
+      <TouchableOpacity onPress={() => setShowExamModal(true)} style={courseStyles.addButton}>
+        <Text style={courseStyles.buttonText}>+ Agregar examen</Text>
       </TouchableOpacity>
 
-      {showMaterials && (
-        <View style={courseStyles.materialLinks}> 
-          <Text style={courseStyles.materialLink}>• Introducción al curso</Text>
-          <Text style={courseStyles.materialLink}>• Presentación de la cátedra</Text>
-          <Text style={courseStyles.materialLink}>• PDF: Sistemas Distribuidos - Módulo 1</Text>
+      {exams.map((exam) => (
+        <View key={exam.id} style={courseStyles.taskCard}>
+          <Text style={courseStyles.taskTitle}>{exam.title}</Text>
+          <Text style={courseStyles.taskDescription}>{exam.description}</Text>
+          <Text style={courseStyles.taskDeadline}>📅 {exam.date}</Text>
+          <TouchableOpacity onPress={() => setExams(exams.filter(e => e.id !== exam.id))}>
+            <Text style={courseStyles.taskDelete}>Eliminar</Text>
+          </TouchableOpacity>
         </View>
-      )}
+      ))}
 
-      {/* foro */}
+      <NewTaskModal
+        visible={showExamModal}
+        onClose={() => setShowExamModal(false)}
+        onCreate={(exam) =>
+          setExams((prev) => [
+            ...prev,
+            {
+              ...exam,
+              id: Date.now().toString(),
+              description: exam.description || '',
+              date: exam.deadline || '',
+            },
+          ])
+        }
+      />
 
-      <TouchableOpacity
-        style={courseStyles.materialToggle}
-        onPress={() => setShowForo(!showForo)}
-      >
-        <View style={courseStyles.materialToggleRow}>
-          <AntDesign
-            name={showForo ? 'up' : 'down'}
-            size={16}
-            color="#333"
-            style={courseStyles.arrowIcon}
+    <Text style={courseStyles.sectionHeader}>Módulos</Text>
+      <FlatList
+        data={modules}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ModuleCard
+            key={item.id}
+            moduleData={item}
+            onUpdateModule={handleUpdateModule}
+            onAddResource={handleAddResource}
+            onDeleteModule={handleDeleteModule}
           />
-          <Text style={courseStyles.materialToggleText}>Foro</Text>
-        </View>
-      </TouchableOpacity>
+        )}
+        contentContainerStyle={{ padding: 4 }}
+      />
 
-      {showForo && (
-        <View style={courseStyles.materialLinks}>
-          <Text style={courseStyles.materialLink}>Proximamente...</Text>
+      <TouchableOpacity onPress={() => setModalVisible(true)} style={courseStyles.addButton}>
+        <Text style={courseStyles.buttonText}>+ Agregar módulo</Text>
+      </TouchableOpacity>
+      
+      {/* Modal de creación de módulo */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={courseStyles.modalBackground}>
+          <View style={courseStyles.modalContent}>
+            <Text style={courseStyles.modalTitle}>Nuevo módulo</Text>
+            <TextInput
+              value={newTitle}
+              onChangeText={setNewTitle}
+              placeholder="Título del módulo"
+              placeholderTextColor={'#999'}
+              style={courseStyles.input}
+            />
+            <TextInput
+              value={newDescription}
+              onChangeText={setNewDescription}
+              placeholder="Descripción"
+              placeholderTextColor={'#999'}
+              multiline
+              style={[courseStyles.input, { height: 80 }]}
+            />
+
+            <View style={courseStyles.modalButtons}>
+              <TouchableOpacity
+                onPress={handleAddModule}
+                style={[courseStyles.modalButton, { backgroundColor: '#4CAF50' }]}
+              >
+                <Text style={courseStyles.modalButtonText}>Guardar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                style={[courseStyles.modalButton, { backgroundColor: '#ccc' }]}
+              >
+                <Text style={courseStyles.modalButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      )}
+      </Modal>
 
       <TouchableOpacity
         style={courseStyles.materialToggle}
@@ -251,3 +370,4 @@ export default function CourseViewScreen() {
 export const options = {
   headerShown: false,
 };
+

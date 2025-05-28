@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './sessionAuth';
 import { fetchUserData } from '@/services/userProfile';
 import { courseClient } from '@/lib/courseClient';
@@ -34,7 +34,11 @@ export const useCourses = () => {
 export const CoursesProvider = ({ children }: { children: React.ReactNode }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(false);
-  const { authState } = useAuth();
+  const auth = useAuth();
+  if (!auth) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  const { authState } = auth;
 
   const reloadCourses = async () => {
     const userId = authState.user?.id;
@@ -79,13 +83,13 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   useEffect(() => {
-    console.log('Loading courses for user:', authState.user);
-    if (!authState.user) return;
-
-    if (authState.user?.id && authState.token) {
-      reloadCourses();
+    if (!authState.authenticated) {
+      console.log('⏳ Auth not ready yet');
+      return;
     }
-  }, [authState.user?.id]);
+  
+    reloadCourses();
+  }, [authState.user?.id, authState.token]);
 
   return (
     <CoursesContext.Provider value={{ courses, addCourse, reloadCourses, isLoadingCourses }}>

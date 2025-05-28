@@ -1,4 +1,4 @@
-import {
+import React, {
     useContext,
     createContext,
     type PropsWithChildren,
@@ -17,14 +17,14 @@ type AuthState = {
         id: string;
         name: string;
         surname: string;
-    }
+    } | null;
   };
 
 interface AuthContextType {
     authState: AuthState;
     register: (name: string, surname: string, email: string, password: string) => Promise<any>;
     login: (email: string, password: string) => Promise<any>;
-    loginWithGoogle(id_token: string): unknown;
+    loginWithGoogle(id_token: string): Promise<any>;
     logout: () => Promise<any>;
 }
 
@@ -45,7 +45,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         token: null,
         authenticated: false,
         location: null,
-        user: undefined,
+        user: null,
     });
 
     const fetchUser = async (token: string) => {
@@ -77,33 +77,30 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
       const loadToken = async () => {
         try {
           const token = await SecureStore.getItemAsync(TOKEN_KEY);
-          const userId = await SecureStore.getItemAsync(USER_ID_KEY);
-          const userName = await SecureStore.getItemAsync(USER_NAME_KEY);
-          const userSurname = await SecureStore.getItemAsync(USER_SURNAME_KEY);
-          const userLocation = await SecureStore.getItemAsync(USER_LOCATION_KEY);
-
-          if (token && userId && userName && userSurname) {
-            const user = {
-              id: userId,
-              name: userName,
-              surname: userSurname,
-            };
-
-            client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-            setAuthState({
-              token,
-              authenticated: true,
-              user,
-              location: userLocation ?? null,
-            });
-          } else {
-            console.log('⛔ Datos de usuario incompletos en SecureStore');
+          if (!token) return;
+      
+          const user = await fetchUser(token);
+          if (!user) {
+            console.warn('❌ Invalid or expired token, logging out');
+            await SecureStore.deleteItemAsync(TOKEN_KEY);
+            return;
           }
+      
+          client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+          const location = await SecureStore.getItemAsync(USER_LOCATION_KEY);
+      
+          setAuthState({
+            token,
+            authenticated: true,
+            user,
+            location: location ?? null,
+          });
         } catch (e) {
           console.error('Error loading auth state from SecureStore', e);
         }
       };
+      
 
       loadToken();
     }, []);
@@ -157,7 +154,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         await SecureStore.setItemAsync(TOKEN_KEY, token);
         client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     
-        setAuthState({ token, authenticated: true, location });
+        setAuthState({ token, authenticated: true, location, user: { id: '', name: '', surname: '' } });
     
         router.replace("/(tabs)");
       } catch (error) {
@@ -169,7 +166,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         await SecureStore.deleteItemAsync(TOKEN_KEY);
         client.defaults.headers.common['Authorization'] = '';
 
-        setAuthState({ token: null, authenticated: false });
+        setAuthState({ token: null, authenticated: false, location: null, user: { id: '', name: '', surname: '' } });
         router.replace("/(login)");
     };
 
