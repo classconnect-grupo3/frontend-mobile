@@ -15,6 +15,18 @@ import { EditCourseModal } from '@/components/courses/EditCourseModal';
 import { MaterialIcons } from '@expo/vector-icons';
 import ModuleCard from '@/components/courses/ModuleCard';
 import type { ModuleData } from '@/components/courses/ModuleCard';
+import { CourseTopBar } from '@/components/courses/course/CourseTopBar';
+import { CourseTasksSection } from '@/components/courses/course/CourseTasksSection';
+import { TasksSection } from '@/components/courses/course/TasksSection';
+import { ExamsSection } from '@/components/courses/course/ExamsSection';
+import { ModulesSection } from '@/components/courses/course/ModulesSection';
+
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  deadline: string;
+}
 
 const MOCK_TASKS = [
     { id: '1', title: 'TP1', description: 'Entrega del TP1, formato: zip con codigo', deadline: '2025-06-30' },
@@ -52,8 +64,10 @@ export default function CourseViewScreen() {
   const router = useRouter();
   const { courses, reloadCourses } = useCourses();
   const [showAlumnos, setShowAlumnos] = useState(false);
-  const [tasks, setTasks] = useState(MOCK_TASKS);
+  const [tasks, setTasks] = useState<Task[] | null>(MOCK_TASKS);
+  const [loadingTasks, setLoadingTasks] = useState(false);
   const [exams, setExams] = useState(MOCK_EXAMS);
+  const [loadingExams, setLoadingExams] = useState(false);
   const [modules, setModules] = useState(MOCK_MODULES);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showExamModal, setShowExamModal] = useState(false);
@@ -64,6 +78,8 @@ export default function CourseViewScreen() {
   const [newDescription, setNewDescription] = useState('');
 
   const course = courses.find((c) => c.id === id);
+
+  const teacher = true;
 
   const auth = useAuth();
   if (!auth) {
@@ -102,206 +118,83 @@ export default function CourseViewScreen() {
       setShowConfirmModal(false);
     }
   };
-
-  const handleAddModule = () => {
-    const newModule: ModuleData = {
-      id: Date.now().toString(),
-      title: newTitle.trim() || 'Nuevo módulo',
-      description: newDescription.trim(),
-      resources: [],
+  
+  const handleSubmitTask = async (assignmentId: string) => {
+      try {
+        if (!authState) {
+          Toast.show({ type: 'error', text1: 'No hay sesión de usuario' });
+          return;
+        }
+        await courseClient.post(`/assignments/${assignmentId}/submissions`, {
+          student_id: authState.user?.id,
+          content: 'Entrega realizada desde la app',
+        }, {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+          },
+        });
+  
+        Toast.show({ type: 'success', text1: 'Tarea entregada' });
+      } catch (e) {
+        console.error('Error entregando tarea:', e);
+        Toast.show({ type: 'error', text1: 'No se pudo entregar la tarea' });
+      }
     };
-    setModules([...modules, newModule]);
-    setNewTitle('');
-    setNewDescription('');
-    setModalVisible(false);
-  };
 
-  const handleUpdateModule = (updatedModule: ModuleData) => {
-    setModules((prev) =>
-      prev.map((mod) => (mod.id === updatedModule.id ? updatedModule : mod))
-    );
-  };
-
-  const handleDeleteModule = (moduleId: string) => {
-    setModules((prevModules) => prevModules.filter((mod) => mod.id !== moduleId));
-  };
-
-  const handleAddResource = (moduleId: string) => {
-    setModules((prev) =>
-      prev.map((mod) =>
-        mod.id === moduleId
-          ? {
-              ...mod,
-              resources: [
-                ...mod.resources,
-                {
-                  id: `r${Date.now()}`,
-                  name: 'New Resource',
-                },
-              ],
-            }
-          : mod
-      )
-    );
-  };
+  const handleSubmitExam = async (assignmentId: string) => {
+      try {
+        if (!authState) {
+          Toast.show({ type: 'error', text1: 'No hay sesión de usuario' });
+          return;
+        }
+        await courseClient.post(`/assignments/${assignmentId}/submissions`, {
+          student_id: authState.user?.id,
+          content: 'Entrega realizada desde la app',
+        }, {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+          },
+        });
+  
+        Toast.show({ type: 'success', text1: 'Tarea entregada' });
+      } catch (e) {
+        console.error('Error entregando tarea:', e);
+        Toast.show({ type: 'error', text1: 'No se pudo entregar la tarea' });
+      }
+    };
 
   return (
     <ScrollView contentContainerStyle={courseStyles.scrollContainer}>
-      {/* Top bar */}
-      <View style={homeScreenStyles.topBar}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={courseStyles.back}>←</Text>
-        </TouchableOpacity>
-        <Text style={homeScreenStyles.title}>{course.title}</Text>
-        <Text style={courseStyles.role}>rol: Docente</Text>
-        <Image 
-            source={require('@/assets/images/profile-placeholder.jpeg')}
-            style={homeScreenStyles.profileIcon}
-        />
-      </View>
 
-      <View style={homeScreenStyles.topBar}>
-        <Text style={courseStyles.taskTitle}>Description</Text>
-        <Text style={courseStyles.taskDescription}>{course.description}</Text>
-      </View>
-
-      <View style={homeScreenStyles.topBar}>
-        <Text style={courseStyles.taskTitle}>Capacity</Text>
-        <Text style={courseStyles.taskDescription}>{course.capacity} students</Text>
-      </View>
-
-      
-
-      <TouchableOpacity
-        style={courseStyles.editButton}
-        onPress={() => setShowEditModal(true)}
-      >
-        <MaterialIcons name="edit" size={18} color="#333" />
-        <Text style={courseStyles.editButtonText}>Editar curso</Text>
-      </TouchableOpacity>
-      <EditCourseModal
-        visible={showEditModal}
-        onClose={() => setShowEditModal(false)}
+      <CourseTopBar
+        role="Docente"
+        onBack={() => router.back()}
+        canEdit={teacher}
         course={course}
-        onSuccess={reloadCourses}
+        onEditSuccess={reloadCourses}
       />
-
+      
       {/* Course Info */}
       
-      <Text style={courseStyles.sectionHeader}>Tareas</Text>
+      {/* <CourseTasksSection isTeacher={teacher}/> */}
 
-      <TouchableOpacity onPress={() => setShowTaskModal(true)} style={courseStyles.addButton}>
-        <Text style={courseStyles.buttonText}>+ Agregar tarea</Text>
-      </TouchableOpacity>
-
-      {tasks.map((task) => (
-        <View key={task.id} style={courseStyles.taskCard}>
-          <Text style={courseStyles.taskTitle}>{task.title}</Text>
-          <Text style={courseStyles.taskDescription}>{task.description}</Text>
-          <Text style={courseStyles.taskDeadline}>⏰ {task.deadline}</Text>
-          <TouchableOpacity onPress={() => setTasks(tasks.filter(t => t.id !== task.id))}>
-            <Text style={courseStyles.taskDelete}>Eliminar</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
-
-      <NewTaskModal
-        visible={showTaskModal}
-        onClose={() => setShowTaskModal(false)}
-        onCreate={(task) => setTasks((prev) => [...prev, { ...task, id: Date.now().toString(), description: task.description || '' }])}
-      />
-
-      <Text style={courseStyles.sectionHeader}>Exámenes</Text>
-
-      <TouchableOpacity onPress={() => setShowExamModal(true)} style={courseStyles.addButton}>
-        <Text style={courseStyles.buttonText}>+ Agregar examen</Text>
-      </TouchableOpacity>
-
-      {exams.map((exam) => (
-        <View key={exam.id} style={courseStyles.taskCard}>
-          <Text style={courseStyles.taskTitle}>{exam.title}</Text>
-          <Text style={courseStyles.taskDescription}>{exam.description}</Text>
-          <Text style={courseStyles.taskDeadline}>📅 {exam.date}</Text>
-          <TouchableOpacity onPress={() => setExams(exams.filter(e => e.id !== exam.id))}>
-            <Text style={courseStyles.taskDelete}>Eliminar</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
-
-      <NewTaskModal
-        visible={showExamModal}
-        onClose={() => setShowExamModal(false)}
-        onCreate={(exam) =>
-          setExams((prev) => [
-            ...prev,
-            {
-              ...exam,
-              id: Date.now().toString(),
-              description: exam.description || '',
-              date: exam.deadline || '',
-            },
-          ])
-        }
-      />
-
-    <Text style={courseStyles.sectionHeader}>Módulos</Text>
-      <FlatList
-        data={modules}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ModuleCard
-            key={item.id}
-            moduleData={item}
-            onUpdateModule={handleUpdateModule}
-            onAddResource={handleAddResource}
-            onDeleteModule={handleDeleteModule}
-          />
-        )}
-        contentContainerStyle={{ padding: 4 }}
-      />
-
-      <TouchableOpacity onPress={() => setModalVisible(true)} style={courseStyles.addButton}>
-        <Text style={courseStyles.buttonText}>+ Agregar módulo</Text>
-      </TouchableOpacity>
-      
-      {/* Modal de creación de módulo */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={courseStyles.modalBackground}>
-          <View style={courseStyles.modalContent}>
-            <Text style={courseStyles.modalTitle}>Nuevo módulo</Text>
-            <TextInput
-              value={newTitle}
-              onChangeText={setNewTitle}
-              placeholder="Título del módulo"
-              placeholderTextColor={'#999'}
-              style={courseStyles.input}
-            />
-            <TextInput
-              value={newDescription}
-              onChangeText={setNewDescription}
-              placeholder="Descripción"
-              placeholderTextColor={'#999'}
-              multiline
-              style={[courseStyles.input, { height: 80 }]}
+      <TasksSection
+              tasks={tasks}
+              setTasks={setTasks}
+              loading={loadingTasks}
+              onSubmit={handleSubmitTask}
+              isTeacher={teacher}
             />
 
-            <View style={courseStyles.modalButtons}>
-              <TouchableOpacity
-                onPress={handleAddModule}
-                style={[courseStyles.modalButton, { backgroundColor: '#4CAF50' }]}
-              >
-                <Text style={courseStyles.modalButtonText}>Guardar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                style={[courseStyles.modalButton, { backgroundColor: '#ccc' }]}
-              >
-                <Text style={courseStyles.modalButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <ExamsSection
+          exams={exams}
+          setExams={setExams}
+          loading={loadingExams}
+          onSubmit={handleSubmitExam}
+          isTeacher={teacher}
+        />
+
+    <ModulesSection courseId={course.id} isTeacher={teacher} />
 
       <TouchableOpacity
         style={courseStyles.materialToggle}
@@ -370,4 +263,3 @@ export default function CourseViewScreen() {
 export const options = {
   headerShown: false,
 };
-

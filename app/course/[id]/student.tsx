@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourses } from '@/contexts/CoursesContext';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import React from 'react';
 import { AntDesign } from '@expo/vector-icons'; // asegúrate de tener este paquete
 import { NewTaskModal } from '@/components/NewTaskModal';
@@ -13,10 +13,26 @@ import Toast from 'react-native-toast-message';
 import { useAuth } from '@/contexts/sessionAuth';
 import { EditCourseModal } from '@/components/courses/EditCourseModal';
 import { MaterialIcons } from '@expo/vector-icons';
+import { CourseTopBar } from '@/components/courses/course/CourseTopBar';
+import { TasksSection } from '@/components/courses/course/TasksSection';
+import { ExamsSection } from '@/components/courses/course/ExamsSection';
+import { ModulesSection } from '@/components/courses/course/ModulesSection';
+
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  deadline: string;
+}
 
 const MOCK_TASKS = [
     { id: '1', title: 'TP1', description: 'Entrega del TP1, formato: zip con codigo', deadline: '2025-06-30' },
-  ]
+  ];
+
+const MOCK_EXAMS = [
+    { id: '1', title: 'Examen Parcial', description: 'Examen parcial de la materia', date: '2025-07-15' },
+  ];
+
 const alumnos = Array.from({ length: 20 }, (_, i) => `Padron: ${i + 1}`);
 const docentesAuxiliares = ['Iñaki Llorens', 'Martín Morilla', 'Emiliano Gómez', 'Martín Masivo', 'Fede FIUBA'];
 
@@ -27,22 +43,20 @@ export default function CourseViewScreen() {
   const [showMaterials, setShowMaterials] = useState(false);
   const [showAlumnos, setShowAlumnos] = useState(false);
   const [showForo, setShowForo] = useState(false);
-  const [tasks, setTasks] = useState(MOCK_TASKS);
+  const [tasks, setTasks] = useState<Task[] | null>(MOCK_TASKS);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [exams, setExams] = useState(MOCK_EXAMS);
+  const [loadingExams, setLoadingExams] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const course = {
-        "id": "68190388fed5b74a2ad9c0b5",
-        "title": "Algoritmos y Programacion 1", 
-        "description": "En este curso se dictan los basicos de la programacion en el lenguaje Python",
-        "teacher_name": "Diego Essaya",
-        "start_date": "0001-01-01T00:00:00Z", 
-        "end_date": "0001-01-01T00:00:00Z", 
-        "capacity": 60, 
-      }
+  const course = courses.find(c => c.id === id);
 
-  const { authState } = useAuth();
+  const teacher = false;
+
+  const auth = useAuth();
+  const authState = auth?.authState;
 
   if (!course) {
     return (
@@ -56,71 +70,104 @@ export default function CourseViewScreen() {
     );
   }
 
+  const handleSubmitTask = async (assignmentId: string) => {
+    try {
+      if (!authState) {
+        Toast.show({ type: 'error', text1: 'No hay sesión de usuario' });
+        return;
+      }
+      await courseClient.post(`/assignments/${assignmentId}/submissions`, {
+        student_id: authState.user?.id,
+        content: 'Entrega realizada desde la app',
+      }, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`,
+        },
+      });
+
+      Toast.show({ type: 'success', text1: 'Tarea entregada' });
+    } catch (e) {
+      console.error('Error entregando tarea:', e);
+      Toast.show({ type: 'error', text1: 'No se pudo entregar la tarea' });
+    }
+  };
+
+  const handleSubmitExam = async (assignmentId: string) => {
+    try {
+      if (!authState) {
+        Toast.show({ type: 'error', text1: 'No hay sesión de usuario' });
+        return;
+      }
+      await courseClient.post(`/assignments/${assignmentId}/submissions`, {
+        student_id: authState.user?.id,
+        content: 'Entrega realizada desde la app',
+      }, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`,
+        },
+      });
+
+      Toast.show({ type: 'success', text1: 'Tarea entregada' });
+    } catch (e) {
+      console.error('Error entregando tarea:', e);
+      Toast.show({ type: 'error', text1: 'No se pudo entregar la tarea' });
+    }
+  };
+
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        setLoadingTasks(true);
+        if (!authState?.token) {
+          throw new Error('No auth token available');
+        }
+        const { data } = await courseClient.get(`/assignments/course/${course.id}`, {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+          },
+        });
+        console.log('Assignments fetched:', data);
+        setTasks(data);
+      } catch (e) {
+        console.error('Error fetching assignments:', e);
+        Toast.show({ type: 'error', text1: 'No se pudieron cargar las tareas' });
+      } finally {
+        setLoadingTasks(false);
+      }
+    };
+
+    if (course.id && authState?.token) fetchAssignments();
+  }, []);
+
   return (
     <ScrollView contentContainerStyle={courseStyles.scrollContainer}>
-      {/* Top bar */}
-      <View style={homeScreenStyles.topBar}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={courseStyles.back}>←</Text>
-        </TouchableOpacity>
-        <Text style={homeScreenStyles.title}>{course.title}</Text>
-        <Text style={courseStyles.role}>rol: Alumno</Text>
-        <Image 
-            source={require('@/assets/images/profile-placeholder.jpeg')}
-            style={homeScreenStyles.profileIcon}
-        />
-      </View>
-
-      <View style={homeScreenStyles.topBar}>
-        <Text style={courseStyles.taskTitle}>Teacher: </Text>
-        <Text style={courseStyles.taskDescription}>{course.teacher_name}</Text>
-      </View>
-
-      <View style={homeScreenStyles.topBar}>
-        <Text style={courseStyles.taskDescription}>{course.description}</Text>
-      </View>
-
-      <View style={homeScreenStyles.topBar}>
-        <Text style={courseStyles.taskTitle}>Capacity</Text>
-        <Text style={courseStyles.taskDescription}>{course.capacity} students</Text>
-      </View>
+      <CourseTopBar
+              role="Alumno"
+              onBack={() => router.back()}
+              canEdit={teacher}
+              course={course}
+              onEditSuccess={reloadCourses}
+            />
 
       {/* Course Info */}
       
-      <Text style={courseStyles.sectionHeader}>Tareas</Text>
+      <TasksSection
+        tasks={tasks}
+        setTasks={setTasks}
+        loading={loadingTasks}
+        onSubmit={handleSubmitTask}
+        isTeacher={teacher}
+      />
 
-      {tasks.map((task) => (
-        <View key={task.id} style={courseStyles.taskCard}>
-          <Text style={courseStyles.taskTitle}>{task.title}</Text>
-          <Text style={courseStyles.taskDescription}>{task.description}</Text>
-          <Text style={courseStyles.taskDeadline}>⏰ {task.deadline}</Text>
-        </View>
-      ))}
+      <ExamsSection
+        exams={exams}
+        setExams={setExams}
+        loading={loadingExams}
+        onSubmit={handleSubmitExam}
+        isTeacher={teacher}
+      />
 
-      <Text style={courseStyles.sectionHeader}>Modulo 1: Capa de Aplicacion</Text>
-
-      <TouchableOpacity
-        style={courseStyles.materialToggle}
-        onPress={() => setShowMaterials(!showMaterials)}
-      >
-        <View style={courseStyles.materialToggleRow}>
-          <AntDesign
-            name={showMaterials ? 'up' : 'down'}
-            size={16}
-            color="#333"
-            style={courseStyles.arrowIcon}
-          />
-          <Text style={courseStyles.materialToggleText}>Ver material</Text>
-        </View>
-      </TouchableOpacity>
-
-      {showMaterials && (
-        <View style={courseStyles.materialLinks}> 
-          <Text style={courseStyles.materialLink}>• Introducción al curso</Text>
-          <Text style={courseStyles.materialLink}>• Presentación de la cátedra</Text>
-          <Text style={courseStyles.materialLink}>• PDF: Sistemas Distribuidos - Módulo 1</Text>
-        </View>
-      )}
+      <ModulesSection courseId={course.id} isTeacher={teacher} />
 
       {/* foro */}
 
