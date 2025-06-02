@@ -5,7 +5,6 @@ import { NewTaskModal } from '@/components/NewTaskModal';
 import { courseClient } from '@/lib/courseClient';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '@/contexts/sessionAuth';
-import { Assignment } from '@/app/course/[id]';
 import { AssignmentAnswerModal } from './AssignmentAnswerModal';
 
 interface StudentSubmission {
@@ -15,6 +14,25 @@ interface StudentSubmission {
   answers: {
     content: string;
     question_id: string;
+  }[];
+}
+
+interface Assignment {
+  id: string;
+  title: string;
+  description: string;
+  instructions: string;
+  due_date: string;
+  type: 'homework' | 'exam';
+  status: string;
+  questions: {
+    id: string;
+    text: string;
+    type: string;
+    order: number;
+    points: number;
+    options?: string[];
+    correct_answers?: string[];
   }[];
 }
 
@@ -34,24 +52,6 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
   const auth = useAuth();
   const authState = auth?.authState;
 
-  const handleCreateSubmission = async (assignmentId: string) => {
-    const res = await courseClient.post(`/assignments/${assignmentId}/submissions`, {
-      student_id: authState.user?.id,
-      content: 'Primera entrega del estudiante',
-    }, {
-      headers: { Authorization: `Bearer ${authState.token}` },
-    });
-    return res.data; // incluye id
-  };
-
-  const handleUpdateSubmission = async (assignmentId: string, submissionId: string) => {
-    await courseClient.put(`/assignments/${assignmentId}/submissions/${submissionId}`, {
-      content: 'Entrega actualizada desde la app',
-    }, {
-      headers: { Authorization: `Bearer ${authState.token}` },
-    });
-  };
-
   const handleAddTask = (task: Omit<Assignment, 'id'>) => {
     setTasks((prev) => [ ...(prev ?? []), { ...task, id: Date.now().toString() }]);
   };
@@ -64,12 +64,11 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
     if (!authState?.user?.id || !authState?.token) return;
     try {
       const { data } = await courseClient.get(`/students/${authState.user.id}/submissions`, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${authState.token}`,
           "X-Student-UUID": authState.user?.id,
-        }
+        },
       });
-      console.log('Submissions fetched:', data);
       setStudentSubmissions(data);
     } catch (e) {
       console.error('Error fetching submissions:', e);
@@ -78,18 +77,20 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
 
   const handleSubmitFinal = async (assignmentId: string, submissionId: string) => {
     try {
-      const data = await courseClient.post(
-        `/assignments/${assignmentId}/submissions/${submissionId}/submit`, {} , {
-        headers: { 
-          Authorization: `Bearer ${authState.token}`,
-          "X-Student-UUID": authState.user?.id,
+      await courseClient.post(
+        `/assignments/${assignmentId}/submissions/${submissionId}/submit`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+            "X-Student-UUID": authState.user?.id,
+          },
         }
-      });
+      );
       Toast.show({ type: 'success', text1: 'Entrega enviada exitosamente' });
-      console.log('Entrega enviada:', data.data);
       await fetchSubmissions();
     } catch (error) {
-      console.error("Error al enviar la entrega:", error);
+      console.error('Error al enviar la entrega:', error);
       Toast.show({ type: 'error', text1: 'Error al enviar la entrega' });
     }
   };
@@ -114,9 +115,8 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
         <Text style={courseStyles.taskDescription}>No hay tareas</Text>
       ) : (
         tasks.map((task: Assignment) => {
-          const taskSubmissions = studentSubmissions.filter(
-            (sub) => sub.assignment_id === task.id
-          );
+          const submission = studentSubmissions.find((sub) => sub.assignment_id === task.id);
+          const isSubmitted = submission?.status !== 'draft';
 
           return (
             <View key={task.id} style={courseStyles.taskCard}>
@@ -136,63 +136,51 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
 
               {!isTeacher && (
                 <>
-                  {!task.submission ? (
-                    <TouchableOpacity
-                      style={courseStyles.addButton}
-                      onPress={() => setSelectedAssignment(task)}
-                    >
-                      <Text style={courseStyles.buttonText}>Responder preguntas</Text>
-                    </TouchableOpacity>
-                  ) : !task.submission.submitted ? (
-                    <>
-                      <TouchableOpacity
-                        style={courseStyles.addButton}
-                        onPress={() => setSelectedAssignment(task)}
-                      >
-                        <Text style={courseStyles.buttonText}>Responder preguntas</Text>
-                      </TouchableOpacity>
-                    </>
-                  ) : (
-                    <Text style={courseStyles.taskDescription}>✔ Entregada</Text>
-                  )}
+                  <TouchableOpacity
+                    style={[courseStyles.addButton, isSubmitted && { opacity: 0.6 }]}
+                    onPress={() => {
+                      if (!isSubmitted) setSelectedAssignment(task);
+                    }}
+                    disabled={isSubmitted}
+                  >
+                    <Text style={courseStyles.buttonText}>Responder preguntas</Text>
+                  </TouchableOpacity>
 
-                  {taskSubmissions.length > 0 && (
+                  {submission && (
                     <View style={{ marginTop: 8 }}>
-                      <Text style={courseStyles.taskDescription}>📥 Entrega anterior</Text>
-                      {taskSubmissions.map((sub) => (
-                        <View key={sub.id} style={{ paddingLeft: 8, marginTop: 8 }}>
-                          <Text style={courseStyles.taskDescription}>
-                            • {sub.status === 'submitted' ? '✔ Entregada' : '📝 Borrador'}
-                          </Text>
+                      <Text style={courseStyles.taskDescription}>📥 Entrega actual</Text>
+                      <Text style={courseStyles.taskDescription}>
+                        • {submission.status !== 'draft' ? '✔ Entregada' : '📝 Borrador'}
+                      </Text>
 
-                          {sub.answers && sub.answers.length > 0 && (
-                            <View style={{ marginTop: 4, paddingLeft: 8 }}>
-                              <Text style={[courseStyles.taskDescription, { fontWeight: 'bold' }]}>Respuestas:</Text>
-                              {sub.answers.map((answer, index) => (
-                                <View key={index} style={{ marginVertical: 4 }}>
-                                  <Text style={courseStyles.taskDescription}>• Pregunta {index + 1}</Text>
-                                  <Text style={courseStyles.taskDescription}>Contenido: {answer.content}</Text>
-                                </View>
-                              ))}
+                      {submission.answers?.length > 0 && (
+                        <View style={{ marginTop: 4, paddingLeft: 8 }}>
+                          <Text style={[courseStyles.taskDescription, { fontWeight: 'bold' }]}>Respuestas:</Text>
+                          {submission.answers.map((answer, index) => (
+                            <View key={index} style={{ marginVertical: 4 }}>
+                              <Text style={courseStyles.taskDescription}>• Pregunta {index + 1}</Text>
+                              <Text style={courseStyles.taskDescription}>Contenido: {answer.content}</Text>
                             </View>
-                          )}
-                          {sub.status === 'draft' && (
-                            <TouchableOpacity
-                              style={courseStyles.addButton}
-                              onPress={() => handleSubmitFinal(task.id, sub.id)}
-                            >
-                              <Text style={courseStyles.buttonText}>Enviar esta entrega</Text>
-                            </TouchableOpacity>
-                          )}
+                          ))}
                         </View>
-                      ))}
+                      )}
+
+                      {submission.status === 'draft' && (
+                        <TouchableOpacity
+                          style={courseStyles.addButton}
+                          onPress={() => handleSubmitFinal(task.id, submission.id)}
+                        >
+                          <Text style={courseStyles.buttonText}>Enviar esta entrega</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   )}
                 </>
               )}
             </View>
           );
-        }))}
+        })
+      )}
 
       <NewTaskModal
         visible={showTaskModal}
