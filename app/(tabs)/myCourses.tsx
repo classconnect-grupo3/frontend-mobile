@@ -41,7 +41,9 @@ export default function MyCoursesScreen() {
           <Text style={styles.emptyText}>No courses found.</Text>
         ) : (
           teachingCourses.map(course => (
-            <WideCourseCard key={course.id} course={course} />
+            <WideCourseCard 
+              key={course.id} 
+              course={course} />
           ))
         )}
 
