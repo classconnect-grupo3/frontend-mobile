@@ -5,7 +5,7 @@ import { NewTaskModal } from '@/components/NewTaskModal';
 import { courseClient } from '@/lib/courseClient';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '@/contexts/sessionAuth';
-import { Assignment } from '@/app/course/[id]/student';
+import { Assignment } from '@/app/course/[id]';
 import { AssignmentAnswerModal } from './AssignmentAnswerModal';
 
 interface StudentSubmission {
@@ -111,7 +111,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
       {loading ? (
         <Text style={courseStyles.taskDescription}>Cargando tareas...</Text>
       ) : !tasks || tasks.length === 0 ? (
-        <Text style={courseStyles.taskDescription}>No hay tareas disponibles.</Text>
+        <Text style={courseStyles.taskDescription}>No hay tareas</Text>
       ) : (
         tasks.map((task: Assignment) => {
           const taskSubmissions = studentSubmissions.filter(
