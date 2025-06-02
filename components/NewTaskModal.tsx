@@ -6,23 +6,27 @@ import { Modal, Platform, TextInput, TouchableOpacity, View, Text, StyleSheet } 
 import { z } from 'zod';
 import { styles } from '@/styles/modalStyle';
 
-const taskSchema = z.object({
+const assignmentSchema = z.object({
   title: z.string().min(1, 'El título es obligatorio'),
-  description: z.string().optional(),
+  description: z.string(),
   deadline: z.date({ required_error: 'La fecha es obligatoria' }),
 });
 
-type TaskFormData = z.infer<typeof taskSchema>;
+type AssignmentFormData = z.infer<typeof assignmentSchema>;
 
-interface TaskProps {
-  visible: boolean;
-  onClose: () => void;
-  onCreate: (task: {
-    title: string; description?: string; deadline: string 
-}) => void;
+interface Assignment {
+  title: string;
+  description: string;
+  due_date: string;
 }
 
-export function NewTaskModal({ visible, onClose, onCreate }: TaskProps) {
+interface AssignmentProps {
+  visible: boolean;
+  onClose: () => void;
+  onCreate: (assignment: Assignment) => void;
+}
+
+export function NewTaskModal({ visible, onClose, onCreate }: AssignmentProps) {
   const {
     control,
     handleSubmit,
@@ -30,8 +34,8 @@ export function NewTaskModal({ visible, onClose, onCreate }: TaskProps) {
     setValue,
     watch,
     formState: { errors, isValid },
-  } = useForm<TaskFormData>({
-    resolver: zodResolver(taskSchema),
+  } = useForm<AssignmentFormData>({
+    resolver: zodResolver(assignmentSchema),
     mode: 'onChange',
   });
 
@@ -39,11 +43,11 @@ export function NewTaskModal({ visible, onClose, onCreate }: TaskProps) {
 
   const deadline = watch('deadline');
 
-  const submit = (data: TaskFormData) => {
+  const submit = (data: AssignmentFormData) => {
     onCreate({
       title: data.title,
       description: data.description,
-      deadline: data.deadline.toISOString(),
+      due_date: data.deadline.toISOString(),
     });
     reset();
     onClose();

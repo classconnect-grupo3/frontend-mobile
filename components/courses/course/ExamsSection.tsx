@@ -6,7 +6,7 @@ import { Assignment } from '@/app/course/[id]/student';
 
 interface Props {
   exams: Assignment[] | null;
-  setExams: React.Dispatch<React.SetStateAction<Assignment[] | null>>;
+  setExams: React.Dispatch<React.SetStateAction<Assignment[]>>;
   loading: boolean;
   onSubmit: (examId: string) => void;
   isTeacher: boolean;
@@ -15,9 +15,9 @@ interface Props {
 export const ExamsSection = ({ exams, setExams, loading, onSubmit, isTeacher }: Props) => {
   const [showExamModal, setShowExamModal] = useState(false);
 
-  const handleAddExam = (exam: Omit<Assignment, 'id'>) => {
+  const handleAddExam = (exam: Assignment) => {
     setExams((prev) => 
-        [ ...(prev ?? []), { ...exam, id: Date.now().toString() }]
+        [ ...(prev ?? []), { ...exam, id: exam.id || Date.now().toString() }]
         );
   };
 
@@ -67,7 +67,14 @@ export const ExamsSection = ({ exams, setExams, loading, onSubmit, isTeacher }: 
       <NewTaskModal
         visible={showExamModal}
         onClose={() => setShowExamModal(false)}
-        onCreate={handleAddExam}
+        onCreate={(exam) => handleAddExam({ 
+          ...exam, 
+          id: Date.now().toString(),
+          instructions: '',
+          type: 'exam',
+          status: 'pending',
+          questions: []
+        })}
       />
     </>
   );

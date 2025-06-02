@@ -20,9 +20,10 @@ interface StudentSubmission {
 
 interface Props {
   tasks: Assignment[] | null;
-  setTasks: React.Dispatch<React.SetStateAction<Assignment[] | null>>;
+  setTasks: React.Dispatch<React.SetStateAction<Assignment[]>>;
   loading: boolean;
   isTeacher: boolean;
+  onSubmit: (assignmentId: string) => Promise<void>;
 }
 
 export const TasksSection = ({ tasks, setTasks, loading, isTeacher }: Props) => {
@@ -35,10 +36,10 @@ export const TasksSection = ({ tasks, setTasks, loading, isTeacher }: Props) => 
 
   const handleCreateSubmission = async (assignmentId: string) => {
     const res = await courseClient.post(`/assignments/${assignmentId}/submissions`, {
-      student_id: authState.user?.id,
+      student_id: authState?.user?.id,
       content: 'Primera entrega del estudiante',
     }, {
-      headers: { Authorization: `Bearer ${authState.token}` },
+      headers: { Authorization: `Bearer ${authState?.token}` },
     });
     return res.data; // incluye id
   };
@@ -47,18 +48,18 @@ export const TasksSection = ({ tasks, setTasks, loading, isTeacher }: Props) => 
     await courseClient.put(`/assignments/${assignmentId}/submissions/${submissionId}`, {
       content: 'Entrega actualizada desde la app',
     }, {
-      headers: { Authorization: `Bearer ${authState.token}` },
+      headers: { Authorization: `Bearer ${authState?.token}` },
     });
   };
 
   const handleSubmitFinal = async (assignmentId: string, submissionId: string) => {
     await courseClient.post(`/assignments/${assignmentId}/submissions/${submissionId}/submit`, {}, {
-      headers: { Authorization: `Bearer ${authState.token}` },
+      headers: { Authorization: `Bearer ${authState?.token}` },
     });
   };
 
-  const handleAddTask = (task: Omit<Assignment, 'id'>) => {
-    setTasks((prev) => [ ...(prev ?? []), { ...task, id: Date.now().toString() }]);
+  const handleAddTask = (task: Assignment) => {
+    setTasks((prev) => [ ...(prev ?? []), { ...task, id: task.id || Date.now().toString() }]);
   };
 
   const handleDeleteTask = (id: string) => {
@@ -199,7 +200,14 @@ export const TasksSection = ({ tasks, setTasks, loading, isTeacher }: Props) => 
       <NewTaskModal
         visible={showTaskModal}
         onClose={() => setShowTaskModal(false)}
-        onCreate={handleAddTask}
+        onCreate={(task) => handleAddTask({ 
+          ...task, 
+          id: Date.now().toString(),
+          instructions: '',
+          type: 'homework',
+          status: 'pending',
+          questions: []
+        })}
       />
 
       {selectedAssignment && (

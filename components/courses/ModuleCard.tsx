@@ -29,6 +29,7 @@ export interface ModuleCardProps {
   onUpdateModule: (updatedModule: ModuleData) => void;
   onAddResource: (moduleId: string) => void;
   onDeleteModule: (moduleId: string) => void;
+  isTeacher: boolean;
 }
 
 const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onAddResource, onDeleteModule }) => {

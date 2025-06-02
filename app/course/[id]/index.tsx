@@ -15,20 +15,7 @@ import { CourseTopBar } from '@/components/courses/course/CourseTopBar';
 import { TasksSection } from '@/components/courses/course/TasksSection';
 import { ExamsSection } from '@/components/courses/course/ExamsSection';
 import { ModulesSection } from '@/components/courses/course/ModulesSection';
-
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  deadline: string;
-}
-
-interface Exam {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-}
+import { Assignment } from './student';
 
 interface Module {
   id: string;
@@ -36,33 +23,6 @@ interface Module {
   description: string;
   resources: { id: string; name: string }[];
 }
-
-const MOCK_TASKS = [
-    { id: '1', title: 'TP1', description: 'Entrega del TP1, formato: zip con codigo', deadline: '2025-06-30' },
-  ]
-const MOCK_EXAMS = [
-    { id: '1', title: 'Examen Parcial', description: 'Examen parcial de la materia', date: '2025-07-15' },
-  ];
-const MOCK_MODULES = [
-  {
-    id: '1',
-    title: 'Introduction to Algebra',
-    description: 'Learn about variables, equations, and basic algebraic structures.',
-    resources: [
-      { id: 'r1', name: 'Lecture Slides'},
-      { id: 'r2', name: 'Practice Problems'},
-    ],
-  },
-  {
-    id: '2',
-    title: 'Linear Equations',
-    description: 'Explore linear equations and their graphs.',
-    resources: [
-      { id: 'r3', name: 'Video Explanation'},
-    ],
-  },
-];
-
 
 const alumnos = Array.from({ length: 20 }, (_, i) => `Padron: ${i + 1}`);
 const docentesTitulares = ['Iñaki Llorens', 'Martín Morilla'];
@@ -76,12 +36,13 @@ export default function CourseViewScreen() {
   const router = useRouter();
 
   const { courses, reloadCourses } = useCourses();
-  const [tasks, setTasks] = useState<Task[] | null>(MOCK_TASKS);
-  const [loadingTasks, setLoadingTasks] = useState(false);
-  const [exams, setExams] = useState<Exam[] | null>(MOCK_EXAMS);
-  const [loadingExams, setLoadingExams] = useState(false);
-  const [modules, setModules] = useState<Module[] | null>(MOCK_MODULES);
+  const [allAssignments, setAllAssignments] = useState<Assignment[]>([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
+  const [modules, setModules] = useState<Module[]>([]);
   const [loadingModules, setLoadingModules] = useState(false);
+
+  const [tasks, setTasks] = useState<Assignment[]>([]);
+  const [exams, setExams] = useState<Assignment[]>([]);
 
   const [showAlumnos, setShowAlumnos] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -94,83 +55,38 @@ export default function CourseViewScreen() {
     try {
       setLoadingModules(true);
   
-      const response = await courseClient.get(`/modules/course/${courseId}`);
+      const response = await courseClient.get(`/modules/course/${courseId}`, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`,
+        },
+      });
+      
       if (response.status < 200 || response.status >= 300) {
         throw new Error(`Error fetching modules: ${response.statusText}`);
       }
       console.log('Modules response:', response.data);
-      const data = ({
-        modules: response.data.map((module: any) => ({ // chequear si es response.data.data.map 
-          id: module.id,
-          title: module.title,
-          description: module.description,
-          resources: module.resources.map((resource: any) => ({
-            id: resource.id,
-            name: resource.name,
+      if (response.data) {
+        const data = ({
+          modules: response.data.map((module: any) => ({ // chequear si es response.data.data.map 
+            id: module.id,
+            title: module.title,
+            description: module.description,
+            resources: module.resources.map((resource: any) => ({
+              id: resource.id,
+              name: resource.name,
+            })),
           })),
-        })),
-      });
-      setModules(data.modules);
+        });
+        setModules(data.modules);
+      }
 
     } catch (error: any) {
       console.error('Error fetching modules:', error);
       Toast.show({ type: 'error', text1: 'Error al cargar los módulos' });
-      setModules(null);
+      setModules([]);
     } finally {
       setLoadingModules(false);
     }
-  }
-
-  async function fetchTasks(courseId: string) {
-    try {
-      setLoadingTasks(true);
-      const response = await courseClient.get(`/assignments/course/${courseId}`); // change
-      if (response.status < 200 || response.status >= 300) {
-        throw new Error(`Error fetching tasks: ${response.statusText}`);
-      }
-      console.log('Tasks response:', response.data);
-      const data = ({
-        tasks: response.data.map((task: any) => ({
-          id: task.id,
-          title: task.title,
-          description: task.description,
-          deadline: task.deadline,
-        })),
-      });
-      setTasks(data.tasks);
-    } catch (error: any) {
-      console.error('Error fetching tasks:', error);
-      Toast.show({ type: 'error', text1: 'Error al cargar las tareas' });
-      setTasks(null);
-    } finally {
-      setLoadingTasks(false);
-    }
-  }
-
-  async function fetchExams(courseId: string) {
-      try {
-        setLoadingExams(true);
-        const response = await courseClient.get(`/assignments/course/${courseId}`); // change 
-        if (response.status < 200 || response.status >= 300) {
-          throw new Error(`Error fetching exams: ${response.statusText}`);
-        }
-        console.log('Exams response:', response.data);
-        const data = ({
-          exams: response.data.map((exam: any) => ({
-            id: exam.id,
-            title: exam.title,
-            description: exam.description,
-            date: exam.date,
-          })),
-        });
-        setExams(data.exams);
-      } catch (error: any) {
-        console.error('Error fetching exams:', error);
-        Toast.show({ type: 'error', text1: 'Error al cargar los exámenes' });
-        setExams(null);
-      } finally {
-        setLoadingExams(false);
-      }
   }
   
   // TODO obtener tareas/examenes del curso
@@ -260,12 +176,33 @@ export default function CourseViewScreen() {
     };
 
   useEffect(() => {
-    if (courseId) {
-      fetchModules(courseId);
-      fetchTasks(courseId);
-      fetchExams(courseId);
-    }
-  }, [courseId]);
+    const fetchAssignments = async () => {
+      try {
+        setLoadingAssignments(true);
+        if (!authState?.token) {
+          throw new Error('No auth token available');
+        }
+        const { data } = await courseClient.get(`/assignments/course/${course.id}`, {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+          },
+        });
+        setAllAssignments(data);
+        setTasks(allAssignments.filter(a => a.type === 'homework'));
+        setExams(allAssignments.filter(a => a.type === 'exam'));
+        console.log('All assignments:', allAssignments);
+      } catch (e) {
+        console.error('Error fetching assignments:', e);
+        Toast.show({ type: 'error', text1: 'No se pudieron cargar las tareas' });
+      } finally {
+        setLoadingAssignments(false);
+      }
+    };
+
+    if (course.id && authState?.token){
+      fetchAssignments()
+      fetchModules(courseId);};
+  }, []);
 
   return (
     <ScrollView contentContainerStyle={courseStyles.scrollContainer}>
@@ -285,7 +222,7 @@ export default function CourseViewScreen() {
       <TasksSection
           tasks={tasks}
           setTasks={setTasks}
-          loading={loadingTasks}
+          loading={loadingAssignments}
           onSubmit={handleSubmitTask}
           isTeacher={teacher}
         />
@@ -293,7 +230,7 @@ export default function CourseViewScreen() {
       <ExamsSection
           exams={exams}
           setExams={setExams}
-          loading={loadingExams}
+          loading={loadingAssignments}
           onSubmit={handleSubmitExam}
           isTeacher={teacher}
         />

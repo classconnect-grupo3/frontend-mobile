@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, FlatList } from 'react-native';
 import { styles as courseStyles } from '@/styles/courseStyles';
 import { courseClient } from '@/lib/courseClient';
+import { useAuth } from '@/contexts/sessionAuth';
 import ModuleCard from '@/components/courses/ModuleCard';
 import React from 'react';
+import Toast from 'react-native-toast-message';
 
 interface ModuleData {
   id: string;
@@ -38,27 +40,54 @@ const MOCK_MODULES = [
 ];
 
 export const ModulesSection = ({ courseId, isTeacher }: Props) => {
+  const auth = useAuth();
+  if (!auth) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  const { authState } = auth;
   const [modules, setModules] = useState<ModuleData[]>(MOCK_MODULES);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
 
-//   useEffect(() => {
-//     const fetchModules = async () => {
-//       try {
-//         setLoading(true);
-//         const { data } = await courseClient.get(`/courses/${courseId}/modules`);
-//         setModules(data); // ⚠️ Ajustar si tu backend devuelve { modules: [...] }
-//       } catch (e) {
-//         console.error("Error fetching modules:", e);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
+  async function fetchModules(courseId: string) {
+    try {
+      setLoading(true);
+  
+      const response = await courseClient.get(`/modules/course/${courseId}`, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`,
+        },
+      });
+      
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(`Error fetching modules: ${response.statusText}`);
+      }
+      console.log('Modules response:', response.data);
+      if (response.data) {
+        const data = ({
+          modules: response.data.map((module: any) => ({ // chequear si es response.data.data.map 
+            id: module.id,
+            title: module.title,
+            description: module.description,
+            resources: module.resources.map((resource: any) => ({
+              id: resource.id,
+              name: resource.name,
+            })),
+          })),
+        });
+        setModules(data.modules);
+      }
 
-//     fetchModules();
-//   }, [courseId]);
+    } catch (error: any) {
+      console.error('Error fetching modules:', error);
+      Toast.show({ type: 'error', text1: 'Error al cargar los módulos' });
+      setModules([]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleAddModule = () => {
     const newModule: ModuleData = {
@@ -99,6 +128,10 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
       )
     );
   };
+
+  useEffect(() => {
+    fetchModules(courseId);
+  }, [courseId]);
 
   return (
     <>

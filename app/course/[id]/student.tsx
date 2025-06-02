@@ -44,14 +44,6 @@ export interface Assignment {
   };
 }
 
-const MOCK_TASKS = [
-    { id: '1', title: 'TP1', description: 'Entrega del TP1, formato: zip con codigo', deadline: '2025-06-30' },
-  ];
-
-const MOCK_EXAMS = [
-    { id: '1', title: 'Examen Parcial', description: 'Examen parcial de la materia', date: '2025-07-15' },
-  ];
-
 const alumnos = Array.from({ length: 20 }, (_, i) => `Padron: ${i + 1}`);
 const docentesAuxiliares = ['Iñaki Llorens', 'Martín Morilla', 'Emiliano Gómez', 'Martín Masivo', 'Fede FIUBA'];
 
@@ -62,7 +54,7 @@ export default function CourseViewScreen() {
   const [showAlumnos, setShowAlumnos] = useState(false);
   const [showForo, setShowForo] = useState(false);
   const [allAssignments, setAllAssignments] = useState<Assignment[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
 
   const course = courses.find(c => c.id === id);
 
@@ -133,7 +125,7 @@ export default function CourseViewScreen() {
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
-        setLoadingTasks(true);
+        setLoadingAssignments(true);
         if (!authState?.token) {
           throw new Error('No auth token available');
         }
@@ -150,7 +142,7 @@ export default function CourseViewScreen() {
         console.error('Error fetching assignments:', e);
         Toast.show({ type: 'error', text1: 'No se pudieron cargar las tareas' });
       } finally {
-        setLoadingTasks(false);
+        setLoadingAssignments(false);
       }
     };
 
