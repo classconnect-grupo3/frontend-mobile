@@ -19,13 +19,14 @@ interface StudentSubmission {
 }
 
 interface Props {
+  label: string;
   tasks: Assignment[] | null;
   setTasks: React.Dispatch<React.SetStateAction<Assignment[] | null>>;
   loading: boolean;
   isTeacher: boolean;
 }
 
-export const TasksSection = ({ tasks, setTasks, loading, isTeacher }: Props) => {
+export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Props) => {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [studentSubmissions, setStudentSubmissions] = useState<StudentSubmission[]>([]);
@@ -51,12 +52,6 @@ export const TasksSection = ({ tasks, setTasks, loading, isTeacher }: Props) => 
     });
   };
 
-  const handleSubmitFinal = async (assignmentId: string, submissionId: string) => {
-    await courseClient.post(`/assignments/${assignmentId}/submissions/${submissionId}/submit`, {}, {
-      headers: { Authorization: `Bearer ${authState.token}` },
-    });
-  };
-
   const handleAddTask = (task: Omit<Assignment, 'id'>) => {
     setTasks((prev) => [ ...(prev ?? []), { ...task, id: Date.now().toString() }]);
   };
@@ -65,27 +60,47 @@ export const TasksSection = ({ tasks, setTasks, loading, isTeacher }: Props) => 
     setTasks((prev) => (prev ?? []).filter((task) => task.id !== id));
   };
 
-  
+  const fetchSubmissions = async () => {
+    if (!authState?.user?.id || !authState?.token) return;
+    try {
+      const { data } = await courseClient.get(`/students/${authState.user.id}/submissions`, {
+        headers: { 
+          Authorization: `Bearer ${authState.token}`,
+          "X-Student-UUID": authState.user?.id,
+        }
+      });
+      console.log('Submissions fetched:', data);
+      setStudentSubmissions(data);
+    } catch (e) {
+      console.error('Error fetching submissions:', e);
+    }
+  };
+
+  const handleSubmitFinal = async (assignmentId: string, submissionId: string) => {
+    try {
+      const data = await courseClient.post(
+        `/assignments/${assignmentId}/submissions/${submissionId}/submit`, {} , {
+        headers: { 
+          Authorization: `Bearer ${authState.token}`,
+          "X-Student-UUID": authState.user?.id,
+        }
+      });
+      Toast.show({ type: 'success', text1: 'Entrega enviada exitosamente' });
+      console.log('Entrega enviada:', data.data);
+      await fetchSubmissions();
+    } catch (error) {
+      console.error("Error al enviar la entrega:", error);
+      Toast.show({ type: 'error', text1: 'Error al enviar la entrega' });
+    }
+  };
 
   useEffect(() => {
-    const fetchSubmissions = async () => {
-      if (!authState?.user?.id || !authState?.token) return;
-      try {
-        const { data } = await courseClient.get(`/students/${authState.user.id}/submissions`, {
-          headers: { Authorization: `Bearer ${authState.token}` }
-        });
-        setStudentSubmissions(data);
-      } catch (e) {
-        console.error('Error fetching submissions:', e);
-      }
-    };
-
     fetchSubmissions();
   }, [authState?.user?.id, authState?.token]);
 
   return (
     <>
-      <Text style={courseStyles.sectionHeader}>Tareas</Text>
+      <Text style={courseStyles.sectionHeader}>{label}</Text>
 
       {isTeacher && (
         <TouchableOpacity onPress={() => setShowTaskModal(true)} style={courseStyles.addButton}>
@@ -136,28 +151,6 @@ export const TasksSection = ({ tasks, setTasks, loading, isTeacher }: Props) => 
                       >
                         <Text style={courseStyles.buttonText}>Responder preguntas</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        style={courseStyles.addButton}
-                        onPress={async () => {
-                          if (task.submission && task.submission.id) {
-                            try {
-                              await handleSubmitFinal(task.id, task.submission.id);
-                              Toast.show({ type: 'success', text1: 'Entrega enviada' });
-                              setTasks((prev) =>
-                                prev?.map((t) =>
-                                  t.id === task.id
-                                    ? { ...t, submission: { ...t.submission!, submitted: true } }
-                                    : t
-                                ) ?? []
-                              );
-                            } catch {
-                              Toast.show({ type: 'error', text1: 'Error al enviar la entrega' });
-                            }
-                          }
-                        }}
-                      >
-                        <Text style={courseStyles.buttonText}>Enviar entrega</Text>
-                      </TouchableOpacity>
                     </>
                   ) : (
                     <Text style={courseStyles.taskDescription}>✔ Entregada</Text>
@@ -165,23 +158,28 @@ export const TasksSection = ({ tasks, setTasks, loading, isTeacher }: Props) => 
 
                   {taskSubmissions.length > 0 && (
                     <View style={{ marginTop: 8 }}>
-                      <Text style={courseStyles.taskDescription}>📥 Entregas anteriores:</Text>
+                      <Text style={courseStyles.taskDescription}>📥 Entrega anterior</Text>
                       {taskSubmissions.map((sub) => (
-                        <View key={sub.id} style={{ paddingLeft: 8 }}>
+                        <View key={sub.id} style={{ paddingLeft: 8, marginTop: 8 }}>
                           <Text style={courseStyles.taskDescription}>
                             • {sub.status === 'submitted' ? '✔ Entregada' : '📝 Borrador'}
                           </Text>
+
+                          {sub.answers && sub.answers.length > 0 && (
+                            <View style={{ marginTop: 4, paddingLeft: 8 }}>
+                              <Text style={[courseStyles.taskDescription, { fontWeight: 'bold' }]}>Respuestas:</Text>
+                              {sub.answers.map((answer, index) => (
+                                <View key={index} style={{ marginVertical: 4 }}>
+                                  <Text style={courseStyles.taskDescription}>• Pregunta {index + 1}</Text>
+                                  <Text style={courseStyles.taskDescription}>Contenido: {answer.content}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
                           {sub.status === 'draft' && (
                             <TouchableOpacity
                               style={courseStyles.addButton}
-                              onPress={async () => {
-                                try {
-                                  await handleSubmitFinal(task.id, sub.id);
-                                  Toast.show({ type: 'success', text1: 'Entrega enviada' });
-                                } catch {
-                                  Toast.show({ type: 'error', text1: 'Error al enviar la entrega' });
-                                }
-                              }}
+                              onPress={() => handleSubmitFinal(task.id, sub.id)}
                             >
                               <Text style={courseStyles.buttonText}>Enviar esta entrega</Text>
                             </TouchableOpacity>
@@ -207,6 +205,7 @@ export const TasksSection = ({ tasks, setTasks, loading, isTeacher }: Props) => 
           visible={!!selectedAssignment}
           onClose={() => setSelectedAssignment(null)}
           assignment={selectedAssignment}
+          fetchSubmissions={fetchSubmissions}
         />
       )}
     </>

@@ -22,9 +22,10 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   assignment: Assignment;
+  fetchSubmissions: () => void;
 }
 
-export const AssignmentAnswerModal = ({ visible, onClose, assignment }: Props) => {
+export const AssignmentAnswerModal = ({ visible, onClose, assignment, fetchSubmissions }: Props) => {
   const [responses, setResponses] = useState<Record<string, string>>({});
   const { authState } = useAuth();
 
@@ -41,11 +42,6 @@ export const AssignmentAnswerModal = ({ visible, onClose, assignment }: Props) =
         score: 0,
         type: q.type,
       }));
-      console.log("enviando rtas con student_id y answers: ", {
-        answers,
-      }
-      );
-      console.log("assignment.id: ", assignment.id);
       const data = await courseClient.post(`/assignments/${assignment.id}/submissions`, {
         answers,
       }, {
@@ -54,11 +50,10 @@ export const AssignmentAnswerModal = ({ visible, onClose, assignment }: Props) =
           "X-Student-UUID": authState.user?.id,
         },
       });
-      // student_id no studentId no student_uuid
-      console.log("respuestas enviadas correctamente");
-      console.log("data: ", data.data);
+      console.log('Entrega realizada', data.data);
 
       Toast.show({ type: 'success', text1: 'Entrega realizada con éxito' });
+      fetchSubmissions();
       onClose();
     } catch (e) {
       console.error('Error al entregar', e);

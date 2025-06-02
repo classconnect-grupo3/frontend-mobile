@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourses } from '@/contexts/CoursesContext';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image, FlatList, TextInput } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import React from 'react';
 import { AntDesign } from '@expo/vector-icons';
 import { NewTaskModal } from '@/components/NewTaskModal';
@@ -11,15 +11,10 @@ import { styles as homeScreenStyles } from '@/styles/homeScreenStyles';
 import { courseClient } from '@/lib/courseClient';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '@/contexts/sessionAuth';
-import { EditCourseModal } from '@/components/courses/EditCourseModal';
-import { MaterialIcons } from '@expo/vector-icons';
-import ModuleCard from '@/components/courses/ModuleCard';
-import type { ModuleData } from '@/components/courses/ModuleCard';
 import { CourseTopBar } from '@/components/courses/course/CourseTopBar';
-import { CourseTasksSection } from '@/components/courses/course/CourseTasksSection';
 import { TasksSection } from '@/components/courses/course/TasksSection';
-import { ExamsSection } from '@/components/courses/course/ExamsSection';
 import { ModulesSection } from '@/components/courses/course/ModulesSection';
+import { Assignment } from './student';
 
 interface Task {
   id: string;
@@ -64,18 +59,11 @@ export default function CourseViewScreen() {
   const router = useRouter();
   const { courses, reloadCourses } = useCourses();
   const [showAlumnos, setShowAlumnos] = useState(false);
-  const [tasks, setTasks] = useState<Task[] | null>(MOCK_TASKS);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const [exams, setExams] = useState(MOCK_EXAMS);
-  const [loadingExams, setLoadingExams] = useState(false);
-  const [modules, setModules] = useState(MOCK_MODULES);
-  const [showTaskModal, setShowTaskModal] = useState(false);
-  const [showExamModal, setShowExamModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newDescription, setNewDescription] = useState('');
+  const [allAssignments, setAllAssignments] = useState<Assignment[]>([]);
+  const tasks = allAssignments.filter(a => a.type === 'homework');
+  const exams = allAssignments.filter(a => a.type === 'exam');
 
   const course = courses.find((c) => c.id === id);
 
@@ -163,6 +151,33 @@ export default function CourseViewScreen() {
       }
     };
 
+  useEffect(() => {
+      const fetchAssignments = async () => {
+        try {
+          setLoadingTasks(true);
+          if (!authState?.token) {
+            throw new Error('No auth token available');
+          }
+          const { data } = await courseClient.get(`/assignments/course/${course.id}`, {
+            headers: {
+              Authorization: `Bearer ${authState.token}`,
+            },
+          });
+          console.log('Assignments fetched:', data);
+          console.log('questions data[0]: ', data[0]?.questions);
+          setAllAssignments(data);
+          console.log('All assignments:', allAssignments);
+        } catch (e) {
+          console.error('Error fetching assignments:', e);
+          Toast.show({ type: 'error', text1: 'No se pudieron cargar las tareas' });
+        } finally {
+          setLoadingTasks(false);
+        }
+      };
+  
+      if (course.id && authState?.token) fetchAssignments();
+    }, []);
+
   return (
     <ScrollView contentContainerStyle={courseStyles.scrollContainer}>
 
@@ -179,20 +194,22 @@ export default function CourseViewScreen() {
       {/* <CourseTasksSection isTeacher={teacher}/> */}
 
       <TasksSection
+              label="Tareas"
               tasks={tasks}
-              setTasks={setTasks}
+              setTasks={setAllAssignments}
               loading={loadingTasks}
               onSubmit={handleSubmitTask}
               isTeacher={teacher}
             />
-
-      <ExamsSection
-          exams={exams}
-          setExams={setExams}
-          loading={loadingExams}
-          onSubmit={handleSubmitExam}
-          isTeacher={teacher}
-        />
+      
+            <TasksSection
+              label="Exámenes"
+              tasks={exams}
+              setTasks={setAllAssignments}
+              loading={loadingTasks}
+              onSubmit={handleSubmitTask}
+              isTeacher={teacher}
+            />
 
     <ModulesSection courseId={course.id} isTeacher={teacher} />
 

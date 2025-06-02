@@ -15,7 +15,6 @@ import { EditCourseModal } from '@/components/courses/EditCourseModal';
 import { MaterialIcons } from '@expo/vector-icons';
 import { CourseTopBar } from '@/components/courses/course/CourseTopBar';
 import { TasksSection } from '@/components/courses/course/TasksSection';
-import { ExamsSection } from '@/components/courses/course/ExamsSection';
 import { ModulesSection } from '@/components/courses/course/ModulesSection';
 
 interface Question {
@@ -170,6 +169,7 @@ export default function CourseViewScreen() {
       {/* Course Info */}
       
       <TasksSection
+        label="Tareas"
         tasks={tasks}
         setTasks={setAllAssignments}
         loading={loadingTasks}
@@ -177,14 +177,8 @@ export default function CourseViewScreen() {
         isTeacher={teacher}
       />
 
-      {/* <ExamsSection
-        exams={exams}
-        setExams={setAllAssignments}
-        loading={loadingExams}
-        onSubmit={handleSubmitExam}
-        isTeacher={teacher}
-      /> */}
       <TasksSection
+        label="Exámenes"
         tasks={exams}
         setTasks={setAllAssignments}
         loading={loadingTasks}
