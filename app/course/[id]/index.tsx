@@ -69,8 +69,9 @@ const docentesTitulares = ['Iñaki Llorens', 'Martín Morilla'];
 const docentesAuxiliares = ['Emiliano Gómez', 'Martín Masivo', 'Fede FIUBA'];
 
 export default function CourseViewScreen() {
-  const { courseIds } = useLocalSearchParams();
-  const courseId = Array.isArray(courseIds) ? courseIds[0] : courseIds;
+  const { id } = useLocalSearchParams();
+  console.log('Course IDs:', id);
+  const courseId = Array.isArray(id) ? id[0] : id;
   console.log('Course ID:', courseId);
   const router = useRouter();
 
@@ -86,6 +87,7 @@ export default function CourseViewScreen() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const course = courses.find((c) => c.id === courseId);
+  console.log('Course:', course);
 
   // TODO obtener modulos del curso
   async function fetchModules(courseId: string) {
@@ -96,6 +98,7 @@ export default function CourseViewScreen() {
       if (response.status < 200 || response.status >= 300) {
         throw new Error(`Error fetching modules: ${response.statusText}`);
       }
+      console.log('Modules response:', response.data);
       const data = ({
         modules: response.data.map((module: any) => ({ // chequear si es response.data.data.map 
           id: module.id,
@@ -116,6 +119,58 @@ export default function CourseViewScreen() {
     } finally {
       setLoadingModules(false);
     }
+  }
+
+  async function fetchTasks(courseId: string) {
+    try {
+      setLoadingTasks(true);
+      const response = await courseClient.get(`/assignments/course/${courseId}`); // change
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(`Error fetching tasks: ${response.statusText}`);
+      }
+      console.log('Tasks response:', response.data);
+      const data = ({
+        tasks: response.data.map((task: any) => ({
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          deadline: task.deadline,
+        })),
+      });
+      setTasks(data.tasks);
+    } catch (error: any) {
+      console.error('Error fetching tasks:', error);
+      Toast.show({ type: 'error', text1: 'Error al cargar las tareas' });
+      setTasks(null);
+    } finally {
+      setLoadingTasks(false);
+    }
+  }
+
+  async function fetchExams(courseId: string) {
+      try {
+        setLoadingExams(true);
+        const response = await courseClient.get(`/assignments/course/${courseId}`); // change 
+        if (response.status < 200 || response.status >= 300) {
+          throw new Error(`Error fetching exams: ${response.statusText}`);
+        }
+        console.log('Exams response:', response.data);
+        const data = ({
+          exams: response.data.map((exam: any) => ({
+            id: exam.id,
+            title: exam.title,
+            description: exam.description,
+            date: exam.date,
+          })),
+        });
+        setExams(data.exams);
+      } catch (error: any) {
+        console.error('Error fetching exams:', error);
+        Toast.show({ type: 'error', text1: 'Error al cargar los exámenes' });
+        setExams(null);
+      } finally {
+        setLoadingExams(false);
+      }
   }
   
   // TODO obtener tareas/examenes del curso
@@ -152,7 +207,7 @@ export default function CourseViewScreen() {
 
       Toast.show({ type: 'success', text1: 'Curso eliminado' });
       setShowConfirmModal(false);
-      router.replace({ pathname: '/(tabs)/myCourses' }); // redirigir
+      router.replace({ pathname: '/(tabs)/myCourses' });
     } catch (e) {
       console.error('Error deleting course:', e);
       Toast.show({ type: 'error', text1: 'Error al eliminar el curso' });
@@ -207,6 +262,8 @@ export default function CourseViewScreen() {
   useEffect(() => {
     if (courseId) {
       fetchModules(courseId);
+      fetchTasks(courseId);
+      fetchExams(courseId);
     }
   }, [courseId]);
 
