@@ -18,11 +18,30 @@ import { TasksSection } from '@/components/courses/course/TasksSection';
 import { ExamsSection } from '@/components/courses/course/ExamsSection';
 import { ModulesSection } from '@/components/courses/course/ModulesSection';
 
-interface Task {
+interface Question {
+  id: string;
+  text: string;
+  type: string;
+  options?: string[];
+  correct_answers?: string[];
+  order: number;
+  points: number;
+}
+
+export interface Assignment {
   id: string;
   title: string;
   description: string;
-  deadline: string;
+  instructions: string;
+  due_date: string;
+  type: 'homework' | 'exam';
+  status: string;
+  questions: Question[];
+  submission?: {
+    id: string;
+    content: string;
+    submitted: boolean;
+  };
 }
 
 const MOCK_TASKS = [
@@ -40,16 +59,10 @@ export default function CourseViewScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { courses, reloadCourses } = useCourses();
-  const [showMaterials, setShowMaterials] = useState(false);
   const [showAlumnos, setShowAlumnos] = useState(false);
   const [showForo, setShowForo] = useState(false);
-  const [tasks, setTasks] = useState<Task[] | null>(MOCK_TASKS);
+  const [allAssignments, setAllAssignments] = useState<Assignment[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const [exams, setExams] = useState(MOCK_EXAMS);
-  const [loadingExams, setLoadingExams] = useState(false);
-  const [showTaskModal, setShowTaskModal] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
 
   const course = courses.find(c => c.id === id);
 
@@ -69,6 +82,9 @@ export default function CourseViewScreen() {
       </View>
     );
   }
+
+  const tasks = allAssignments.filter(a => a.type === 'homework');
+  const exams = allAssignments.filter(a => a.type === 'exam');
 
   const handleSubmitTask = async (assignmentId: string) => {
     try {
@@ -127,7 +143,9 @@ export default function CourseViewScreen() {
           },
         });
         console.log('Assignments fetched:', data);
-        setTasks(data);
+        console.log('questions data[0]: ', data[0]?.questions);
+        setAllAssignments(data);
+        console.log('All assignments:', allAssignments);
       } catch (e) {
         console.error('Error fetching assignments:', e);
         Toast.show({ type: 'error', text1: 'No se pudieron cargar las tareas' });
@@ -153,17 +171,24 @@ export default function CourseViewScreen() {
       
       <TasksSection
         tasks={tasks}
-        setTasks={setTasks}
+        setTasks={setAllAssignments}
         loading={loadingTasks}
         onSubmit={handleSubmitTask}
         isTeacher={teacher}
       />
 
-      <ExamsSection
+      {/* <ExamsSection
         exams={exams}
-        setExams={setExams}
+        setExams={setAllAssignments}
         loading={loadingExams}
         onSubmit={handleSubmitExam}
+        isTeacher={teacher}
+      /> */}
+      <TasksSection
+        tasks={exams}
+        setTasks={setAllAssignments}
+        loading={loadingTasks}
+        onSubmit={handleSubmitTask}
         isTeacher={teacher}
       />
 
