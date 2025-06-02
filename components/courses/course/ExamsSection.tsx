@@ -2,17 +2,11 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import React, { useState } from 'react';
 import { styles as courseStyles } from '@/styles/courseStyles';
 import { NewTaskModal } from '@/components/NewTaskModal'; // reuse this for now
-
-interface Exam {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-}
+import { Assignment } from '@/app/course/[id]/student';
 
 interface Props {
-  exams: Exam[] | null;
-  setExams: React.Dispatch<React.SetStateAction<Exam[] | null>>;
+  exams: Assignment[] | null;
+  setExams: React.Dispatch<React.SetStateAction<Assignment[] | null>>;
   loading: boolean;
   onSubmit: (examId: string) => void;
   isTeacher: boolean;
@@ -21,7 +15,7 @@ interface Props {
 export const ExamsSection = ({ exams, setExams, loading, onSubmit, isTeacher }: Props) => {
   const [showExamModal, setShowExamModal] = useState(false);
 
-  const handleAddExam = (exam: Omit<Exam, 'id'>) => {
+  const handleAddExam = (exam: Omit<Assignment, 'id'>) => {
     setExams((prev) => 
         [ ...(prev ?? []), { ...exam, id: Date.now().toString() }]
         );
@@ -50,7 +44,7 @@ export const ExamsSection = ({ exams, setExams, loading, onSubmit, isTeacher }: 
           <View key={exam.id} style={courseStyles.taskCard}>
             <Text style={courseStyles.taskTitle}>{exam.title}</Text>
             <Text style={courseStyles.taskDescription}>{exam.description}</Text>
-            <Text style={courseStyles.taskDeadline}>📅 {exam.date}</Text>
+            <Text style={courseStyles.taskDeadline}>📅 {exam.due_date}</Text>
 
             {isTeacher && (
               <TouchableOpacity onPress={() => handleDeleteExam(exam.id)}>
