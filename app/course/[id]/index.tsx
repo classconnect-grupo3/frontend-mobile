@@ -146,7 +146,7 @@ export default function CourseViewScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={courseStyles.scrollContainer}>
+    <FlatList
       {/* Top bar */}
       <View style={homeScreenStyles.topBar}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -362,8 +362,7 @@ export default function CourseViewScreen() {
             </View>
           </View>
         </Modal>
-
-    </ScrollView>
+      >
   );
 }
 

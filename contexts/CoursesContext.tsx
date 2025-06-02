@@ -58,12 +58,12 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
 
       console.log('Courses from API:', data);
 
-      const teacherCourses = data.teacher.map((c: any) => ({
+      const teacherCourses = (data.teacher ?? []).map((c: any) => ({
         ...c,
         role: 'teacher',
       }));
 
-      const studentCourses = data.student.map((c: any) => ({
+      const studentCourses = (data.student ?? []).map((c: any) => ({
         ...c,
         role: 'student',
       }));
