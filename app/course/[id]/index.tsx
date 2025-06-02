@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourses } from '@/contexts/CoursesContext';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Image, FlatList, TextInput } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import React from 'react';
 import { AntDesign } from '@expo/vector-icons';
 import { NewTaskModal } from '@/components/NewTaskModal';
@@ -11,12 +11,7 @@ import { styles as homeScreenStyles } from '@/styles/homeScreenStyles';
 import { courseClient } from '@/lib/courseClient';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '@/contexts/sessionAuth';
-import { EditCourseModal } from '@/components/courses/EditCourseModal';
-import { MaterialIcons } from '@expo/vector-icons';
-import ModuleCard from '@/components/courses/ModuleCard';
-import type { ModuleData } from '@/components/courses/ModuleCard';
 import { CourseTopBar } from '@/components/courses/course/CourseTopBar';
-import { CourseTasksSection } from '@/components/courses/course/CourseTasksSection';
 import { TasksSection } from '@/components/courses/course/TasksSection';
 import { ExamsSection } from '@/components/courses/course/ExamsSection';
 import { ModulesSection } from '@/components/courses/course/ModulesSection';
@@ -26,6 +21,20 @@ interface Task {
   title: string;
   description: string;
   deadline: string;
+}
+
+interface Exam {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+}
+
+interface Module {
+  id: string;
+  title: string;
+  description: string;
+  resources: { id: string; name: string }[];
 }
 
 const MOCK_TASKS = [
@@ -54,32 +63,64 @@ const MOCK_MODULES = [
   },
 ];
 
+
 const alumnos = Array.from({ length: 20 }, (_, i) => `Padron: ${i + 1}`);
 const docentesTitulares = ['Iñaki Llorens', 'Martín Morilla'];
 const docentesAuxiliares = ['Emiliano Gómez', 'Martín Masivo', 'Fede FIUBA'];
 
 export default function CourseViewScreen() {
-  const { id } = useLocalSearchParams();
-  console.log('Course ID:', id);
+  const { courseIds } = useLocalSearchParams();
+  const courseId = Array.isArray(courseIds) ? courseIds[0] : courseIds;
+  console.log('Course ID:', courseId);
   const router = useRouter();
+
   const { courses, reloadCourses } = useCourses();
-  const [showAlumnos, setShowAlumnos] = useState(false);
   const [tasks, setTasks] = useState<Task[] | null>(MOCK_TASKS);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const [exams, setExams] = useState(MOCK_EXAMS);
+  const [exams, setExams] = useState<Exam[] | null>(MOCK_EXAMS);
   const [loadingExams, setLoadingExams] = useState(false);
-  const [modules, setModules] = useState(MOCK_MODULES);
-  const [showTaskModal, setShowTaskModal] = useState(false);
-  const [showExamModal, setShowExamModal] = useState(false);
+  const [modules, setModules] = useState<Module[] | null>(MOCK_MODULES);
+  const [loadingModules, setLoadingModules] = useState(false);
+
+  const [showAlumnos, setShowAlumnos] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newDescription, setNewDescription] = useState('');
 
-  const course = courses.find((c) => c.id === id);
+  const course = courses.find((c) => c.id === courseId);
 
-  const teacher = true;
+  // TODO obtener modulos del curso
+  async function fetchModules(courseId: string) {
+    try {
+      setLoadingModules(true);
+  
+      const response = await courseClient.get(`/modules/course/${courseId}`);
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(`Error fetching modules: ${response.statusText}`);
+      }
+      const data = ({
+        modules: response.data.map((module: any) => ({ // chequear si es response.data.data.map 
+          id: module.id,
+          title: module.title,
+          description: module.description,
+          resources: module.resources.map((resource: any) => ({
+            id: resource.id,
+            name: resource.name,
+          })),
+        })),
+      });
+      setModules(data.modules);
+
+    } catch (error: any) {
+      console.error('Error fetching modules:', error);
+      Toast.show({ type: 'error', text1: 'Error al cargar los módulos' });
+      setModules(null);
+    } finally {
+      setLoadingModules(false);
+    }
+  }
+  
+  // TODO obtener tareas/examenes del curso
+
+  const teacher = true; // TODO determinar si es teacher o no 
 
   const auth = useAuth();
   if (!auth) {
@@ -100,10 +141,10 @@ export default function CourseViewScreen() {
   }
 
   const handleDeleteCourse = async () => {
-    console.log('Deleting course with ID:', id);
+    console.log('Deleting course with ID:', courseId);
 
     try {
-      await courseClient.delete(`/courses/${id}`, {
+      await courseClient.delete(`/courses/${courseId}`, {
         headers: {
           Authorization: `Bearer ${authState.token}`, 
         },
@@ -163,6 +204,12 @@ export default function CourseViewScreen() {
       }
     };
 
+  useEffect(() => {
+    if (courseId) {
+      fetchModules(courseId);
+    }
+  }, [courseId]);
+
   return (
     <ScrollView contentContainerStyle={courseStyles.scrollContainer}>
 
@@ -179,12 +226,12 @@ export default function CourseViewScreen() {
       {/* <CourseTasksSection isTeacher={teacher}/> */}
 
       <TasksSection
-              tasks={tasks}
-              setTasks={setTasks}
-              loading={loadingTasks}
-              onSubmit={handleSubmitTask}
-              isTeacher={teacher}
-            />
+          tasks={tasks}
+          setTasks={setTasks}
+          loading={loadingTasks}
+          onSubmit={handleSubmitTask}
+          isTeacher={teacher}
+        />
 
       <ExamsSection
           exams={exams}
