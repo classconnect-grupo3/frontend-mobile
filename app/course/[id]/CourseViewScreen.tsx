@@ -20,7 +20,7 @@ import { ModulesSection } from '@/components/courses/course/ModulesSection';
 interface Question {
   id: string;
   text: string;
-  type: string;
+  type: 'text' | 'multiple_choice' | 'file';
   options?: string[];
   correct_answers?: string[];
   order: number;
@@ -136,8 +136,6 @@ export const CourseViewScreen = ({teacher}: Props) => {
           },
         });
         if (data !== null) {
-            console.log('Assignments fetched:', data);
-            console.log('questions data[0]: ', data[0]?.questions);
             setAllAssignments(data);
             console.log('All assignments:', allAssignments);
         }

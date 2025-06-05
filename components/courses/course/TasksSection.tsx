@@ -6,6 +6,7 @@ import { courseClient } from '@/lib/courseClient';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '@/contexts/sessionAuth';
 import { AssignmentAnswerModal } from './AssignmentAnswerModal';
+import { Assignment } from '@/app/course/[id]/CourseViewScreen';
 
 interface StudentSubmission {
   id: string;
@@ -14,25 +15,6 @@ interface StudentSubmission {
   answers: {
     content: string;
     question_id: string;
-  }[];
-}
-
-interface Assignment {
-  id: string;
-  title: string;
-  description: string;
-  instructions: string;
-  due_date: string;
-  type: 'homework' | 'exam';
-  status: string;
-  questions: {
-    id: string;
-    text: string;
-    type: string;
-    order: number;
-    points: number;
-    options?: string[];
-    correct_answers?: string[];
   }[];
 }
 
@@ -116,7 +98,8 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
       ) : (
         tasks.map((task: Assignment) => {
           const submission = studentSubmissions.find((sub) => sub.assignment_id === task.id);
-          const isSubmitted = submission?.status !== 'draft';
+          const isSubmitted = submission?.status === 'submitted';
+          console.log('Submission for task:', task.id, submission);
 
           return (
             <View key={task.id} style={courseStyles.taskCard}>
@@ -150,7 +133,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
                     <View style={{ marginTop: 8 }}>
                       <Text style={courseStyles.taskDescription}>📥 Entrega actual</Text>
                       <Text style={courseStyles.taskDescription}>
-                        • {submission.status !== 'draft' ? '✔ Entregada' : '📝 Borrador'}
+                        • {isSubmitted ? '✔ Entregada' : '📝 Borrador'}
                       </Text>
 
                       {submission.answers?.length > 0 && (
@@ -165,7 +148,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
                         </View>
                       )}
 
-                      {submission.status === 'draft' && (
+                      {!isSubmitted && (
                         <TouchableOpacity
                           style={courseStyles.addButton}
                           onPress={() => handleSubmitFinal(task.id, submission.id)}
