@@ -257,4 +257,28 @@ export const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
   },
+  questionText: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 8,
+  },
+  option: {
+    backgroundColor: '#f0f0f0',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  selectedOption: {
+    backgroundColor: '#007AFF',
+  },
+  optionText: {
+    color: '#333',
+  },
+  uploadButton: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
 });

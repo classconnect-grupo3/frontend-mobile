@@ -29,6 +29,9 @@ export const AssignmentAnswerModal = ({ visible, onClose, assignment, fetchSubmi
   const [responses, setResponses] = useState<Record<string, string>>({});
   const { authState } = useAuth();
 
+  console.log("Assignment: ", assignment);
+  console.log("Assigment Questions: ", assignment.questions);
+
   const handleChange = (questionId: string, value: string) => {
     setResponses((prev) => ({ ...prev, [questionId]: value }));
   };
@@ -67,18 +70,51 @@ export const AssignmentAnswerModal = ({ visible, onClose, assignment, fetchSubmi
         <View style={[courseStyles.modalContent, { maxHeight: '80%' }]}>
           <ScrollView>
             <Text style={courseStyles.modalTitle}>Responder: {assignment.title}</Text>
-            {assignment.questions.map((q, idx) => (
-              <View key={q.id} style={{ marginBottom: 12 }}>
-                <Text style={courseStyles.taskDescription}>{idx + 1}. {q.text}</Text>
+            {assignment.questions.map((q) => (
+            <View key={q.id} style={{ marginBottom: 16 }}>
+              <Text style={courseStyles.questionText}>{q.text}</Text>
+
+              {q.type === 'text' && (
                 <TextInput
                   style={courseStyles.input}
-                  placeholder="Tu respuesta..."
+                  placeholder="Escribí tu respuesta"
                   value={responses[q.id] || ''}
-                  onChangeText={(text) => handleChange(q.id, text)}
-                  multiline
+                  onChangeText={(text) => setResponses((prev) => ({ ...prev, [q.id]: text }))}
                 />
-              </View>
-            ))}
+              )}
+
+              {q.type === 'multiple_choice' && (
+                q.options?.map((opt) => (
+                  <TouchableOpacity
+                    key={opt}
+                    style={[
+                      courseStyles.option,
+                      responses[q.id] === opt && courseStyles.selectedOption,
+                    ]}
+                    onPress={() =>
+                      setResponses((prev) => ({ ...prev, [q.id]: opt }))
+                    }
+                  >
+                    <Text style={courseStyles.optionText}>{opt}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+
+              {q.type === 'file' && (
+                <TouchableOpacity
+                  style={courseStyles.uploadButton}
+                  onPress={() => {
+                    // TODO: conectar con un file picker (puede ser expo-document-picker o similar)
+                    alert("Funcionalidad de subida de archivo aún no implementada");
+                  }}
+                >
+                  <Text style={courseStyles.buttonText}>
+                    {responses[q.id] ? 'Archivo seleccionado' : 'Subir archivo'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ))}
             <TouchableOpacity style={[courseStyles.addButton, { marginTop: 12 }]} onPress={handleSubmit}>
               <Text style={courseStyles.buttonText}>Enviar respuestas</Text>
             </TouchableOpacity>
