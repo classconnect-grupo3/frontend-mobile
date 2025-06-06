@@ -22,7 +22,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, Controller } from 'react-hook-form';
 import React from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { listFiles, uploadToFirebase } from '@/firebaseConfig';
+import { fetchProfileImage, listFiles, uploadToFirebase } from '@/firebaseConfig';
 
 const schema = z.object({
   name: z.string().min(1, 'First name is required'),
@@ -45,6 +45,26 @@ export default function ProfileScreen() {
   const auth = useAuth();
   const [permission, requestPermission] = ImagePicker.useCameraPermissions();
   const [files, setFiles] = useState<{ name: string }[]>([]);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+
+  const handleChoosePhoto = () => {
+    Alert.alert(
+      'Seleccionar foto de perfil',
+      '¿Cómo querés subir tu foto?',
+      [
+        {
+          text: 'Desde la galería',
+          onPress: pickFromGallery,
+        },
+        {
+          text: 'Tomar foto',
+          onPress: takePhoto,
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ],
+      { cancelable: true }
+    );
+  };
 
   const takePhoto = async () => {
     try {
@@ -52,22 +72,43 @@ export default function ProfileScreen() {
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
-      })
+      });
 
       if (!cameraResp.canceled) {
-        const {uri, fileName} = cameraResp.assets[0];
-        console.log('Photo taken:', uri, fileName);
-        const uploadResp = await uploadToFirebase(uri, fileName);
-        console.log('Photo uploaded to Firebase:', uploadResp);
-        listFiles().then((listResp) => {
-          const files = listResp.map(value =>{ 
-            return {name: value.fullPath}
-          });
-          setFiles(files)
-        } );
+        const { uri } = cameraResp.assets[0];
+        const userId = auth?.authState?.user?.id;
+        if (!userId) throw new Error("No user ID");
+
+        const uploadResp = await uploadToFirebase(uri, `${userId}.jpg`);
+        console.log('Foto subida desde cámara:', uploadResp);
+        const url = await fetchProfileImage(userId);
+        setProfileImageUrl(url);
       }
     } catch (e) {
-      Alert.alert('Error uploading image: ' + e.message);
+      Alert.alert('Error tomando foto: ' + e.message);
+    }
+  };
+
+  const pickFromGallery = async () => {
+    try {
+      const pickerResp = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!pickerResp.canceled) {
+        const { uri } = pickerResp.assets[0];
+        const userId = auth?.authState?.user?.id;
+        if (!userId) throw new Error("No user ID");
+
+        const uploadResp = await uploadToFirebase(uri, `${userId}.jpg`);
+        console.log('Foto subida desde galería:', uploadResp);
+        const url = await fetchProfileImage(userId);
+        setProfileImageUrl(url);
+      }
+    } catch (e) {
+      Alert.alert('Error subiendo imagen: ' + e.message);
     }
   };
 
@@ -97,6 +138,10 @@ export default function ProfileScreen() {
           surname: data.surname,
           email: data.email,
         });
+        if (auth?.authState?.user?.id) {
+          const url = await fetchProfileImage(auth.authState.user.id);
+          setProfileImageUrl(url);
+        }
       } catch (err) {
         console.error('Failed to load user:', err);
       } finally {
@@ -191,7 +236,11 @@ export default function ProfileScreen() {
 
           <View style={styles.profileRow}>
             <Image
-              source={require('@/assets/images/profile-placeholder.jpeg')}
+              source={
+                profileImageUrl
+                  ? { uri: profileImageUrl }
+                  : require('@/assets/images/profile_placeholder.png')
+              }
               style={styles.profileImage}
             />
             <Text style={styles.profileName}>{userData.name}</Text>
@@ -233,9 +282,8 @@ export default function ProfileScreen() {
           </View>
 
           <View>
-            <Text>Working with Firebase and image picker</Text>
-            <TouchableOpacity onPress={takePhoto} style={styles.button}>
-              <Text style={styles.buttonText}>Take Photo</Text>
+            <TouchableOpacity onPress={handleChoosePhoto} style={styles.button}>
+              <Text style={styles.buttonText}>Actualizar foto de perfil</Text>
             </TouchableOpacity>
 
           </View>

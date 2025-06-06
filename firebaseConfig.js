@@ -61,9 +61,21 @@ const uploadToFirebase = async (uri, name, onProgress) => {
   });
 }
 
+const fetchProfileImage = async (userId) => {
+  try {
+    const imageRef = ref(fbStorage, `profile_pictures/${userId}.jpg`);
+    const url = await getDownloadURL(imageRef);
+    return url;
+  } catch (e) {
+    console.log('No profile image found, fallback to default:', e.message);
+    return null;
+  }
+};
+
 export {
   fbApp,
   fbStorage,
   uploadToFirebase,
-  listFiles
+  listFiles,
+  fetchProfileImage
 }
