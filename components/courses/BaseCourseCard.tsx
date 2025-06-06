@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { styles } from '@/styles/courseStyles';
 import React from "react";
+import { useAuth } from "@/contexts/sessionAuth";
 
 interface BaseProps {
   course: Course;
@@ -12,6 +13,9 @@ interface BaseProps {
 
 export function BaseCourseCard({ course, cardStyle, onPress }: BaseProps) {
   const handlePress = onPress ?? (() => router.push(`/course/${course.id}`));
+  const { authState } = useAuth();
+  const profileImageUrl = authState.user.profilePicUrl;
+      
   return (
     <TouchableOpacity onPress={handlePress}>
       <View style={cardStyle}>
@@ -21,10 +25,6 @@ export function BaseCourseCard({ course, cardStyle, onPress }: BaseProps) {
             <Text style={styles.teacher}>Teacher: {course.teacher_name}</Text>
             <Text style={styles.teacher}>{course.description}</Text>
           </View>
-          <Image
-            source={require('@/assets/images/profile-placeholder.jpeg')}
-            style={styles.avatar}
-          />
         </View>
         <View style={styles.info}>
           <Text style={styles.due}>

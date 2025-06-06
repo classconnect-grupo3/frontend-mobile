@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { EditCourseModal } from '@/components/courses/EditCourseModal';
 import { useState } from 'react';
 import React from 'react';
+import { useAuth } from '@/contexts/sessionAuth';
 
 interface Props {
   role: 'Docente' | 'Alumno';
@@ -16,6 +17,8 @@ interface Props {
 
 export function CourseTopBar({ role, onBack, canEdit = false, course, onEditSuccess }: Props) {
   const [showEditModal, setShowEditModal] = useState(false);
+  const { authState } = useAuth();
+  const profileImageUrl = authState.user?.profilePicUrl;
 
   return (
     <>
@@ -26,7 +29,11 @@ export function CourseTopBar({ role, onBack, canEdit = false, course, onEditSucc
         <Text style={homeStyles.title}>{course.title}</Text>
         <Text style={courseStyles.role}>rol: {role}</Text>
         <Image
-          source={require('@/assets/images/profile-placeholder.jpeg')}
+          source={
+            profileImageUrl
+              ? { uri: profileImageUrl }
+              : require('@/assets/images/profile_placeholder.png')
+          }
           style={homeStyles.profileIcon}
         />
       </View>

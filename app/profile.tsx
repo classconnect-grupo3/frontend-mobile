@@ -22,7 +22,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, Controller } from 'react-hook-form';
 import React from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { fetchProfileImage, listFiles, uploadToFirebase } from '@/firebaseConfig';
+import { fetchProfileImage, uploadToFirebase } from '@/firebaseConfig';
 
 const schema = z.object({
   name: z.string().min(1, 'First name is required'),
@@ -42,7 +42,7 @@ export default function ProfileScreen() {
 
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const auth = useAuth();
+  const  auth = useAuth();
   const [permission, requestPermission] = ImagePicker.useCameraPermissions();
   const [files, setFiles] = useState<{ name: string }[]>([]);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
@@ -83,6 +83,7 @@ export default function ProfileScreen() {
         console.log('Foto subida desde cámara:', uploadResp);
         const url = await fetchProfileImage(userId);
         setProfileImageUrl(url);
+        auth.setProfilePicUrl(url);
       }
     } catch (e) {
       Alert.alert('Error tomando foto: ' + e.message);
@@ -106,6 +107,7 @@ export default function ProfileScreen() {
         console.log('Foto subida desde galería:', uploadResp);
         const url = await fetchProfileImage(userId);
         setProfileImageUrl(url);
+        auth.setProfilePicUrl(url);
       }
     } catch (e) {
       Alert.alert('Error subiendo imagen: ' + e.message);
@@ -149,12 +151,6 @@ export default function ProfileScreen() {
       }
     };
     
-    listFiles().then((listResp) => {
-      const files = listResp.map(value =>{ 
-      return {name: value.fullPath}
-    });
-    setFiles(files)
-    } );
     loadUser();
   }, []);
 
@@ -207,14 +203,12 @@ export default function ProfileScreen() {
     );
   }
 
-  console.log('Files in Firebase:', files);
-
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {permission.status !== ImagePicker.PermissionStatus.GRANTED ? (
+      {!permission || permission.status !== ImagePicker.PermissionStatus.GRANTED ? (
         <View style={styles.container}>
           <Text>You need to allow camera access to use this feature.</Text>
           <Text>Permission Not Granted - {permission?.status}</Text>

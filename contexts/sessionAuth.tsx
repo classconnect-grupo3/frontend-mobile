@@ -8,6 +8,7 @@ import React, {
 import { client } from "@/lib/http";
 import { router } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
+import { fetchProfileImage } from "@/firebaseConfig";
 
 type AuthState = {
     token: string | null;
@@ -17,6 +18,7 @@ type AuthState = {
         id: string;
         name: string;
         surname: string;
+        profilePicUrl: string | null;
     } | null;
   };
 
@@ -26,6 +28,8 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<any>;
     loginWithGoogle(id_token: string): Promise<any>;
     logout: () => Promise<any>;
+    fetchUser: (token: string) => Promise<any>;
+    setProfilePicUrl: (url: string | null) => void;
 }
 
 const TOKEN_KEY = 'session';
@@ -58,10 +62,13 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
 
         console.log('User data fetched:', data);
 
+        const url = await fetchProfileImage(data.data.uid);
+
         const user = {
           id: data.data.uid,
           name: data.data.name,
           surname: data.data.surname,
+          profilePicUrl: url,
         }
 
         console.log('User data for saved in fetchUser:', user);
@@ -71,6 +78,21 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         console.error('Failed to fetch user info:', e);
         return undefined;
       }
+    };
+
+    const setProfilePicUrl = (url: string | null) => {
+      setAuthState((prevState) => {
+        if (!prevState.user) return prevState; // or handle as needed
+        return {
+          ...prevState,
+          user: {
+            id: prevState.user.id,
+            name: prevState.user.name,
+            surname: prevState.user.surname,
+            profilePicUrl: url,
+          },
+        };
+      });
     };
 
     useEffect(() => {
@@ -119,10 +141,12 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         console.log("Login data: ", data);
         const token = data.id_token;
         const user_info = data.user_info;
+        const url = await fetchProfileImage(user_info.uid);
         const user = {
           id: user_info.uid,
           name: user_info.name,
           surname: user_info.surname,
+          profilePicUrl: url,
         }
         const location = 'pending'
 
@@ -179,6 +203,8 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         login,
         loginWithGoogle,
         logout,
+        fetchUser,
+        setProfilePicUrl,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
