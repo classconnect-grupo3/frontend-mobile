@@ -42,7 +42,14 @@
       ],
       "expo-secure-store",
       "expo-location",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow the app to access your photos.",
+          "cameraPermission": "Allow the app to access your camera."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
