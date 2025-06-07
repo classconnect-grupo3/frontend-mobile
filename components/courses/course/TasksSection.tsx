@@ -11,7 +11,7 @@ import { Assignment } from '@/app/course/[id]/CourseViewScreen';
 interface StudentSubmission {
   id: string;
   assignment_id: string;
-  status: 'draft' | 'submitted';
+  status: 'draft' | 'submitted' | 'late';
   answers: {
     content: string;
     question_id: string;
@@ -59,7 +59,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
 
   const handleSubmitFinal = async (assignmentId: string, submissionId: string) => {
     try {
-      await courseClient.post(
+      const data = await courseClient.post(
         `/assignments/${assignmentId}/submissions/${submissionId}/submit`,
         {},
         {
@@ -69,6 +69,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
           },
         }
       );
+      console.log('Entrega enviada:', data);
       Toast.show({ type: 'success', text1: 'Entrega enviada exitosamente' });
       await fetchSubmissions();
     } catch (error) {
@@ -99,6 +100,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
         tasks.map((task: Assignment) => {
           const submission = studentSubmissions.find((sub) => sub.assignment_id === task.id);
           const isSubmitted = submission?.status === 'submitted';
+          const isLate = submission?.status === 'late';
           console.log('Submission for task:', task.id, submission);
 
           return (
@@ -120,11 +122,11 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
               {!isTeacher && (
                 <>
                   <TouchableOpacity
-                    style={[courseStyles.addButton, isSubmitted && { opacity: 0.6 }]}
+                    style={[courseStyles.addButton, (isSubmitted || isLate) && { opacity: 0.6 }]}
                     onPress={() => {
-                      if (!isSubmitted) setSelectedAssignment(task);
+                      if (!(isSubmitted || isLate)) setSelectedAssignment(task);
                     }}
-                    disabled={isSubmitted}
+                    disabled={(isSubmitted || isLate)}
                   >
                     <Text style={courseStyles.buttonText}>Responder preguntas</Text>
                   </TouchableOpacity>
@@ -133,7 +135,8 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
                     <View style={{ marginTop: 8 }}>
                       <Text style={courseStyles.taskDescription}>📥 Entrega actual</Text>
                       <Text style={courseStyles.taskDescription}>
-                        • {isSubmitted ? '✔ Entregada' : '📝 Borrador'}
+                        • {isSubmitted ? '✔ Entregada' : 
+                        isLate ? '⏳ Entrega tardía' : '📝 Borrador'}
                       </Text>
 
                       {submission.answers?.length > 0 && (
@@ -148,7 +151,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher }: Pro
                         </View>
                       )}
 
-                      {!isSubmitted && (
+                      {!(isSubmitted || isLate) && (
                         <TouchableOpacity
                           style={courseStyles.addButton}
                           onPress={() => handleSubmitFinal(task.id, submission.id)}
