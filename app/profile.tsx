@@ -162,7 +162,6 @@ export default function ProfileScreen() {
         '/users/me',
         {
           ...data,
-          location: 'Pending', // placeholder
         },
         {
           headers: {
