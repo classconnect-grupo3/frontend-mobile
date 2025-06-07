@@ -63,7 +63,7 @@ const uploadToFirebase = async (uri, name, onProgress) => {
 
 const fetchProfileImage = async (userId) => {
   try {
-    const imageRef = ref(fbStorage, `profile_pictures/${userId}.jpg`);
+    const imageRef = ref(getStorage(), `profile_pictures/${userId}.jpg`);
     const url = await getDownloadURL(imageRef);
     return url;
   } catch (e) {
