@@ -3,7 +3,10 @@
   "compilerOptions": {
     "jsx": "react",
     "strict": true,
-    "baseUrl": "." ,
+    "module": "esnext", // Keep this for compatibility with modern JavaScript
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"

@@ -8,6 +8,7 @@ import React, {
 import { client } from "@/lib/http";
 import { router } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
+import { registerPushToken } from "@/lib/notifications";
 
 type AuthState = {
     token: string | null;
@@ -135,6 +136,8 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         console.log('User data for saved in login:', user);
 
         setAuthState({ token, authenticated: true, location, user });
+
+        await registerPushToken(user.id)
 
         router.replace("/(tabs)");
       } catch (error) {
