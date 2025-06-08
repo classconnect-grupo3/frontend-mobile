@@ -146,7 +146,7 @@ export default function CourseViewScreen() {
   };
 
   return (
-    <FlatList
+    <ScrollView contentContainerStyle={{ padding: 16 }}>
       {/* Top bar */}
       <View style={homeScreenStyles.topBar}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -244,7 +244,7 @@ export default function CourseViewScreen() {
         }
       />
 
-    <Text style={courseStyles.sectionHeader}>Módulos</Text>
+      <Text style={courseStyles.sectionHeader}>Módulos</Text>
       <FlatList
         data={modules}
         keyExtractor={(item) => item.id}
@@ -326,45 +326,45 @@ export default function CourseViewScreen() {
         </View>
       )}
 
-        <Text style={courseStyles.sectionHeader}>Docentes Titulares</Text>
-        <View style={courseStyles.listContainer}>
-          {docentesTitulares.map((d, i) => (
-            <Text key={i} style={courseStyles.listItem}>• {d}</Text>
-          ))}
-        </View>
+      <Text style={courseStyles.sectionHeader}>Docentes Titulares</Text>
+      <View style={courseStyles.listContainer}>
+        {docentesTitulares.map((d, i) => (
+          <Text key={i} style={courseStyles.listItem}>• {d}</Text>
+        ))}
+      </View>
 
-        <Text style={courseStyles.sectionHeader}>Docentes auxiliares</Text>
-        <View style={courseStyles.listContainer}>
-          {docentesAuxiliares.map((d, i) => (
-            <Text key={i} style={courseStyles.listItem}>• {d}</Text>
-          ))}
-        </View>
+      <Text style={courseStyles.sectionHeader}>Docentes auxiliares</Text>
+      <View style={courseStyles.listContainer}>
+        {docentesAuxiliares.map((d, i) => (
+          <Text key={i} style={courseStyles.listItem}>• {d}</Text>
+        ))}
+      </View>
 
-        <TouchableOpacity
-          style={courseStyles.deleteButton}
-          onPress={() => setShowConfirmModal(true)}
-        >
-          <Text style={courseStyles.buttonText}>Eliminar curso</Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={courseStyles.deleteButton}
+        onPress={() => setShowConfirmModal(true)}
+      >
+        <Text style={courseStyles.buttonText}>Eliminar curso</Text>
+      </TouchableOpacity>
 
-        <Modal visible={showConfirmModal} transparent animationType="fade">
-          <View style={modalStyles.overlay}>
-            <View style={modalStyles.modal}>
-              <Text style={modalStyles.title}>¿Estás seguro que querés eliminar este curso?</Text>
-              <View style={modalStyles.modalButtons}>
-                <TouchableOpacity onPress={() => setShowConfirmModal(false)} style={modalStyles.cancelButton}>
-                  <Text style={modalStyles.cancelButtonText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleDeleteCourse} style={modalStyles.confirmDeleteButton}>
-                  <Text style={modalStyles.confirmDeleteText}>Eliminar</Text>
-                </TouchableOpacity>
-              </View>
+      <Modal visible={showConfirmModal} transparent animationType="fade">
+        <View style={modalStyles.overlay}>
+          <View style={modalStyles.modal}>
+            <Text style={modalStyles.title}>¿Estás seguro que querés eliminar este curso?</Text>
+            <View style={modalStyles.modalButtons}>
+              <TouchableOpacity onPress={() => setShowConfirmModal(false)} style={modalStyles.cancelButton}>
+                <Text style={modalStyles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDeleteCourse} style={modalStyles.confirmDeleteButton}>
+                <Text style={modalStyles.confirmDeleteText}>Eliminar</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
-      >
+        </View>
+      </Modal>
+    </ScrollView>
   );
-}
+};
 
 export const options = {
   headerShown: false,
