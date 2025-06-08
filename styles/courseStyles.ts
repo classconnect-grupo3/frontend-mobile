@@ -74,33 +74,33 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     color: '#333',
   },
-  taskCard: {
+  assignmentCard: {
     backgroundColor: '#f5f5f5',
     padding: 12,
     borderRadius: 8,
     marginTop: 12,
   },
 
-  taskTitle: {
+  assignmentTitle: {
     fontWeight: 'bold',
     fontSize: 16,
     color: '#333',
   },
-  taskDescription: {
+  assignmentDescription: {
     fontSize: 16,
     color: '#333',
   },
-  taskDeadline: {
+  assignmentDeadline: {
     color: '#666',
     marginTop: 4,
   },
 
-  taskDelete: {
+  assignmentDelete: {
     color: 'red',
     marginTop: 8,
   },
 
-  newTaskForm: {
+  newAssignmentForm: {
     marginTop: 12,
     marginBottom: 24,
   },  

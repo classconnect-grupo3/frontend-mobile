@@ -181,7 +181,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         await SecureStore.setItemAsync(TOKEN_KEY, token);
         client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     
-        setAuthState({ token, authenticated: true, location, user: { id: '', name: '', surname: '' } });
+        setAuthState({ token, authenticated: true, location, user: { id: '', name: '', surname: '', profilePicUrl: null } });
     
         router.replace("/(tabs)");
       } catch (error) {
@@ -193,7 +193,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         await SecureStore.deleteItemAsync(TOKEN_KEY);
         client.defaults.headers.common['Authorization'] = '';
 
-        setAuthState({ token: null, authenticated: false, location: null, user: { id: '', name: '', surname: '' } });
+        setAuthState({ token: null, authenticated: false, location: null, user: { id: '', name: '', surname: '', profilePicUrl: null } });
         router.replace("/(login)");
     };
 

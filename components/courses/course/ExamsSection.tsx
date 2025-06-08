@@ -1,8 +1,8 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import React, { useState } from 'react';
 import { styles as courseStyles } from '@/styles/courseStyles';
-import { NewTaskModal } from '@/components/NewTaskModal'; // reuse this for now
-import { Assignment } from '@/app/course/[id]';
+import { NewAssignmentModal } from '@/components/NewAssignmentModal'; // reuse this for now
+import { Assignment } from '@/app/course/[id]/CourseViewScreen';
 
 interface Props {
   exams: Assignment[] | null;

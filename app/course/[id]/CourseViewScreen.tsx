@@ -12,7 +12,7 @@ import { courseClient } from "@/lib/courseClient"
 import Toast from "react-native-toast-message"
 import { useAuth } from "@/contexts/sessionAuth"
 import { CourseTopBar } from "@/components/courses/course/CourseTopBar"
-import { TasksSection } from "@/components/courses/course/TasksSection"
+import { AssignmentsSection } from "@/components/courses/course/AssignmentsSection"
 import { ModulesSection } from "@/components/courses/course/ModulesSection"
 import { DownloadModal } from "@/components/courses/course/DownloadModal"
 import { KeyboardAvoidingView, SafeAreaView, Platform } from "react-native"
@@ -61,17 +61,17 @@ const docentesTitulares = ["Iñaki Llorens", "Martín Morilla"]
 const docentesAuxiliares = ["Emiliano Gómez", "Martín Masivo", "Fede FIUBA"]
 
 interface Props {
-  teacher?: boolean
+  teacher: boolean
 }
 
-export const CourseViewScreen = ({ teacher }: Props) => {
+export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const { id } = useLocalSearchParams()
   console.log("Course ID:", id)
   const router = useRouter()
   const { courses, reloadCourses } = useCourses()
   const [showAlumnos, setShowAlumnos] = useState(false)
   const [allAssignments, setAllAssignments] = useState<Assignment[]>([])
-  const [loadingTasks, setLoadingTasks] = useState(false)
+  const [loadingAssignments, setLoadingAssignments] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [hasFetchedAssignments, setHasFetchedAssignments] = useState(false)
 
@@ -111,7 +111,7 @@ export const CourseViewScreen = ({ teacher }: Props) => {
     setShowDownloadModal(true)
   }
 
-  const handleSubmitTask = async (assignmentId: string) => {
+  const handleSubmitAssignment = async (assignmentId: string) => {
     try {
       if (!authState) {
         Toast.show({ type: "error", text1: "No hay sesión de usuario" })
@@ -145,7 +145,7 @@ export const CourseViewScreen = ({ teacher }: Props) => {
     try {
       await courseClient.delete(`/courses/${id}`, {
         headers: {
-          Authorization: `Bearer ${authState.token}`,
+          Authorization: `Bearer ${authState?.token}`,
         },
       })
 
@@ -190,7 +190,7 @@ export const CourseViewScreen = ({ teacher }: Props) => {
   // Función para obtener assignments
   const fetchAssignments = async () => {
     try {
-      setLoadingTasks(true)
+      setLoadingAssignments(true)
       if (!authState?.token) {
         throw new Error("No auth token available")
       }
@@ -222,7 +222,7 @@ export const CourseViewScreen = ({ teacher }: Props) => {
       console.error("Error fetching assignments:", e)
       Toast.show({ type: "error", text1: "No se pudieron cargar las tareas" })
     } finally {
-      setLoadingTasks(false)
+      setLoadingAssignments(false)
     }
   }
 
@@ -233,12 +233,13 @@ export const CourseViewScreen = ({ teacher }: Props) => {
     switch (item.type) {
       case "tasks":
         return (
-          <TasksSection
+          <AssignmentsSection
             label="Tareas"
-            tasks={tasks}
-            setTasks={setAllAssignments}
-            loading={loadingTasks}
-            onSubmit={handleSubmitTask}
+            assignments={tasks}
+            type="task"
+            setAssignments={setAllAssignments}
+            loading={loadingAssignments}
+            onSubmit={handleSubmitAssignment}
             isTeacher={teacher}
             onDownload={handleDownload}
             onRefresh={fetchAssignments}
@@ -246,12 +247,13 @@ export const CourseViewScreen = ({ teacher }: Props) => {
         )
       case "exams":
         return (
-          <TasksSection
+          <AssignmentsSection
             label="Exámenes"
-            tasks={exams}
-            setTasks={setAllAssignments}
-            loading={loadingTasks}
-            onSubmit={handleSubmitTask}
+            assignments={exams}
+            type="exam"
+            setAssignments={setAllAssignments}
+            loading={loadingAssignments}
+            onSubmit={handleSubmitAssignment}
             isTeacher={teacher}
             onDownload={handleDownload}
             onRefresh={fetchAssignments}
