@@ -1,9 +1,12 @@
 "use client"
 
-import { Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native"
+import { useState, useRef } from "react"
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, ScrollView } from "react-native"
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons"
 import type { Assignment } from "@/app/course/[id]/CourseViewScreen"
 import React from "react"
+
+const { height: screenHeight } = Dimensions.get("window")
 
 interface Props {
   visible: boolean
@@ -14,6 +17,9 @@ interface Props {
 }
 
 export function AssignmentDetailModal({ visible, assignment, onClose, onStartExam, onDownload }: Props) {
+  const [scrollY] = useState(new Animated.Value(0))
+  const scrollViewRef = useRef<any>(null)
+
   if (!assignment) return null
 
   const formatDate = (dateString: string) => {
@@ -196,8 +202,9 @@ export function AssignmentDetailModal({ visible, assignment, onClose, onStartExa
   }
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={styles.container}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={{ flex: 1 }}>
+        {/* Header fijo */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <MaterialIcons name="close" size={24} color="#333" />
@@ -208,11 +215,16 @@ export function AssignmentDetailModal({ visible, assignment, onClose, onStartExa
           </TouchableOpacity>
         </View>
 
+        {/* Contenido scrolleable */}
         <ScrollView
-          style={styles.content}
-          contentContainerStyle={{ paddingBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={true}
+          bounces={true}
+          scrollEventThrottle={1}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+          nestedScrollEnabled={true}
         >
           <View style={styles.titleSection}>
             <View style={styles.titleRow}>
@@ -271,8 +283,12 @@ export function AssignmentDetailModal({ visible, assignment, onClose, onStartExa
               </Text>
             </View>
           )}
+
+          {/* Espacio para el footer - SIN position absolute */}
+          <View style={{ height: 120 }} />
         </ScrollView>
 
+        {/* Footer fijo - SIN position absolute */}
         <View style={styles.footer}>
           {canStartActivity() && (
             <TouchableOpacity
@@ -294,10 +310,6 @@ export function AssignmentDetailModal({ visible, assignment, onClose, onStartExa
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -318,9 +330,13 @@ const styles = StyleSheet.create({
   downloadButton: {
     padding: 8,
   },
-  content: {
+  scrollView: {
     flex: 1,
+    backgroundColor: "#fff",
+  },
+  scrollContent: {
     padding: 16,
+    backgroundColor: "#fff",
   },
   titleSection: {
     marginBottom: 24,
@@ -561,8 +577,11 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 16,
+    paddingBottom: 30,
     borderTopWidth: 1,
     borderTopColor: "#e9ecef",
+    backgroundColor: "#f8f9fa",
+    // SIN position: "absolute" - esto era el problema!
   },
   actionButton: {
     flexDirection: "row",

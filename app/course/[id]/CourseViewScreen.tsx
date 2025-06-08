@@ -2,7 +2,7 @@
 
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useCourses } from "@/contexts/CoursesContext"
-import { View, Text, TouchableOpacity, Modal, Alert, FlatList } from "react-native"
+import { View, Text, TouchableOpacity, Modal, FlatList } from "react-native"
 import { useEffect, useState } from "react"
 import { AntDesign } from "@expo/vector-icons"
 import { styles as modalStyles } from "@/styles/modalStyle"
@@ -14,11 +14,9 @@ import { useAuth } from "@/contexts/sessionAuth"
 import { CourseTopBar } from "@/components/courses/course/CourseTopBar"
 import { TasksSection } from "@/components/courses/course/TasksSection"
 import { ModulesSection } from "@/components/courses/course/ModulesSection"
-import { AssignmentDetailModal } from "@/components/courses/course/AssignmentDetailModal"
-import { ExamTimerModal } from "@/components/courses/course/ExamTimerModal"
 import { DownloadModal } from "@/components/courses/course/DownloadModal"
+import { KeyboardAvoidingView, SafeAreaView, Platform } from "react-native"
 import React from "react"
-import { KeyboardAvoidingView, SafeAreaView, ScrollView, Platform } from 'react-native';
 
 interface Question {
   id: string
@@ -79,10 +77,7 @@ export const CourseViewScreen = ({ teacher }: Props) => {
 
   // Nuevos estados para modales y funcionalidades mejoradas
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
-  const [showDetailModal, setShowDetailModal] = useState(false)
-  const [showTimerModal, setShowTimerModal] = useState(false)
   const [showDownloadModal, setShowDownloadModal] = useState(false)
-  const [activeExam, setActiveExam] = useState<Assignment | null>(null)
 
   const course = courses.find((c) => c.id === id)
   const auth = useAuth()
@@ -111,19 +106,6 @@ export const CourseViewScreen = ({ teacher }: Props) => {
   const exams = allAssignments.filter((a) => a.type === "exam")
 
   // Nuevas funciones para manejar los modales
-  const handleAssignmentPress = (assignment: Assignment) => {
-    setSelectedAssignment(assignment)
-    setShowDetailModal(true)
-  }
-
-  const handleStartExam = (assignment: Assignment) => {
-    if (assignment.type === "exam" && assignment.time_limit) {
-      setActiveExam(assignment)
-      setShowTimerModal(true)
-    }
-    setShowDetailModal(false)
-  }
-
   const handleDownload = (assignment: Assignment) => {
     setSelectedAssignment(assignment)
     setShowDownloadModal(true)
@@ -179,7 +161,7 @@ export const CourseViewScreen = ({ teacher }: Props) => {
 
   const enrichAssignmentsWithSubmissions = (
     assignments: Assignment[],
-    submissions: StudentSubmission[]
+    submissions: StudentSubmission[],
   ): Assignment[] => {
     return assignments.map((assignment) => {
       const matchingSubmission = submissions.find((s) => s.assignment_id === assignment.id)
@@ -192,18 +174,18 @@ export const CourseViewScreen = ({ teacher }: Props) => {
 
   const fetchSubmissions = async () => {
     if (!authState?.user?.id || !authState?.token) return
-      try {
-        const { data } = await courseClient.get(`/students/${authState.user.id}/submissions`, {
-          headers: {
-            Authorization: `Bearer ${authState.token}`,
-            "X-Student-UUID": authState.user?.id,
-          },
-        })
-        return data;
-      } catch (e) {
-        console.error("Error fetching submissions:", e)
-      }
+    try {
+      const { data } = await courseClient.get(`/students/${authState.user.id}/submissions`, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`,
+          "X-Student-UUID": authState.user?.id,
+        },
+      })
+      return data
+    } catch (e) {
+      console.error("Error fetching submissions:", e)
     }
+  }
 
   // Función para obtener assignments
   const fetchAssignments = async () => {
@@ -244,137 +226,146 @@ export const CourseViewScreen = ({ teacher }: Props) => {
     }
   }
 
+  // Datos para el FlatList principal
+  const mainSections = [{ type: "tasks" }, { type: "exams" }, { type: "modules" }]
+
+  const renderMainSection = ({ item }: { item: { type: string } }) => {
+    switch (item.type) {
+      case "tasks":
+        return (
+          <TasksSection
+            label="Tareas"
+            tasks={tasks}
+            setTasks={setAllAssignments}
+            loading={loadingTasks}
+            onSubmit={handleSubmitTask}
+            isTeacher={teacher}
+            onDownload={handleDownload}
+            onRefresh={fetchAssignments}
+          />
+        )
+      case "exams":
+        return (
+          <TasksSection
+            label="Exámenes"
+            tasks={exams}
+            setTasks={setAllAssignments}
+            loading={loadingTasks}
+            onSubmit={handleSubmitTask}
+            isTeacher={teacher}
+            onDownload={handleDownload}
+            onRefresh={fetchAssignments}
+          />
+        )
+      case "modules":
+        return <ModulesSection courseId={course.id} isTeacher={teacher} />
+      default:
+        return null
+    }
+  }
+
+  const renderHeader = () => (
+    <View>
+      <CourseTopBar
+        role={teacher ? "Docente" : "Alumno"}
+        onBack={() => router.back()}
+        canEdit={teacher}
+        course={course}
+        onEditSuccess={reloadCourses}
+      />
+    </View>
+  )
+
+  const renderFooter = () => (
+    <View>
+      {/* Sección de alumnos */}
+      <TouchableOpacity style={courseStyles.materialToggle} onPress={() => setShowAlumnos(!showAlumnos)}>
+        <View style={courseStyles.materialToggleRow}>
+          <AntDesign name={showAlumnos ? "up" : "down"} size={16} color="#333" style={courseStyles.arrowIcon} />
+          <Text style={courseStyles.materialToggleText}>Ver alumnos</Text>
+        </View>
+      </TouchableOpacity>
+
+      {showAlumnos && (
+        <View style={courseStyles.listContainer}>
+          {alumnos.map((a, i) => (
+            <Text key={i} style={courseStyles.listItem}>
+              • {a}
+            </Text>
+          ))}
+        </View>
+      )}
+
+      {/* Docentes Titulares */}
+      <Text style={courseStyles.sectionHeader}>Docentes Titulares</Text>
+      <View style={courseStyles.listContainer}>
+        {docentesTitulares.map((d, i) => (
+          <Text key={i} style={courseStyles.listItem}>
+            • {d}
+          </Text>
+        ))}
+      </View>
+
+      {/* Docentes auxiliares */}
+      <Text style={courseStyles.sectionHeader}>Docentes auxiliares</Text>
+      <View style={courseStyles.listContainer}>
+        {docentesAuxiliares.map((d, i) => (
+          <Text key={i} style={courseStyles.listItem}>
+            • {d}
+          </Text>
+        ))}
+      </View>
+
+      {/* Botón eliminar curso */}
+      {teacher && (
+        <TouchableOpacity style={courseStyles.deleteButton} onPress={() => setShowConfirmModal(true)}>
+          <Text style={courseStyles.buttonText}>Eliminar curso</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Espacio final */}
+      <View style={{ height: 40 }} />
+    </View>
+  )
+
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1, backgroundColor: "#fff" }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
         <FlatList
-        data={[]} // sin items porque solo usamos el header
-        renderItem={null}
-        keyExtractor={() => "dummy"}
-        ListHeaderComponent={
-          <View style={courseStyles.scrollContainer}>
-            <CourseTopBar
-                  role={teacher ? "Docente" : "Alumno"}
-                  onBack={() => router.back()}
-                  canEdit={teacher}
-                  course={course}
-                  onEditSuccess={reloadCourses}
-                />
+          data={mainSections}
+          keyExtractor={(item) => item.type}
+          renderItem={renderMainSection}
+          ListHeaderComponent={renderHeader}
+          ListFooterComponent={renderFooter}
+          contentContainerStyle={{ paddingBottom: 120 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
 
-                <TasksSection
-                  label="Tareas"
-                  tasks={tasks}
-                  setTasks={setAllAssignments}
-                  loading={loadingTasks}
-                  onSubmit={handleSubmitTask}
-                  isTeacher={teacher}
-                  onAssignmentPress={handleAssignmentPress}
-                  onDownload={handleDownload}
-                  onRefresh={fetchAssignments}
-                />
-
-                <TasksSection
-                  label="Exámenes"
-                  tasks={exams}
-                  setTasks={setAllAssignments}
-                  loading={loadingTasks}
-                  onSubmit={handleSubmitTask}
-                  isTeacher={teacher}
-                  onAssignmentPress={handleAssignmentPress}
-                  onDownload={handleDownload}
-                  onRefresh={fetchAssignments}
-                />
-
-                <ModulesSection courseId={course.id} isTeacher={teacher} />
-
-                {/* Resto del código existente para alumnos, docentes, etc. */}
-                <TouchableOpacity style={courseStyles.materialToggle} onPress={() => setShowAlumnos(!showAlumnos)}>
-                  <View style={courseStyles.materialToggleRow}>
-                    <AntDesign name={showAlumnos ? "up" : "down"} size={16} color="#333" style={courseStyles.arrowIcon} />
-                    <Text style={courseStyles.materialToggleText}>Ver alumnos</Text>
-                  </View>
+        <Modal visible={showConfirmModal} transparent animationType="fade">
+          <View style={modalStyles.overlay}>
+            <View style={modalStyles.modal}>
+              <Text style={modalStyles.title}>¿Estás seguro que querés eliminar este curso?</Text>
+              <View style={modalStyles.modalButtons}>
+                <TouchableOpacity onPress={() => setShowConfirmModal(false)} style={modalStyles.cancelButton}>
+                  <Text style={modalStyles.cancelButtonText}>Cancelar</Text>
                 </TouchableOpacity>
-
-                {showAlumnos && (
-                  <View style={courseStyles.listContainer}>
-                    {alumnos.map((a, i) => (
-                      <Text key={i} style={courseStyles.listItem}>
-                        • {a}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-
-                <Text style={courseStyles.sectionHeader}>Docentes Titulares</Text>
-                <View style={courseStyles.listContainer}>
-                  {docentesTitulares.map((d, i) => (
-                    <Text key={i} style={courseStyles.listItem}>
-                      • {d}
-                    </Text>
-                  ))}
-                </View>
-
-                <Text style={courseStyles.sectionHeader}>Docentes auxiliares</Text>
-                <View style={courseStyles.listContainer}>
-                  {docentesAuxiliares.map((d, i) => (
-                    <Text key={i} style={courseStyles.listItem}>
-                      • {d}
-                    </Text>
-                  ))}
-                </View>
-
-                {teacher && (
-                  <TouchableOpacity style={courseStyles.deleteButton} onPress={() => setShowConfirmModal(true)}>
-                    <Text style={courseStyles.buttonText}>Eliminar curso</Text>
-                  </TouchableOpacity>
-                )}
-
-                <Modal visible={showConfirmModal} transparent animationType="fade">
-                  <View style={modalStyles.overlay}>
-                    <View style={modalStyles.modal}>
-                      <Text style={modalStyles.title}>¿Estás seguro que querés eliminar este curso?</Text>
-                      <View style={modalStyles.modalButtons}>
-                        <TouchableOpacity onPress={() => setShowConfirmModal(false)} style={modalStyles.cancelButton}>
-                          <Text style={modalStyles.cancelButtonText}>Cancelar</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={handleDeleteCourse} style={modalStyles.confirmDeleteButton}>
-                          <Text style={modalStyles.confirmDeleteText}>Eliminar</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                </Modal>
-
-                {/* Nuevos modales para funcionalidades mejoradas */}
-                <AssignmentDetailModal
-                  visible={showDetailModal}
-                  assignment={selectedAssignment}
-                  onClose={() => setShowDetailModal(false)}
-                  onStartExam={handleStartExam}
-                  onDownload={handleDownload}
-                />
-
-                <ExamTimerModal
-                  visible={showTimerModal}
-                  exam={activeExam}
-                  onClose={() => setShowTimerModal(false)}
-                  onTimeUp={() => {
-                    setShowTimerModal(false)
-                    Alert.alert("Tiempo agotado", "El tiempo para el examen ha terminado.")
-                  }}
-                />
-
-                <DownloadModal
-                  visible={showDownloadModal}
-                  assignment={selectedAssignment}
-                  onClose={() => setShowDownloadModal(false)}
-                />
+                <TouchableOpacity onPress={handleDeleteCourse} style={modalStyles.confirmDeleteButton}>
+                  <Text style={modalStyles.confirmDeleteText}>Eliminar</Text>
+                </TouchableOpacity>
               </View>
-            }
-          />
+            </View>
+          </View>
+        </Modal>
+
+        <DownloadModal
+          visible={showDownloadModal}
+          assignment={selectedAssignment}
+          onClose={() => setShowDownloadModal(false)}
+        />
       </SafeAreaView>
     </KeyboardAvoidingView>
   )

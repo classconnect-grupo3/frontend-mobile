@@ -83,16 +83,7 @@ export const AssignmentAnswerModal = ({ visible, onClose, assignment, onRefresh 
   }
 
   const handleSaveDraft = async () => {
-    try {
-      setIsSubmitting(true)
-      // Lógica para guardar borrador
-      Toast.show({ type: "success", text1: "Borrador guardado" })
-    } catch (e) {
-      console.error("Error al guardar borrador", e)
-      Toast.show({ type: "error", text1: "Error al guardar borrador" })
-    } finally {
-      setIsSubmitting(false)
-    }
+    handleSubmit()
   }
 
   const getCompletedQuestions = () => {

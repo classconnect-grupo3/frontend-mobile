@@ -1,6 +1,6 @@
 "use client"
 
-import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native"
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native"
 import React from "react"
 import { useEffect, useState } from "react"
 import { styles as courseStyles } from "@/styles/courseStyles"
@@ -13,39 +13,28 @@ import type { Assignment } from "@/app/course/[id]/CourseViewScreen"
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons"
 import { Picker } from "@react-native-picker/picker"
 
-// interface StudentSubmission {
-//   id: string
-//   assignment_id: string
-//   status: "draft" | "submitted" | "late"
-//   answers: {
-//     content: string
-//     question_id: string
-//   }[]
-// }
-
 interface Props {
   label: string
   tasks: Assignment[] | null
   setTasks: React.Dispatch<React.SetStateAction<Assignment[] | null>>
   loading: boolean
   isTeacher: boolean
-  onAssignmentPress?: (assignment: Assignment) => void
   onDownload?: (assignment: Assignment) => void
   onRefresh: () => void
 }
 
 type FilterStatus = "all" | "no_submission" | "draft" | "submitted" | "late"
 type SortBy = "due_date" | "title" | "submission_status"
-type TaskDerivedStatus = 'no_submission' | 'draft' | 'submitted' | 'late'
+type TaskDerivedStatus = "no_submission" | "draft" | "submitted" | "late"
 
 const ITEMS_PER_PAGE = 5
 
-export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onAssignmentPress, onDownload, onRefresh }: Props) => {
+export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDownload, onRefresh }: Props) => {
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
-  // const [studentSubmissions, setStudentSubmissions] = useState<StudentSubmission[]>([])
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [expandedAssignment, setExpandedAssignment] = useState<string | null>(null)
 
   // Filtros y ordenamiento
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all")
@@ -57,7 +46,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onAss
 
   // Función para determinar el estado de una tarea basado en submission y fecha
   const getDerivedStatus = (assignment: Assignment): TaskDerivedStatus => {
-    if (!assignment.submission) return 'no_submission'
+    if (!assignment.submission) return "no_submission"
     return assignment.submission.status
   }
 
@@ -171,112 +160,322 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onAss
       )
       console.log("Entrega enviada:", data)
       Toast.show({ type: "success", text1: "Entrega enviada exitosamente" })
-      // await fetchSubmissions()
     } catch (error) {
       console.error("Error al enviar la entrega:", error)
       Toast.show({ type: "error", text1: "Error al enviar la entrega" })
     }
   }
 
-  // useEffect(() => {
-  //   fetchSubmissions()
-  // }, [authState?.user?.id, authState?.token])
+  // Componente para renderizar los detalles expandidos de una tarea
+  const renderExpandedDetails = (assignment: Assignment) => {
+    const formatDate = (dateString: string) => {
+      return new Date(dateString).toLocaleDateString("es-ES", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    }
 
-  // Componente para renderizar una tarea individual
-  const renderTaskCard = ({ item: task }: { item: Assignment }) => {
-    // const submission = studentSubmissions.find((sub) => sub.assignment_id === task.id)
-    // const taskStatus = getDerivedStatus(task)
-    const status = getDerivedStatus(task)
-    const isReadOnly = status === 'submitted' || status === 'late'
-    const isOverdue = status === "late"
-    const isSubmitted = task.submission?.status === "submitted"
-    const isLate = task.submission?.status === "late"
+    const getSubmissionStatusColor = (status: "draft" | "submitted" | "late") => {
+      switch (status) {
+        case "submitted":
+          return "#4CAF50"
+        case "late":
+          return "#F44336"
+        case "draft":
+          return "#FF9800"
+        default:
+          return "#666"
+      }
+    }
+
+    const getSubmissionStatusText = (status: "draft" | "submitted" | "late") => {
+      switch (status) {
+        case "submitted":
+          return "Entregado exitosamente"
+        case "late":
+          return "Entrega tardía"
+        case "draft":
+          return "Borrador guardado"
+        default:
+          return "Sin entrega"
+      }
+    }
 
     return (
-      <TouchableOpacity style={styles.taskCard} onPress={() => onAssignmentPress?.(task)}>
-        <View style={styles.taskHeader}>
-          <View style={styles.taskTitleRow}>
-            <MaterialIcons
-              name={task.type === "exam" ? "quiz" : "assignment"}
-              size={20}
-              color="#333"
-              style={styles.taskIcon}
-            />
-            <Text style={styles.taskTitle} numberOfLines={2}>
-              {task.title}
-            </Text>
+      <View style={styles.expandedDetails}>
+        {/* Información detallada */}
+        <View style={styles.detailsInfoSection}>
+          <View style={styles.detailsInfoRow}>
+            <FontAwesome name="clock-o" size={16} color="#666" />
+            <Text style={styles.detailsInfoLabel}>Fecha límite:</Text>
+            <Text style={styles.detailsInfoValue}>{formatDate(assignment.due_date)}</Text>
           </View>
 
-          {onDownload && (
-            <TouchableOpacity style={styles.downloadButton} onPress={() => onDownload(task)}>
-              <MaterialIcons name="download" size={20} color="#666" />
-            </TouchableOpacity>
+          <View style={styles.detailsInfoRow}>
+            <MaterialIcons name="category" size={16} color="#666" />
+            <Text style={styles.detailsInfoLabel}>Tipo:</Text>
+            <Text style={styles.detailsInfoValue}>{assignment.type === "exam" ? "Examen" : "Tarea"}</Text>
+          </View>
+
+          {assignment.type === "exam" && assignment.time_limit && (
+            <View style={styles.detailsInfoRow}>
+              <MaterialIcons name="timer" size={16} color="#666" />
+              <Text style={styles.detailsInfoLabel}>Tiempo límite:</Text>
+              <Text style={styles.detailsInfoValue}>{assignment.time_limit} minutos</Text>
+            </View>
           )}
-        </View>
 
-        <Text style={styles.taskDescription} numberOfLines={2}>
-          {task.description}
-        </Text>
-
-        <View style={styles.taskInfo}>
-          <View style={styles.dateContainer}>
-            <FontAwesome name="clock-o" size={14} color="#666" />
-            <Text style={[styles.taskDeadline, isOverdue && styles.overdue]}>{formatDate(task.due_date)}</Text>
-          </View>
-
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(task) }]}>
-            <Text style={styles.statusText}>{getStatusText(task)}</Text>
+          <View style={styles.detailsInfoRow}>
+            <MaterialIcons name="help" size={16} color="#666" />
+            <Text style={styles.detailsInfoLabel}>Preguntas:</Text>
+            <Text style={styles.detailsInfoValue}>{assignment.questions.length}</Text>
           </View>
         </View>
 
-        {task.type === "exam" && task.time_limit && (
-          <View style={styles.examInfo}>
-            <MaterialIcons name="timer" size={16} color="#FF9800" />
-            <Text style={styles.timeLimit}>Tiempo límite: {task.time_limit} minutos</Text>
-          </View>
-        )}
+        {/* Descripción */}
+        <View style={styles.detailsSection}>
+          <Text style={styles.detailsSectionTitle}>Descripción</Text>
+          <Text style={styles.detailsText}>{assignment.description}</Text>
+        </View>
 
-        <Text style={styles.taskMeta}>
-          📚 Tipo: {task.type === "exam" ? "Examen" : "Tarea"} • 📄 Preguntas: {task.questions.length}
-        </Text>
+        {/* Instrucciones */}
+        <View style={styles.detailsSection}>
+          <Text style={styles.detailsSectionTitle}>Instrucciones</Text>
+          <Text style={styles.detailsText}>{assignment.instructions}</Text>
+        </View>
 
-        {isTeacher && (
-          <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteTask(task.id)}>
-            <Text style={styles.taskDelete}>Eliminar</Text>
-          </TouchableOpacity>
-        )}
+        {/* Estado de entrega y respuestas */}
+        {assignment.submission ? (
+          <View style={styles.detailsSection}>
+            <Text style={styles.detailsSectionTitle}>Mi entrega</Text>
 
-        {!isTeacher && (
-          <View style={styles.studentActions}>
-            <TouchableOpacity
-              style={[styles.actionButton, isReadOnly && styles.disabledButton]}
-              onPress={() => {
-                if (!isReadOnly) setSelectedAssignment(task)
-              }}
-              disabled={isReadOnly}
+            {/* Estado de la entrega */}
+            <View
+              style={[
+                styles.submissionStatusCard,
+                { borderLeftColor: getSubmissionStatusColor(assignment.submission.status) },
+              ]}
             >
-              <Text style={styles.actionButtonText}>Responder preguntas</Text>
-            </TouchableOpacity>
-
-            {task.submission && (
-              <View style={styles.submissionInfo}>
-                <Text style={styles.submissionStatus}>
-                  📥 {isSubmitted ? "✔ Entregada" : isLate ? "⏳ Entrega tardía" : "📝 Borrador"}
+              <View style={styles.submissionStatusHeader}>
+                <MaterialIcons
+                  name={
+                    assignment.submission.status === "submitted"
+                      ? "check-circle"
+                      : assignment.submission.status === "late"
+                        ? "schedule"
+                        : "edit"
+                  }
+                  size={20}
+                  color={getSubmissionStatusColor(assignment.submission.status)}
+                />
+                <Text
+                  style={[
+                    styles.submissionStatusText,
+                    { color: getSubmissionStatusColor(assignment.submission.status) },
+                  ]}
+                >
+                  {getSubmissionStatusText(assignment.submission.status)}
                 </Text>
+              </View>
+              {assignment.submission.submitted_at && (
+                <Text style={styles.submissionDate}>Entregado el {formatDate(assignment.submission.submitted_at)}</Text>
+              )}
+            </View>
 
-                {!isReadOnly && task.submission && (
-                  <TouchableOpacity
-                    style={styles.submitButton}
-                    onPress={() => handleSubmitFinal(task.id, task.submission.id)}
-                  >
-                    <Text style={styles.submitButtonText}>Enviar entrega</Text>
-                  </TouchableOpacity>
+            {/* Respuestas */}
+            {assignment.submission.answers && assignment.submission.answers.length > 0 ? (
+              <View style={styles.answersContainer}>
+                <Text style={styles.answersTitle}>Mis respuestas:</Text>
+                {assignment.submission.answers.slice(0, 3).map((answer, index) => {
+                  const question = assignment.questions.find((q) => q.id === answer.question_id)
+                  return (
+                    <View key={`${answer.question_id}-${index}`} style={styles.answerPreview}>
+                      <Text style={styles.answerQuestionText} numberOfLines={1}>
+                        {index + 1}. {question?.text}
+                      </Text>
+                      <Text style={styles.answerValueText} numberOfLines={2}>
+                        {answer.content || "Sin respuesta"}
+                      </Text>
+                    </View>
+                  )
+                })}
+                {assignment.submission.answers.length > 3 && (
+                  <Text style={styles.moreAnswersText}>+{assignment.submission.answers.length - 3} respuestas más</Text>
                 )}
+              </View>
+            ) : (
+              <View style={styles.noAnswersContainer}>
+                <MaterialIcons name="info" size={16} color="#666" />
+                <Text style={styles.noAnswersText}>No hay respuestas guardadas aún</Text>
               </View>
             )}
           </View>
+        ) : (
+          <View style={styles.detailsSection}>
+            <Text style={styles.detailsSectionTitle}>Estado</Text>
+            <View style={styles.noSubmissionContainer}>
+              <MaterialIcons name="assignment" size={20} color="#666" />
+              <Text style={styles.noSubmissionText}>No has comenzado esta actividad</Text>
+            </View>
+          </View>
         )}
-      </TouchableOpacity>
+
+        {/* Advertencia para exámenes */}
+        {assignment.type === "exam" && (
+          <View style={styles.warningSection}>
+            <MaterialIcons name="warning" size={20} color="#FF9800" />
+            <Text style={styles.warningText}>
+              Este es un examen con tiempo limitado. Una vez iniciado, el contador comenzará y no podrás pausarlo.
+            </Text>
+          </View>
+        )}
+
+        {/* Botones de acción */}
+        <View style={styles.detailsActions}>
+          {onDownload && (
+            <TouchableOpacity style={styles.detailsSecondaryButton} onPress={() => onDownload(assignment)}>
+              <MaterialIcons name="download" size={16} color="#007AFF" />
+              <Text style={styles.detailsSecondaryButtonText}>Descargar</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={styles.detailsCollapseButton} onPress={() => setExpandedAssignment(null)}>
+            <FontAwesome name="chevron-up" size={16} color="#666" />
+            <Text style={styles.detailsCollapseButtonText}>Contraer</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    )
+  }
+
+  // Componente para renderizar una tarea individual
+  const renderTaskCard = (task: Assignment) => {
+    const status = getDerivedStatus(task)
+    const isReadOnly = status === "submitted" || status === "late"
+    const isOverdue = status === "late"
+    const isSubmitted = task.submission?.status === "submitted"
+    const isLate = task.submission?.status === "late"
+    const isExpanded = expandedAssignment === task.id
+
+    return (
+      <View key={task.id} style={styles.taskCardContainer}>
+        <TouchableOpacity
+          style={[styles.taskCard, isExpanded && styles.taskCardExpanded]}
+          onPress={() => setExpandedAssignment(isExpanded ? null : task.id)}
+        >
+          <View style={styles.taskHeader}>
+            <View style={styles.taskTitleRow}>
+              <MaterialIcons
+                name={task.type === "exam" ? "quiz" : "assignment"}
+                size={20}
+                color="#333"
+                style={styles.taskIcon}
+              />
+              <Text style={styles.taskTitle} numberOfLines={2}>
+                {task.title}
+              </Text>
+              <FontAwesome
+                name={isExpanded ? "chevron-up" : "chevron-down"}
+                size={16}
+                color="#666"
+                style={styles.expandIcon}
+              />
+            </View>
+
+            {onDownload && (
+              <TouchableOpacity
+                style={styles.downloadButton}
+                onPress={(e) => {
+                  e.stopPropagation()
+                  onDownload(task)
+                }}
+              >
+                <MaterialIcons name="download" size={20} color="#666" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <Text style={styles.taskDescription} numberOfLines={2}>
+            {task.description}
+          </Text>
+
+          <View style={styles.taskInfo}>
+            <View style={styles.dateContainer}>
+              <FontAwesome name="clock-o" size={14} color="#666" />
+              <Text style={[styles.taskDeadline, isOverdue && styles.overdue]}>{formatDate(task.due_date)}</Text>
+            </View>
+
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(task) }]}>
+              <Text style={styles.statusText}>{getStatusText(task)}</Text>
+            </View>
+          </View>
+
+          {task.type === "exam" && task.time_limit && (
+            <View style={styles.examInfo}>
+              <MaterialIcons name="timer" size={16} color="#FF9800" />
+              <Text style={styles.timeLimit}>Tiempo límite: {task.time_limit} minutos</Text>
+            </View>
+          )}
+
+          <Text style={styles.taskMeta}>
+            📚 Tipo: {task.type === "exam" ? "Examen" : "Tarea"} • 📄 Preguntas: {task.questions.length}
+          </Text>
+
+          {isTeacher && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={(e) => {
+                e.stopPropagation()
+                handleDeleteTask(task.id)
+              }}
+            >
+              <Text style={styles.taskDelete}>Eliminar</Text>
+            </TouchableOpacity>
+          )}
+
+          {!isTeacher && (
+            <View style={styles.studentActions}>
+              <TouchableOpacity
+                style={[styles.actionButton, isReadOnly && styles.disabledButton]}
+                onPress={(e) => {
+                  e.stopPropagation()
+                  if (!isReadOnly) setSelectedAssignment(task)
+                }}
+                disabled={isReadOnly}
+              >
+                <Text style={styles.actionButtonText}>Responder preguntas</Text>
+              </TouchableOpacity>
+
+              {task.submission && (
+                <View style={styles.submissionInfo}>
+                  <Text style={styles.submissionStatus}>
+                    📥 {isSubmitted ? "✔ Entregada" : isLate ? "⏳ Entrega tardía" : "📝 Borrador"}
+                  </Text>
+
+                  {!isReadOnly && task.submission && (
+                    <TouchableOpacity
+                      style={styles.submitButton}
+                      onPress={(e) => {
+                        e.stopPropagation()
+                        handleSubmitFinal(task.id, task.submission.id)
+                      }}
+                    >
+                      <Text style={styles.submitButtonText}>Enviar entrega</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Detalles expandidos */}
+        {isExpanded && renderExpandedDetails(task)}
+      </View>
     )
   }
 
@@ -344,7 +543,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onAss
   }
 
   return (
-    <>
+    <View>
       <Text style={courseStyles.sectionHeader}>{label}</Text>
       <Text style={styles.subtitle}>
         {filteredTasks.length} de {tasks?.length || 0} {label.toLowerCase()}
@@ -368,15 +567,10 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onAss
           </Text>
         </View>
       ) : (
-        <>
-          <FlatList
-            data={getPaginatedTasks()}
-            keyExtractor={(item) => item.id}
-            renderItem={renderTaskCard}
-            showsVerticalScrollIndicator={false}
-          />
+        <View>
+          {getPaginatedTasks().map(renderTaskCard)}
           {renderPagination()}
-        </>
+        </View>
       )}
 
       <NewTaskModal visible={showTaskModal} onClose={() => setShowTaskModal(false)} onCreate={handleAddTask} />
@@ -389,7 +583,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onAss
           onRefresh={onRefresh}
         />
       )}
-    </>
+    </View>
   )
 }
 
@@ -596,5 +790,205 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
     marginHorizontal: 16,
+  },
+  taskCardContainer: {
+    marginBottom: 12,
+  },
+  taskCardExpanded: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomWidth: 0,
+  },
+  expandIcon: {
+    marginLeft: 8,
+  },
+  expandedDetails: {
+    backgroundColor: "#f8f9fa",
+    borderTopWidth: 1,
+    borderTopColor: "#e9ecef",
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    padding: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  detailsInfoSection: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  detailsInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  detailsInfoLabel: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 8,
+    minWidth: 80,
+  },
+  detailsInfoValue: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "500",
+    flex: 1,
+  },
+  detailsSection: {
+    marginBottom: 16,
+  },
+  detailsSectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 8,
+  },
+  detailsText: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 20,
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 8,
+  },
+  submissionStatusCard: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+  },
+  submissionStatusHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  submissionStatusText: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 8,
+  },
+  submissionDate: {
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 28,
+  },
+  answersContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 12,
+  },
+  answersTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: 8,
+  },
+  answerPreview: {
+    backgroundColor: "#f8f9fa",
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 6,
+    borderLeftWidth: 2,
+    borderLeftColor: "#007AFF",
+  },
+  answerQuestionText: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  answerValueText: {
+    fontSize: 13,
+    color: "#333",
+  },
+  moreAnswersText: {
+    fontSize: 12,
+    color: "#007AFF",
+    fontStyle: "italic",
+    textAlign: "center",
+    marginTop: 4,
+  },
+  noAnswersContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 8,
+  },
+  noAnswersText: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 8,
+  },
+  noSubmissionContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 8,
+  },
+  noSubmissionText: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 8,
+  },
+  warningSection: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#fff3cd",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  warningText: {
+    fontSize: 13,
+    color: "#856404",
+    marginLeft: 8,
+    flex: 1,
+    lineHeight: 18,
+  },
+  detailsActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#e9ecef",
+  },
+  detailsSecondaryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#007AFF",
+  },
+  detailsSecondaryButtonText: {
+    color: "#007AFF",
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 4,
+  },
+  detailsCollapseButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+  },
+  detailsCollapseButtonText: {
+    color: "#666",
+    fontSize: 14,
+    marginLeft: 4,
   },
 })
