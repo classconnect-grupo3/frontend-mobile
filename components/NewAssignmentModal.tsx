@@ -5,6 +5,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { Modal, Platform, TextInput, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { z } from 'zod';
 import { styles } from '@/styles/modalStyle';
+import { Assignment } from '@/app/course/[id]/CourseViewScreen';
 
 const assignmentSchema = z.object({
   title: z.string().min(1, 'El título es obligatorio'),
@@ -12,17 +13,16 @@ const assignmentSchema = z.object({
   due_date: z.date({ required_error: 'La fecha es obligatoria' }),
 });
 
-type AssignmentFormData = z.infer<typeof assignmentSchema>;
+export type AssignmentFormData = z.infer<typeof assignmentSchema>;
 
 interface AssignmentProps {
   visible: boolean;
   onClose: () => void;
-  onCreate: (assignment: {
-    title: string; description?: string; due_date: string 
-}) => void;
+  onCreate: (assignment: AssignmentFormData, type: "task" | "exam") => void;
+  type: "task" | "exam";
 }
 
-export function NewAssignmentModal({ visible, onClose, onCreate }: AssignmentProps) {
+export function NewAssignmentModal({ visible, onClose, onCreate, type }: AssignmentProps) {
   const {
     control,
     handleSubmit,
@@ -40,11 +40,7 @@ export function NewAssignmentModal({ visible, onClose, onCreate }: AssignmentPro
   const due_date = watch('due_date');
 
   const submit = (data: AssignmentFormData) => {
-    onCreate({
-      title: data.title,
-      description: data.description,
-      due_date: data.due_date.toISOString(),
-    });
+    onCreate(data, type);
     reset();
     onClose();
   };

@@ -12,6 +12,7 @@ import { AssignmentAnswerModal } from "./AssignmentAnswerModal"
 import type { Assignment } from "@/app/course/[id]/CourseViewScreen"
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons"
 import { Picker } from "@react-native-picker/picker"
+import { AssignmentFormData } from "@/components/NewAssignmentModal"
 
 interface Props {
   label: string
@@ -22,7 +23,8 @@ interface Props {
   isTeacher: boolean
   onDownload?: (assignment: Assignment) => void
   onRefresh: () => void
-  onSubmit: () => void
+  onSubmit: (assignmentId: string) => Promise<void>
+  course_id: string 
 }
 
 type FilterStatus = "all" | "no_submission" | "draft" | "submitted" | "late"
@@ -31,8 +33,9 @@ type AssignmentDerivedStatus = "no_submission" | "draft" | "submitted" | "late"
 
 const ITEMS_PER_PAGE = 5
 
-export const AssignmentsSection = ({ label, assignments, setAssignments, loading, isTeacher, onDownload, onRefresh, onSubmit, type }: Props) => {
+export const AssignmentsSection = ({ label, assignments, setAssignments, loading, isTeacher, onDownload, onRefresh, onSubmit, type, course_id }: Props) => {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false)
+  const [assignmentModalType, setAssignmentModalType] = useState<"task" | "exam">("task")
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -140,8 +143,52 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
     })
   }
 
-  const handleAddAssignment = (assignment: Omit<Assignment, "id">) => {
-    setAssignments((prev) => [...(prev ?? []), { ...assignment, id: Date.now().toString() }])
+  const handleAddAssignment = async (data: AssignmentFormData, type: "exam" | "task") => {
+    try {
+      if (!authState) {
+        Toast.show({ type: "error", text1: "No hay sesión de usuario" })
+        return
+      }
+      const newAssignment: Omit<Assignment, 'id'> = { 
+        // TODO chequear estos argumentos
+        course_id: course_id,
+        description: data.description ? data.description : "",
+        due_date: data.due_date.toISOString(),
+        instructions: "default_instructions", // idem instrucciones
+        questions: [],
+        title: data.title,
+        type: type === "task" ? "homework" : "exam",
+      }
+      console.log("Creating new assignment: ", newAssignment)
+      await courseClient.post(
+        `/assignments`,
+        {
+          course_id: newAssignment.course_id,
+          description: newAssignment.description,
+          due_date: newAssignment.due_date,
+          instructions: newAssignment.instructions,
+          passing_score: 50,
+          questions: newAssignment.questions,
+          status: "default_status", // que deberiamos poner en status aca? no es una submission
+          grace_period: 1, // es necesario el grace period?? qué es? xd
+          title: newAssignment.title,
+          total_points: 100,
+          type: newAssignment.type,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+          },
+        },
+      )
+
+      Toast.show({ type: "success", text1: "Assignment creado" })
+      setAssignments((prev) => [...(prev ?? []), { ...newAssignment, id: Date.now().toString() }])
+      // Recargar assignments después de la entrega
+    } catch (e) {
+      console.error("Error creando assignment:", e)
+      Toast.show({ type: "error", text1: "No se pudo crear el assignment" })
+    }
   }
 
   const handleDeleteAssignment = (id: string) => {
@@ -555,7 +602,14 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
       {renderFilters()}
 
       {isTeacher && (
-        <TouchableOpacity onPress={() => setShowAssignmentModal(true)} style={courseStyles.addButton}>
+        <TouchableOpacity 
+          onPress={() => 
+            {
+              setShowAssignmentModal(true)
+              label === "Tareas" ? setAssignmentModalType("task") : setAssignmentModalType("exam")
+            }
+          } 
+          style={courseStyles.addButton}>
           <Text style={courseStyles.buttonText}>+ Agregar {label === "Tareas" ? "tarea" : "exámenes"}</Text>
         </TouchableOpacity>
       )}
@@ -579,17 +633,8 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
       <NewAssignmentModal
         visible={showAssignmentModal}
         onClose={() => setShowAssignmentModal(false)}
-        onCreate={(assignment) =>
-          handleAddAssignment({
-            title: assignment.title,
-            description: assignment.description ? assignment.description : '',
-            due_date: assignment.due_date,
-            type: type === "task" ? "homework" : "exam", // or "exam", depending on your default
-            course_id: "default_course_id", // TODO: replace with actual course_id
-            instructions: "",
-            questions: [],
-          })
-        }
+        onCreate={handleAddAssignment}
+        type={assignmentModalType}
       />
 
       {selectedAssignment && (

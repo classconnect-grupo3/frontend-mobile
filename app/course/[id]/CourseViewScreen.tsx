@@ -234,6 +234,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
       case "tasks":
         return (
           <AssignmentsSection
+            course_id={course.id}
             label="Tareas"
             assignments={tasks}
             type="task"
@@ -248,6 +249,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
       case "exams":
         return (
           <AssignmentsSection
+            course_id={course.id}
             label="Exámenes"
             assignments={exams}
             type="exam"
