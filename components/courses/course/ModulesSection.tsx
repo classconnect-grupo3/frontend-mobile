@@ -6,14 +6,7 @@ import ModuleCard from '@/components/courses/ModuleCard';
 import React from 'react';
 import Toast from "react-native-toast-message";
 import { useAuth } from '@/contexts/sessionAuth';
-
-interface ModuleData {
-  id: string,
-  course_id: string;
-  title: string;
-  description: string;
-  resources: { id: string; name: string }[];
-}
+import { ModuleData } from '@/components/courses/ModuleCard';
 
 interface Props {
   courseId: string;
@@ -67,7 +60,8 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
           course_id: newModule.course_id,
           description: newModule.description,
           title: newModule.title
-        },         {
+        }, 
+        {
           headers: {
             Authorization: `Bearer ${authState.token}`,
           },
@@ -84,13 +78,59 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
     }
   };
 
-  const handleUpdateModule = (updated: ModuleData) => {
-    setModules((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+  const handleUpdateModule = async (updatedModule: ModuleData) => {
+    try {
+      if (!authState) {
+        Toast.show({ type: "error", text1: "No hay sesión de usuario" });
+        return;
+      }
+  
+      await courseClient.put(
+        `/modules/${updatedModule.id}`,
+        {
+          title: updatedModule.title,
+          description: updatedModule.description,
+          content: "empty_content", // or actual content if available
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+          },
+        }
+      );
+  
+      setModules((prev) =>
+        prev.map((m) => (m.id === updatedModule.id ? updatedModule : m))
+      );
+      Toast.show({ type: "success", text1: "Módulo actualizado correctamente" });
+    } catch (e) {
+      console.error("Error actualizando módulo:", e);
+      Toast.show({ type: "error", text1: "No se pudo actualizar el módulo" });
+    }
   };
+  
 
-  const handleDeleteModule = (moduleId: string) => {
-    setModules((prev) => prev.filter((m) => m.id !== moduleId));
+  const handleDeleteModule = async (moduleId: string) => {
+    try {
+      if (!authState) {
+        Toast.show({ type: "error", text1: "No hay sesión de usuario" });
+        return;
+      }
+  
+      await courseClient.delete(`/modules/${moduleId}`, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`,
+        },
+      });
+  
+      setModules((prev) => prev.filter((m) => m.id !== moduleId));
+      Toast.show({ type: "success", text1: "Módulo eliminado correctamente" });
+    } catch (e) {
+      console.error("Error eliminando módulo:", e);
+      Toast.show({ type: "error", text1: "No se pudo eliminar el módulo" });
+    }
   };
+  
 
   const handleAddResource = (moduleId: string) => {
     setModules((prev) =>

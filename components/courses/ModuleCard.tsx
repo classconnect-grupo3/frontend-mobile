@@ -18,7 +18,8 @@ if (Platform.OS === 'android') {
 }
 
 export interface ModuleData {
-  id: string;
+  id: string,
+  course_id: string;
   title: string;
   description: string;
   resources: { id: string; name: string }[];
