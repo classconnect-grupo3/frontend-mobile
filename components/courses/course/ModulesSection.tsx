@@ -156,9 +156,9 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
       <Text style={courseStyles.sectionHeader}>Módulos</Text>
 
       {loading ? (
-        <Text style={courseStyles.taskDescription}>Cargando módulos...</Text>
+        <Text style={courseStyles.assignmentDescription}>Cargando módulos...</Text>
       ) : modules.length === 0 ? (
-        <Text style={courseStyles.taskDescription}>No hay módulos disponibles.</Text>
+        <Text style={courseStyles.assignmentDescription}>No hay módulos disponibles.</Text>
       ) : (
         <FlatList
           data={modules}

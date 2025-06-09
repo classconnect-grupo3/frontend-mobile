@@ -30,9 +30,10 @@ export interface ModuleCardProps {
   onUpdateModule: (updatedModule: ModuleData) => void;
   onAddResource: (moduleId: string) => void;
   onDeleteModule: (moduleId: string) => void;
+  isTeacher: boolean,
 }
 
-const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onAddResource, onDeleteModule }) => {
+const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onAddResource, onDeleteModule, isTeacher }) => {
   const [expanded, setExpanded] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [title, setTitle] = useState(moduleData.title);
@@ -149,6 +150,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
                 </TouchableOpacity>
               </>
             ) : (
+              isTeacher && (
               <>
                 <TouchableOpacity 
                   style={styles.deleteButton} 
@@ -163,6 +165,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
                   <Text style={styles.editButtonText}>Editar</Text>
                 </TouchableOpacity>
               </>
+              )
             )}
           </View>
         </View>
