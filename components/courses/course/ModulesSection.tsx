@@ -4,9 +4,12 @@ import { styles as courseStyles } from '@/styles/courseStyles';
 import { courseClient } from '@/lib/courseClient';
 import ModuleCard from '@/components/courses/ModuleCard';
 import React from 'react';
+import Toast from "react-native-toast-message";
+import { useAuth } from '@/contexts/sessionAuth';
 
 interface ModuleData {
-  id: string;
+  id: string,
+  course_id: string;
   title: string;
   description: string;
   resources: { id: string; name: string }[];
@@ -17,32 +20,15 @@ interface Props {
   isTeacher: boolean;
 }
 
-const MOCK_MODULES = [
-  {
-    id: '1',
-    title: 'Introduction to Algebra',
-    description: 'Learn about variables, equations, and basic algebraic structures.',
-    resources: [
-      { id: 'r1', name: 'Lecture Slides'},
-      { id: 'r2', name: 'Practice Problems'},
-    ],
-  },
-  {
-    id: '2',
-    title: 'Linear Equations',
-    description: 'Explore linear equations and their graphs.',
-    resources: [
-      { id: 'r3', name: 'Video Explanation'},
-    ],
-  },
-];
-
 export const ModulesSection = ({ courseId, isTeacher }: Props) => {
-  const [modules, setModules] = useState<ModuleData[]>(MOCK_MODULES);
+  const [modules, setModules] = useState<ModuleData[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
+
+  const auth = useAuth()
+  const authState = auth?.authState
 
 //   useEffect(() => {
 //     const fetchModules = async () => {
@@ -60,17 +46,42 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
 //     fetchModules();
 //   }, [courseId]);
 
-  const handleAddModule = () => {
-    const newModule: ModuleData = {
-      id: Date.now().toString(),
-      title: newTitle.trim() || 'Nuevo módulo',
-      description: newDescription.trim(),
-      resources: [],
-    };
-    setModules((prev) => [...prev, newModule]);
-    setNewTitle('');
-    setNewDescription('');
-    setModalVisible(false);
+  const handleAddModule = async () => {
+    try {
+      if (!authState) {
+        Toast.show({ type: "error", text1: "No hay sesión de usuario" })
+        return
+      }
+      const newModule: ModuleData = {
+        id: Date.now().toString(), 
+        course_id: courseId,
+        title: newTitle.trim() || 'Nuevo módulo',
+        description: newDescription.trim(),
+        resources: [],
+      };
+      console.log("Creating module: ", newModule)
+      await courseClient.post(
+        '/modules', 
+        {
+          content: "empty_content",
+          course_id: newModule.course_id,
+          description: newModule.description,
+          title: newModule.title
+        },         {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+          },
+        },
+      )
+
+      setModules((prev) => [...prev, newModule]);
+      setNewTitle('');
+      setNewDescription('');
+      setModalVisible(false);
+    } catch (e) {
+      console.error("Error creando módulo:", e)
+      Toast.show({ type: "error", text1: "No se pudo crear el módulo" })
+    }
   };
 
   const handleUpdateModule = (updated: ModuleData) => {
@@ -156,7 +167,7 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
                     onPress={handleAddModule}
                     style={[courseStyles.modalButton, { backgroundColor: '#4CAF50' }]}
                   >
-                    <Text style={courseStyles.modalButtonText}>Guardar</Text>
+                    <Text style={courseStyles.modalButtonText}>Agregar</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setModalVisible(false)}
