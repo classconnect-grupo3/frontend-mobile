@@ -191,8 +191,27 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
     }
   }
 
-  const handleDeleteAssignment = (id: string) => {
-    setAssignments((prev) => (prev ?? []).filter((assignment) => assignment.id !== id))
+  const handleDeleteAssignment = async (id: string) => {
+    try {
+      if (!authState) {
+        Toast.show({ type: "error", text1: "No hay sesión de usuario" })
+        return
+      }
+      await courseClient.delete(
+        `/assignments/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+          },
+        },
+      )
+
+      Toast.show({ type: "success", text1: "Assignment eliminado" })
+      setAssignments((prev) => (prev ?? []).filter((assignment) => assignment.id !== id))
+    } catch (e) {
+      console.error("Error eliminando assignment:", e)
+      Toast.show({ type: "error", text1: "No se pudo eliminar el assignment" })
+    }
   }
 
   const handleSubmitFinal = async (assignmentId: string, submissionId: string) => {
