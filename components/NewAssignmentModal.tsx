@@ -5,24 +5,24 @@ import { Controller, useForm } from 'react-hook-form';
 import { Modal, Platform, TextInput, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { z } from 'zod';
 import { styles } from '@/styles/modalStyle';
+import { Assignment } from '@/app/course/[id]/CourseViewScreen';
 
-const taskSchema = z.object({
+const assignmentSchema = z.object({
   title: z.string().min(1, 'El título es obligatorio'),
   description: z.string().optional(),
-  deadline: z.date({ required_error: 'La fecha es obligatoria' }),
+  due_date: z.date({ required_error: 'La fecha es obligatoria' }),
 });
 
-type TaskFormData = z.infer<typeof taskSchema>;
+export type AssignmentFormData = z.infer<typeof assignmentSchema>;
 
-interface TaskProps {
+interface AssignmentProps {
   visible: boolean;
   onClose: () => void;
-  onCreate: (task: {
-    title: string; description?: string; deadline: string 
-}) => void;
+  onCreate: (assignment: AssignmentFormData, type: "task" | "exam") => void;
+  type: "task" | "exam";
 }
 
-export function NewTaskModal({ visible, onClose, onCreate }: TaskProps) {
+export function NewAssignmentModal({ visible, onClose, onCreate, type }: AssignmentProps) {
   const {
     control,
     handleSubmit,
@@ -30,21 +30,17 @@ export function NewTaskModal({ visible, onClose, onCreate }: TaskProps) {
     setValue,
     watch,
     formState: { errors, isValid },
-  } = useForm<TaskFormData>({
-    resolver: zodResolver(taskSchema),
+  } = useForm<AssignmentFormData>({
+    resolver: zodResolver(assignmentSchema),
     mode: 'onChange',
   });
 
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const deadline = watch('deadline');
+  const due_date = watch('due_date');
 
-  const submit = (data: TaskFormData) => {
-    onCreate({
-      title: data.title,
-      description: data.description,
-      deadline: data.deadline.toISOString(),
-    });
+  const submit = (data: AssignmentFormData) => {
+    onCreate(data, type);
     reset();
     onClose();
   };
@@ -99,27 +95,27 @@ export function NewTaskModal({ visible, onClose, onCreate }: TaskProps) {
           {/* Fecha (picker) */}
           <Text style={styles.subtitle}>Fecha de Entrega</Text>
           <View style={styles.inputGroup}>
-            <Text style={{ marginBottom: 6 }}>Deadline</Text>
+            <Text style={{ marginBottom: 6 }}>due_date</Text>
             <TouchableOpacity
               style={styles.input}
               onPress={() => setShowDatePicker(true)}
             >
               <Text style={{ color: '#333' }}>
-                {deadline ? new Date(deadline).toLocaleDateString() : 'Seleccionar fecha'}
+                {due_date ? new Date(due_date).toLocaleDateString() : 'Seleccionar fecha'}
               </Text>
             </TouchableOpacity>
-            {errors.deadline && <Text style={styles.errorText}>{errors.deadline.message}</Text>}
+            {errors.due_date && <Text style={styles.errorText}>{errors.due_date.message}</Text>}
           </View>
 
           {showDatePicker && (
             <DateTimePicker
-              value={deadline ?? new Date()}
+              value={due_date ?? new Date()}
               mode="date"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, date) => {
                 setShowDatePicker(false);
                 if (date) {
-                  setValue('deadline', date, { shouldValidate: true });
+                  setValue('due_date', date, { shouldValidate: true });
                 }
               }}
             />

@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native"
 import React from "react"
 import { useEffect, useState } from "react"
 import { styles as courseStyles } from "@/styles/courseStyles"
-import { NewTaskModal } from "@/components/NewTaskModal"
+import { NewAssignmentModal } from "@/components/NewAssignmentModal"
 import { courseClient } from "@/lib/courseClient"
 import Toast from "react-native-toast-message"
 import { useAuth } from "@/contexts/sessionAuth"
@@ -12,25 +12,30 @@ import { AssignmentAnswerModal } from "./AssignmentAnswerModal"
 import type { Assignment } from "@/app/course/[id]/CourseViewScreen"
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons"
 import { Picker } from "@react-native-picker/picker"
+import { AssignmentFormData } from "@/components/NewAssignmentModal"
 
 interface Props {
   label: string
-  tasks: Assignment[] | null
-  setTasks: React.Dispatch<React.SetStateAction<Assignment[] | null>>
+  assignments: Assignment[] // assignments include both assignments (aka homeworks) and exams
+  setAssignments: React.Dispatch<React.SetStateAction<Assignment[]>>
+  type: "exam" | "task"
   loading: boolean
   isTeacher: boolean
   onDownload?: (assignment: Assignment) => void
   onRefresh: () => void
+  onSubmit: (assignmentId: string) => Promise<void>
+  course_id: string 
 }
 
 type FilterStatus = "all" | "no_submission" | "draft" | "submitted" | "late"
 type SortBy = "due_date" | "title" | "submission_status"
-type TaskDerivedStatus = "no_submission" | "draft" | "submitted" | "late"
+type AssignmentDerivedStatus = "no_submission" | "draft" | "submitted" | "late"
 
 const ITEMS_PER_PAGE = 5
 
-export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDownload, onRefresh }: Props) => {
-  const [showTaskModal, setShowTaskModal] = useState(false)
+export const AssignmentsSection = ({ label, assignments, setAssignments, loading, isTeacher, onDownload, onRefresh, onSubmit, type, course_id }: Props) => {
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false)
+  const [assignmentModalType, setAssignmentModalType] = useState<"task" | "exam">("task")
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -39,33 +44,33 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDow
   // Filtros y ordenamiento
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all")
   const [sortBy, setSortBy] = useState<SortBy>("due_date")
-  const [filteredTasks, setFilteredTasks] = useState<Assignment[]>([])
+  const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([])
 
   const auth = useAuth()
   const authState = auth?.authState
 
   // Función para determinar el estado de una tarea basado en submission y fecha
-  const getDerivedStatus = (assignment: Assignment): TaskDerivedStatus => {
+  const getDerivedStatus = (assignment: Assignment): AssignmentDerivedStatus => {
     if (!assignment.submission) return "no_submission"
     return assignment.submission.status
   }
 
   // Aplicar filtros y ordenamiento
   useEffect(() => {
-    if (!tasks) {
-      setFilteredTasks([])
+    if (!assignments) {
+      setFilteredAssignments([])
       return
     }
 
-    let filtered = [...tasks]
+    let filtered = [...assignments]
 
     // Filtro por estado
     if (statusFilter !== "all") {
-      filtered = filtered.filter((task) => {
+      filtered = filtered.filter((assignment) => {
         if (statusFilter === "no_submission") {
-          return !task.submission
+          return !assignment.submission
         }
-        return task.submission?.status === statusFilter
+        return assignment.submission?.status === statusFilter
       })
     }
 
@@ -85,18 +90,18 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDow
       }
     })
 
-    setFilteredTasks(filtered)
+    setFilteredAssignments(filtered)
     setCurrentPage(1)
-  }, [tasks, statusFilter, sortBy])
+  }, [assignments, statusFilter, sortBy])
 
-  const getPaginatedTasks = () => {
+  const getPaginatedAssignments = () => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
     const endIndex = startIndex + ITEMS_PER_PAGE
-    return filteredTasks.slice(startIndex, endIndex)
+    return filteredAssignments.slice(startIndex, endIndex)
   }
 
   const getTotalPages = () => {
-    return Math.ceil(filteredTasks.length / ITEMS_PER_PAGE)
+    return Math.ceil(filteredAssignments.length / ITEMS_PER_PAGE)
   }
 
   const getStatusColor = (assignment: Assignment) => {
@@ -138,12 +143,76 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDow
     })
   }
 
-  const handleAddTask = (task: Omit<Assignment, "id">) => {
-    setTasks((prev) => [...(prev ?? []), { ...task, id: Date.now().toString() }])
+  const handleAddAssignment = async (data: AssignmentFormData, type: "exam" | "task") => {
+    try {
+      if (!authState) {
+        Toast.show({ type: "error", text1: "No hay sesión de usuario" })
+        return
+      }
+      const newAssignment: Omit<Assignment, 'id'> = { 
+        // TODO chequear estos argumentos
+        course_id: course_id,
+        description: data.description ? data.description : "",
+        due_date: data.due_date.toISOString(),
+        instructions: "default_instructions", // idem instrucciones
+        questions: [],
+        title: data.title,
+        type: type === "task" ? "homework" : "exam",
+      }
+      console.log("Creating new assignment: ", newAssignment)
+      await courseClient.post(
+        `/assignments`,
+        {
+          course_id: newAssignment.course_id,
+          description: newAssignment.description,
+          due_date: newAssignment.due_date,
+          instructions: newAssignment.instructions,
+          passing_score: 50,
+          questions: newAssignment.questions,
+          status: "default_status", // que deberiamos poner en status aca? no es una submission
+          grace_period: 1, // es necesario el grace period?? qué es? xd
+          title: newAssignment.title,
+          total_points: 100,
+          type: newAssignment.type,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+          },
+        },
+      )
+
+      Toast.show({ type: "success", text1: "Assignment creado" })
+      onRefresh();
+      // Recargar assignments después de la entrega
+    } catch (e) {
+      console.error("Error creando assignment:", e)
+      Toast.show({ type: "error", text1: "No se pudo crear el assignment" })
+    }
   }
 
-  const handleDeleteTask = (id: string) => {
-    setTasks((prev) => (prev ?? []).filter((task) => task.id !== id))
+  const handleDeleteAssignment = async (id: string) => {
+    try {
+      if (!authState) {
+        Toast.show({ type: "error", text1: "No hay sesión de usuario" })
+        return
+      }
+      console.log("Attempting to delete assignment with id: ", id)
+      await courseClient.delete(
+        `/assignments/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+          },
+        },
+      )
+
+      Toast.show({ type: "success", text1: "Assignment eliminado" })
+      setAssignments((prev) => (prev ?? []).filter((assignment) => assignment.id !== id))
+    } catch (e) {
+      console.error("Error eliminando assignment:", e)
+      Toast.show({ type: "error", text1: "No se pudo eliminar el assignment" })
+    }
   }
 
   const handleSubmitFinal = async (assignmentId: string, submissionId: string) => {
@@ -153,8 +222,8 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDow
         {},
         {
           headers: {
-            Authorization: `Bearer ${authState.token}`,
-            "X-Student-UUID": authState.user?.id,
+            Authorization: `Bearer ${authState?.token || ""}`,
+            "X-Student-UUID": authState?.user?.id,
           },
         },
       )
@@ -353,30 +422,30 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDow
   }
 
   // Componente para renderizar una tarea individual
-  const renderTaskCard = (task: Assignment) => {
-    const status = getDerivedStatus(task)
+  const renderAssignmentCard = (assignment: Assignment) => {
+    const status = getDerivedStatus(assignment)
     const isReadOnly = status === "submitted" || status === "late"
     const isOverdue = status === "late"
-    const isSubmitted = task.submission?.status === "submitted"
-    const isLate = task.submission?.status === "late"
-    const isExpanded = expandedAssignment === task.id
+    const isSubmitted = assignment.submission?.status === "submitted"
+    const isLate = assignment.submission?.status === "late"
+    const isExpanded = expandedAssignment === assignment.id
 
     return (
-      <View key={task.id} style={styles.taskCardContainer}>
+      <View key={assignment.id} style={styles.assignmentCardContainer}>
         <TouchableOpacity
-          style={[styles.taskCard, isExpanded && styles.taskCardExpanded]}
-          onPress={() => setExpandedAssignment(isExpanded ? null : task.id)}
+          style={[styles.assignmentCard, isExpanded && styles.assignmentCardExpanded]}
+          onPress={() => setExpandedAssignment(isExpanded ? null : assignment.id)}
         >
-          <View style={styles.taskHeader}>
-            <View style={styles.taskTitleRow}>
+          <View style={styles.assignmentHeader}>
+            <View style={styles.assignmentTitleRow}>
               <MaterialIcons
-                name={task.type === "exam" ? "quiz" : "assignment"}
+                name={assignment.type === "exam" ? "quiz" : "assignment"}
                 size={20}
                 color="#333"
-                style={styles.taskIcon}
+                style={styles.assignmentIcon}
               />
-              <Text style={styles.taskTitle} numberOfLines={2}>
-                {task.title}
+              <Text style={styles.assignmentTitle} numberOfLines={2}>
+                {assignment.title}
               </Text>
               <FontAwesome
                 name={isExpanded ? "chevron-up" : "chevron-down"}
@@ -391,7 +460,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDow
                 style={styles.downloadButton}
                 onPress={(e) => {
                   e.stopPropagation()
-                  onDownload(task)
+                  onDownload(assignment)
                 }}
               >
                 <MaterialIcons name="download" size={20} color="#666" />
@@ -399,30 +468,30 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDow
             )}
           </View>
 
-          <Text style={styles.taskDescription} numberOfLines={2}>
-            {task.description}
+          <Text style={styles.assignmentDescription} numberOfLines={2}>
+            {assignment.description}
           </Text>
 
-          <View style={styles.taskInfo}>
+          <View style={styles.assignmentInfo}>
             <View style={styles.dateContainer}>
               <FontAwesome name="clock-o" size={14} color="#666" />
-              <Text style={[styles.taskDeadline, isOverdue && styles.overdue]}>{formatDate(task.due_date)}</Text>
+              <Text style={[styles.assignmentDeadline, isOverdue && styles.overdue]}>{formatDate(assignment.due_date)}</Text>
             </View>
 
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(task) }]}>
-              <Text style={styles.statusText}>{getStatusText(task)}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(assignment) }]}>
+              <Text style={styles.statusText}>{getStatusText(assignment)}</Text>
             </View>
           </View>
 
-          {task.type === "exam" && task.time_limit && (
+          {assignment.type === "exam" && assignment.time_limit && (
             <View style={styles.examInfo}>
               <MaterialIcons name="timer" size={16} color="#FF9800" />
-              <Text style={styles.timeLimit}>Tiempo límite: {task.time_limit} minutos</Text>
+              <Text style={styles.timeLimit}>Tiempo límite: {assignment.time_limit} minutos</Text>
             </View>
           )}
 
-          <Text style={styles.taskMeta}>
-            📚 Tipo: {task.type === "exam" ? "Examen" : "Tarea"} • 📄 Preguntas: {task.questions.length}
+          <Text style={styles.assignmentMeta}>
+            📚 Tipo: {assignment.type === "exam" ? "Examen" : "Tarea"} • 📄 Preguntas: {assignment.questions.length}
           </Text>
 
           {isTeacher && (
@@ -430,10 +499,10 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDow
               style={styles.deleteButton}
               onPress={(e) => {
                 e.stopPropagation()
-                handleDeleteTask(task.id)
+                handleDeleteAssignment(assignment.id)
               }}
             >
-              <Text style={styles.taskDelete}>Eliminar</Text>
+              <Text style={styles.assignmentDelete}>Eliminar</Text>
             </TouchableOpacity>
           )}
 
@@ -443,25 +512,25 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDow
                 style={[styles.actionButton, isReadOnly && styles.disabledButton]}
                 onPress={(e) => {
                   e.stopPropagation()
-                  if (!isReadOnly) setSelectedAssignment(task)
+                  if (!isReadOnly) setSelectedAssignment(assignment)
                 }}
                 disabled={isReadOnly}
               >
                 <Text style={styles.actionButtonText}>Responder preguntas</Text>
               </TouchableOpacity>
 
-              {task.submission && (
+              {assignment.submission && (
                 <View style={styles.submissionInfo}>
                   <Text style={styles.submissionStatus}>
                     📥 {isSubmitted ? "✔ Entregada" : isLate ? "⏳ Entrega tardía" : "📝 Borrador"}
                   </Text>
 
-                  {!isReadOnly && task.submission && (
+                  {!isReadOnly && assignment.submission && (
                     <TouchableOpacity
                       style={styles.submitButton}
                       onPress={(e) => {
                         e.stopPropagation()
-                        handleSubmitFinal(task.id, task.submission.id)
+                        assignment.submission && handleSubmitFinal(assignment.id, assignment.submission.id)
                       }}
                     >
                       <Text style={styles.submitButtonText}>Enviar entrega</Text>
@@ -474,7 +543,7 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDow
         </TouchableOpacity>
 
         {/* Detalles expandidos */}
-        {isExpanded && renderExpandedDetails(task)}
+        {isExpanded && renderExpandedDetails(assignment)}
       </View>
     )
   }
@@ -542,38 +611,51 @@ export const TasksSection = ({ label, tasks, setTasks, loading, isTeacher, onDow
     )
   }
 
+
   return (
     <View>
       <Text style={courseStyles.sectionHeader}>{label}</Text>
       <Text style={styles.subtitle}>
-        {filteredTasks.length} de {tasks?.length || 0} {label.toLowerCase()}
+        {filteredAssignments.length} de {assignments?.length || 0} {label.toLowerCase()}
       </Text>
 
       {renderFilters()}
 
       {isTeacher && (
-        <TouchableOpacity onPress={() => setShowTaskModal(true)} style={courseStyles.addButton}>
-          <Text style={courseStyles.buttonText}>+ Agregar {label.slice(0, -1).toLowerCase()}</Text>
+        <TouchableOpacity 
+          onPress={() => 
+            {
+              setShowAssignmentModal(true)
+              label === "Tareas" ? setAssignmentModalType("task") : setAssignmentModalType("exam")
+            }
+          } 
+          style={courseStyles.addButton}>
+          <Text style={courseStyles.buttonText}>+ Agregar {label === "Tareas" ? "tarea" : "exámenes"}</Text>
         </TouchableOpacity>
       )}
 
       {loading ? (
-        <Text style={courseStyles.taskDescription}>Cargando {label.toLowerCase()}...</Text>
-      ) : !filteredTasks || filteredTasks.length === 0 ? (
+        <Text style={courseStyles.assignmentDescription}>Cargando {label.toLowerCase()}...</Text>
+      ) : !filteredAssignments || filteredAssignments.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialIcons name="assignment" size={48} color="#ccc" />
-          <Text style={courseStyles.taskDescription}>
+          <Text style={courseStyles.assignmentDescription}>
             No hay {label.toLowerCase()} {statusFilter !== "all" ? `con el filtro seleccionado` : "disponibles"}
           </Text>
         </View>
       ) : (
         <View>
-          {getPaginatedTasks().map(renderTaskCard)}
+          {getPaginatedAssignments().map(renderAssignmentCard)}
           {renderPagination()}
         </View>
       )}
 
-      <NewTaskModal visible={showTaskModal} onClose={() => setShowTaskModal(false)} onCreate={handleAddTask} />
+      <NewAssignmentModal
+        visible={showAssignmentModal}
+        onClose={() => setShowAssignmentModal(false)}
+        onCreate={handleAddAssignment}
+        type={assignmentModalType}
+      />
 
       {selectedAssignment && (
         <AssignmentAnswerModal
@@ -629,7 +711,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 4,
   },
-  taskCard: {
+  assignmentCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
@@ -640,23 +722,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  taskHeader: {
+  assignmentHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 8,
   },
-  taskTitleRow: {
+  assignmentTitleRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     flex: 1,
     marginRight: 8,
   },
-  taskIcon: {
+  assignmentIcon: {
     marginRight: 8,
     marginTop: 2,
   },
-  taskTitle: {
+  assignmentTitle: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#333",
@@ -665,13 +747,13 @@ const styles = StyleSheet.create({
   downloadButton: {
     padding: 4,
   },
-  taskDescription: {
+  assignmentDescription: {
     fontSize: 14,
     color: "#666",
     lineHeight: 20,
     marginBottom: 12,
   },
-  taskInfo: {
+  assignmentInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -681,7 +763,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  taskDeadline: {
+  assignmentDeadline: {
     fontSize: 14,
     color: "#666",
     marginLeft: 6,
@@ -714,7 +796,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontWeight: "500",
   },
-  taskMeta: {
+  assignmentMeta: {
     fontSize: 12,
     color: "#666",
     marginBottom: 8,
@@ -723,7 +805,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginTop: 8,
   },
-  taskDelete: {
+  assignmentDelete: {
     color: "#F44336",
     fontSize: 14,
     fontWeight: "500",
@@ -791,10 +873,10 @@ const styles = StyleSheet.create({
     color: "#333",
     marginHorizontal: 16,
   },
-  taskCardContainer: {
+  assignmentCardContainer: {
     marginBottom: 12,
   },
-  taskCardExpanded: {
+  assignmentCardExpanded: {
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     borderBottomWidth: 0,
