@@ -65,7 +65,6 @@ export default function LoginScreen() {
     if (response?.type === 'success') {
       const { id_token } = response.params;
 
-      // ✅ Llamamos al backend a través del contexto auth
       if (auth && id_token) {
         auth.loginWithGoogle(id_token).catch((e: any) => {
           Toast.show({
@@ -113,9 +112,13 @@ export default function LoginScreen() {
                 <>
                   {field === 'password' ? (
                     <>
-                      <View style={[ errors[field] && styles.inputError, { flexDirection: 'row', alignItems: 'center' }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <TextInput
-                          style={styles.input}
+                          style={[
+                            styles.input,
+                            errors[field] ? styles.inputError : {},
+                            { flex: 1 }
+                          ]}
                           placeholder="Password"
                           value={value}
                           onBlur={onBlur}
