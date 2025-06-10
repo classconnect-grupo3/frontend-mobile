@@ -23,21 +23,25 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
   const auth = useAuth()
   const authState = auth?.authState
 
-//   useEffect(() => {
-//     const fetchModules = async () => {
-//       try {
-//         setLoading(true);
-//         const { data } = await courseClient.get(`/courses/${courseId}/modules`);
-//         setModules(data); // ⚠️ Ajustar si tu backend devuelve { modules: [...] }
-//       } catch (e) {
-//         console.error("Error fetching modules:", e);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
+ useEffect(() => {
+   const fetchModules = async () => {
+     try {
+       setLoading(true);
+       const { data } = await courseClient.get(`/modules/course/${courseId}`, {
+        headers: {
+          Authorization: `Bearer ${authState?.token}`,
+        },
+       });
+       setModules(data); // ⚠️ Ajustar si tu backend devuelve { modules: [...] }
+     } catch (e) {
+       console.error("Error fetching modules:", e);
+     } finally {
+       setLoading(false);
+     }
+   };
 
-//     fetchModules();
-//   }, [courseId]);
+   fetchModules();
+ }, [courseId]);
 
   const handleAddModule = async () => {
     try {

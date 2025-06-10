@@ -183,7 +183,7 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
       )
 
       Toast.show({ type: "success", text1: "Assignment creado" })
-      setAssignments((prev) => [...(prev ?? []), { ...newAssignment, id: Date.now().toString() }])
+      onRefresh();
       // Recargar assignments después de la entrega
     } catch (e) {
       console.error("Error creando assignment:", e)
@@ -197,6 +197,7 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
         Toast.show({ type: "error", text1: "No hay sesión de usuario" })
         return
       }
+      console.log("Attempting to delete assignment with id: ", id)
       await courseClient.delete(
         `/assignments/${id}`,
         {
