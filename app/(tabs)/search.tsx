@@ -38,10 +38,10 @@ function UserActionsModal({ visible, user, onClose, teacherCourses }: UserAction
 
     try {
       setIsPromoting(true)
-      await client.post(
+      const data = await client.post(
         `/courses/${selectedCourse}/aux-teacher/add`,
         {
-          student_id: user.uid,
+          aux_teacher_id: user.uid,
           teacher_id: auth.authState.user?.id,
         },
         {
@@ -50,7 +50,7 @@ function UserActionsModal({ visible, user, onClose, teacherCourses }: UserAction
           },
         },
       )
-
+      console.log("User promoted successfully:", data)
       Toast.show({
         type: "success",
         text1: "Usuario promovido",
@@ -60,6 +60,7 @@ function UserActionsModal({ visible, user, onClose, teacherCourses }: UserAction
       onClose()
     } catch (error) {
       console.error("Error promoting user:", error)
+      console.log("Error details:", error.response?.data || error.message)
       Toast.show({
         type: "error",
         text1: "Error",
