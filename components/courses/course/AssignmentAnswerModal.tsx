@@ -18,6 +18,8 @@ import Toast from "react-native-toast-message"
 import { useAuth } from "@/contexts/sessionAuth"
 import type { Assignment } from "@/app/course/[id]/CourseViewScreen"
 import React from "react"
+import * as DocumentPicker from 'expo-document-picker';
+import { uploadFileToSubmission } from '@/firebaseConfig';
 
 interface Question {
   id: string
@@ -85,6 +87,36 @@ export const AssignmentAnswerModal = ({ visible, onClose, assignment, onRefresh 
   const handleSaveDraft = async () => {
     handleSubmit()
   }
+
+  const handleUploadFile = async (questionId: string) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
+      // if (result.type === 'cancel') return;
+
+      if (!result.assets || result.assets.length === 0) {
+        throw new Error("No file selected");
+      }
+      const { uri, name } = result.assets[0];
+      const studentId = authState.user?.id;
+      const courseId = assignment.course_id;
+      const assignmentId = assignment.id;
+
+      if (!studentId) throw new Error("Missing user ID");
+
+      const uploadResp = await uploadFileToSubmission(
+        uri,
+        courseId,
+        assignmentId,
+        studentId,
+        questionId,
+      );
+      console.log("Archivo subido con éxito:", uploadResp);
+      handleChange(questionId, uploadResp.downloadUrl);
+    } catch (err) {
+      console.error("Error al subir archivo:", err);
+      Toast.show({ type: 'error', text1: 'Error al subir archivo' });
+    }
+  };
 
   const getCompletedQuestions = () => {
     return assignment.questions.filter((q) => responses[q.id]?.trim()).length
@@ -163,7 +195,8 @@ export const AssignmentAnswerModal = ({ visible, onClose, assignment, onRefresh 
         <TouchableOpacity
           style={styles.uploadButton}
           onPress={() => {
-            Alert.alert("Subir archivo", "Funcionalidad de subida de archivo aún no implementada")
+            // Alert.alert("Subir archivo", "Funcionalidad de subida de archivo aún no implementada")
+            handleUploadFile(question.id)
           }}
         >
           <MaterialIcons name="cloud-upload" size={24} color="#007AFF" />

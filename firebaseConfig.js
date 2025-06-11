@@ -32,7 +32,7 @@ const listFiles = async () => {
   return listResp.items
 }
 
-const uploadToFirebase = async (uri, name, onProgress) => {
+const uploadProfilePicToFirebase = async (uri, name, onProgress) => {
 
   const fetchResponse = await fetch(uri);
   const theBlob = await fetchResponse.blob();
@@ -61,6 +61,50 @@ const uploadToFirebase = async (uri, name, onProgress) => {
   });
 }
 
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+
+/**
+ * Sube un archivo a Firebase Storage para una entrega específica.
+ * 
+ * @param {string} uri - URI local del archivo.
+ * @param {Object} params - Parámetros necesarios para el path.
+ * @param {string} params.courseId - ID del curso.
+ * @param {string} params.assignmentId - ID del assignment.
+ * @param {string} params.studentId - ID del estudiante.
+ * @param {string} params.questionId - ID de la pregunta.
+ * @param {(progress: number) => void} [onProgress] - Callback para el progreso.
+ * @returns {Promise<{ downloadUrl: string, metadata: any }>}
+ */
+export const uploadFileToSubmission = async (
+  uri, courseId, assignmentId, studentId, questionId, onProgress
+) => {
+  const fetchResponse = await fetch(uri);
+  const blob = await fetchResponse.blob();
+
+  const filePath = `submissions/${courseId}/${assignmentId}/${studentId}/${questionId}`;
+  const fileRef = ref(getStorage(), filePath);
+
+  const uploadTask = uploadBytesResumable(fileRef, blob);
+
+  return new Promise((resolve, reject) => {
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        if (onProgress) onProgress(progress);
+      },
+      (error) => reject(error),
+      async () => {
+        const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+        resolve({
+          downloadUrl,
+          metadata: uploadTask.snapshot.metadata,
+        });
+      }
+    );
+  });
+};
+
 const fetchProfileImage = async (userId) => {
   try {
     const imageRef = ref(getStorage(), `profile_pictures/${userId}.jpg`);
@@ -75,7 +119,7 @@ const fetchProfileImage = async (userId) => {
 export {
   fbApp,
   fbStorage,
-  uploadToFirebase,
+  uploadProfilePicToFirebase as uploadToFirebase,
   listFiles,
   fetchProfileImage
 }
