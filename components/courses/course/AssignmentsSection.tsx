@@ -1,6 +1,6 @@
 "use client"
 
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native"
+import { View, Text, TouchableOpacity, StyleSheet, Linking } from "react-native"
 import React from "react"
 import { useEffect, useState } from "react"
 import { styles as courseStyles } from "@/styles/courseStyles"
@@ -12,7 +12,7 @@ import { AssignmentAnswerModal } from "./AssignmentAnswerModal"
 import type { Assignment } from "@/app/course/[id]/CourseViewScreen"
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons"
 import { Picker } from "@react-native-picker/picker"
-import { AssignmentFormData } from "@/components/NewAssignmentModal"
+import type { AssignmentFormData } from "@/components/NewAssignmentModal"
 
 interface Props {
   label: string
@@ -24,7 +24,7 @@ interface Props {
   onDownload?: (assignment: Assignment) => void
   onRefresh: () => void
   onSubmit: (assignmentId: string) => Promise<void>
-  course_id: string 
+  course_id: string
 }
 
 type FilterStatus = "all" | "no_submission" | "draft" | "submitted" | "late"
@@ -33,7 +33,18 @@ type AssignmentDerivedStatus = "no_submission" | "draft" | "submitted" | "late"
 
 const ITEMS_PER_PAGE = 5
 
-export const AssignmentsSection = ({ label, assignments, setAssignments, loading, isTeacher, onDownload, onRefresh, onSubmit, type, course_id }: Props) => {
+export const AssignmentsSection = ({
+  label,
+  assignments,
+  setAssignments,
+  loading,
+  isTeacher,
+  onDownload,
+  onRefresh,
+  onSubmit,
+  type,
+  course_id,
+}: Props) => {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false)
   const [assignmentModalType, setAssignmentModalType] = useState<"task" | "exam">("task")
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
@@ -53,6 +64,20 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
   const getDerivedStatus = (assignment: Assignment): AssignmentDerivedStatus => {
     if (!assignment.submission) return "no_submission"
     return assignment.submission.status
+  }
+
+  // Función para manejar la apertura de archivos
+  const handleOpenFile = (url) => {
+    if (!url) return
+
+    Linking.openURL(url).catch((err) => {
+      console.error("Error al abrir el archivo:", err)
+      Toast.show({
+        type: "error",
+        text1: "No se pudo abrir el archivo",
+        text2: "Intente nuevamente",
+      })
+    })
   }
 
   // Aplicar filtros y ordenamiento
@@ -149,7 +174,7 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
         Toast.show({ type: "error", text1: "No hay sesión de usuario" })
         return
       }
-      const newAssignment: Omit<Assignment, 'id'> = { 
+      const newAssignment: Omit<Assignment, "id"> = {
         // TODO chequear estos argumentos
         course_id: course_id,
         description: data.description ? data.description : "",
@@ -183,7 +208,7 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
       )
 
       Toast.show({ type: "success", text1: "Assignment creado" })
-      onRefresh();
+      onRefresh()
       // Recargar assignments después de la entrega
     } catch (e) {
       console.error("Error creando assignment:", e)
@@ -198,14 +223,11 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
         return
       }
       console.log("Attempting to delete assignment with id: ", id)
-      await courseClient.delete(
-        `/assignments/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${authState.token}`,
-          },
+      await courseClient.delete(`/assignments/${id}`, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`,
         },
-      )
+      })
 
       Toast.show({ type: "success", text1: "Assignment eliminado" })
       setAssignments((prev) => (prev ?? []).filter((assignment) => assignment.id !== id))
@@ -366,9 +388,18 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
                       <Text style={styles.answerQuestionText} numberOfLines={1}>
                         {index + 1}. {question?.text}
                       </Text>
-                      <Text style={styles.answerValueText} numberOfLines={2}>
-                        {answer.content || "Sin respuesta"}
-                      </Text>
+                      {question?.type === "file" && answer.content && answer.content.startsWith("http") ? (
+                        <TouchableOpacity style={styles.filePreviewLink} onPress={() => handleOpenFile(answer.content)}>
+                          <MaterialIcons name="insert-drive-file" size={16} color="#007AFF" />
+                          <Text style={styles.filePreviewText} numberOfLines={1}>
+                            Ver archivo adjunto
+                          </Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.answerValueText} numberOfLines={2}>
+                          {answer.content || "Sin respuesta"}
+                        </Text>
+                      )}
                     </View>
                   )
                 })}
@@ -475,7 +506,9 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
           <View style={styles.assignmentInfo}>
             <View style={styles.dateContainer}>
               <FontAwesome name="clock-o" size={14} color="#666" />
-              <Text style={[styles.assignmentDeadline, isOverdue && styles.overdue]}>{formatDate(assignment.due_date)}</Text>
+              <Text style={[styles.assignmentDeadline, isOverdue && styles.overdue]}>
+                {formatDate(assignment.due_date)}
+              </Text>
             </View>
 
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor(assignment) }]}>
@@ -611,7 +644,6 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
     )
   }
 
-
   return (
     <View>
       <Text style={courseStyles.sectionHeader}>{label}</Text>
@@ -622,14 +654,13 @@ export const AssignmentsSection = ({ label, assignments, setAssignments, loading
       {renderFilters()}
 
       {isTeacher && (
-        <TouchableOpacity 
-          onPress={() => 
-            {
-              setShowAssignmentModal(true)
-              label === "Tareas" ? setAssignmentModalType("task") : setAssignmentModalType("exam")
-            }
-          } 
-          style={courseStyles.addButton}>
+        <TouchableOpacity
+          onPress={() => {
+            setShowAssignmentModal(true)
+            label === "Tareas" ? setAssignmentModalType("task") : setAssignmentModalType("exam")
+          }}
+          style={courseStyles.addButton}
+        >
           <Text style={courseStyles.buttonText}>+ Agregar {label === "Tareas" ? "tarea" : "exámenes"}</Text>
         </TouchableOpacity>
       )}
@@ -1071,6 +1102,21 @@ const styles = StyleSheet.create({
   detailsCollapseButtonText: {
     color: "#666",
     fontSize: 14,
+    marginLeft: 4,
+  },
+  filePreviewLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e6f7ff",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    alignSelf: "flex-start",
+    marginTop: 2,
+  },
+  filePreviewText: {
+    color: "#007AFF",
+    fontSize: 12,
     marginLeft: 4,
   },
 })

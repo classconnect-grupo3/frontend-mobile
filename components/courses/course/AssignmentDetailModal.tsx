@@ -1,7 +1,17 @@
 "use client"
-
+import Toast from 'react-native-toast-message';
 import { useState, useRef } from "react"
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, ScrollView } from "react-native"
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  Animated,
+  ScrollView,
+  Linking,
+} from "react-native"
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons"
 import type { Assignment } from "@/app/course/[id]/CourseViewScreen"
 import React from "react"
@@ -158,7 +168,28 @@ export function AssignmentDetailModal({ visible, assignment, onClose, onStartExa
                   <Text style={styles.answerLabel}>Mi respuesta:</Text>
                   {answer.content ? (
                     <View style={styles.answerValueContainer}>
-                      <Text style={styles.answerValue}>{answer.content}</Text>
+                      {question?.type === "file" && answer.content.startsWith("http") ? (
+                        <TouchableOpacity
+                          style={styles.fileLink}
+                          onPress={() => {
+                            // Abrir el enlace en el navegador
+                            Linking.openURL(answer.content).catch((err) => {
+                              console.error("Error al abrir el archivo:", err)
+                              Toast.show({
+                                type: "error",
+                                text1: "No se pudo abrir el archivo",
+                                text2: "Intente nuevamente",
+                              })
+                            })
+                          }}
+                        >
+                          <MaterialIcons name="insert-drive-file" size={20} color="#007AFF" />
+                          <Text style={styles.fileLinkText}>Ver archivo subido</Text>
+                          <MaterialIcons name="open-in-new" size={16} color="#007AFF" />
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.answerValue}>{answer.content}</Text>
+                      )}
                     </View>
                   ) : (
                     <View style={styles.noAnswerContainer}>
@@ -608,5 +639,19 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: "#666",
     fontSize: 16,
+  },
+  fileLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f9ff",
+    padding: 12,
+    borderRadius: 6,
+  },
+  fileLinkText: {
+    color: "#007AFF",
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 8,
+    marginRight: "auto",
   },
 })

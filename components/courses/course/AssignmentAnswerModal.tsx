@@ -1,22 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import {
-  Modal,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-} from "react-native"
+import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from "react-native"
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons"
 import { courseClient } from "@/lib/courseClient"
 import Toast from "react-native-toast-message"
 import { useAuth } from "@/contexts/sessionAuth"
 import type { Assignment } from "@/app/course/[id]/CourseViewScreen"
+import * as DocumentPicker from "expo-document-picker"
+import { uploadFileToSubmission } from "@/firebaseConfig"
 import React from "react"
 
 interface Question {
@@ -38,6 +30,17 @@ export const AssignmentAnswerModal = ({ visible, onClose, assignment, onRefresh 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const { authState } = useAuth()
+  const [fileUploads, setFileUploads] = useState<
+    Record<
+      string,
+      {
+        name: string
+        url: string
+        loading: boolean
+        error?: string
+      }
+    >
+  >({})
 
   console.log("Assignment: ", assignment)
   console.log("Assignment Questions: ", assignment.questions)
@@ -84,6 +87,72 @@ export const AssignmentAnswerModal = ({ visible, onClose, assignment, onRefresh 
 
   const handleSaveDraft = async () => {
     handleSubmit()
+  }
+
+  const handleUploadFile = async (questionId: string) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true })
+
+      if (!result.assets || result.assets.length === 0) {
+        return
+      }
+
+      const { uri, name, mimeType } = result.assets[0]
+      const studentId = authState.user?.id
+      const courseId = assignment.course_id
+      const assignmentId = assignment.id
+
+      if (!studentId) throw new Error("Missing user ID")
+
+      // Actualizar estado para mostrar carga
+      setFileUploads((prev) => ({
+        ...prev,
+        [questionId]: {
+          name,
+          url: "",
+          loading: true,
+        },
+      }))
+
+      const uploadResp = await uploadFileToSubmission(uri, courseId, assignmentId, studentId, questionId)
+
+      // Actualizar estado con la URL del archivo subido
+      setFileUploads((prev) => ({
+        ...prev,
+        [questionId]: {
+          name,
+          url: uploadResp.downloadUrl,
+          loading: false,
+        },
+      }))
+
+      // Guardar la URL en las respuestas
+      handleChange(questionId, uploadResp.downloadUrl)
+
+      Toast.show({
+        type: "success",
+        text1: "Archivo subido correctamente",
+        text2: name,
+      })
+    } catch (err) {
+      console.error("Error al subir archivo:", err)
+
+      // Actualizar estado con el error
+      setFileUploads((prev) => ({
+        ...prev,
+        [questionId]: {
+          ...prev[questionId],
+          loading: false,
+          error: "Error al subir el archivo",
+        },
+      }))
+
+      Toast.show({
+        type: "error",
+        text1: "Error al subir archivo",
+        text2: err instanceof Error ? err.message : "Intente nuevamente",
+      })
+    }
   }
 
   const getCompletedQuestions = () => {
@@ -160,17 +229,45 @@ export const AssignmentAnswerModal = ({ visible, onClose, assignment, onRefresh 
       )}
 
       {question.type === "file" && (
-        <TouchableOpacity
-          style={styles.uploadButton}
-          onPress={() => {
-            Alert.alert("Subir archivo", "Funcionalidad de subida de archivo aún no implementada")
-          }}
-        >
-          <MaterialIcons name="cloud-upload" size={24} color="#007AFF" />
-          <Text style={styles.uploadButtonText}>
-            {responses[question.id] ? "Archivo seleccionado" : "Subir archivo"}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.fileUploadContainer}>
+          {fileUploads[question.id]?.loading ? (
+            <View style={styles.uploadingContainer}>
+              <ActivityIndicator size="small" color="#007AFF" />
+              <Text style={styles.uploadingText}>Subiendo archivo...</Text>
+            </View>
+          ) : fileUploads[question.id]?.url ? (
+            <View style={styles.fileSelectedContainer}>
+              <View style={styles.fileInfoContainer}>
+                <MaterialIcons name="check-circle" size={20} color="#4CAF50" />
+                <Text style={styles.fileNameText} numberOfLines={1}>
+                  {fileUploads[question.id].name}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.changeFileButton} onPress={() => handleUploadFile(question.id)}>
+                <Text style={styles.changeFileText}>Cambiar</Text>
+              </TouchableOpacity>
+            </View>
+          ) : responses[question.id] ? (
+            <View style={styles.fileSelectedContainer}>
+              <View style={styles.fileInfoContainer}>
+                <MaterialIcons name="insert-drive-file" size={20} color="#007AFF" />
+                <Text style={styles.fileNameText} numberOfLines={1}>
+                  Archivo subido previamente
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.changeFileButton} onPress={() => handleUploadFile(question.id)}>
+                <Text style={styles.changeFileText}>Cambiar</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.uploadButton} onPress={() => handleUploadFile(question.id)}>
+              <MaterialIcons name="cloud-upload" size={24} color="#007AFF" />
+              <Text style={styles.uploadButtonText}>Subir archivo</Text>
+            </TouchableOpacity>
+          )}
+
+          {fileUploads[question.id]?.error && <Text style={styles.errorText}>{fileUploads[question.id].error}</Text>}
+        </View>
       )}
     </View>
   )
@@ -490,5 +587,63 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     marginLeft: 8,
+  },
+  fileUploadContainer: {
+    marginTop: 8,
+  },
+  uploadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f0f9ff",
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#bae6fd",
+  },
+  uploadingText: {
+    marginLeft: 8,
+    color: "#0284c7",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  fileSelectedContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#f0f9ff",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#bae6fd",
+  },
+  fileInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 8,
+  },
+  fileNameText: {
+    marginLeft: 8,
+    color: "#0284c7",
+    fontSize: 14,
+    flex: 1,
+  },
+  changeFileButton: {
+    backgroundColor: "#0284c7",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  changeFileText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  errorText: {
+    color: "#ef4444",
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
   },
 })
