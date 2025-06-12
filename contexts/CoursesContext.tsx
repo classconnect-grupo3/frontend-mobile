@@ -23,7 +23,7 @@ interface CoursesContextType {
   addCourse: (course: Course) => void
   reloadCourses: () => void
   isLoadingCourses: boolean
-  toggleFavorite: (courseId: string) => Promise<void>
+  toggleFavorite: (courseId: string, skipConfirmation?: boolean) => Promise<void>
   isLoadingFavorites: boolean
 }
 
@@ -109,7 +109,7 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
     }
   };
 
-  const toggleFavorite = async (courseId: string) => {
+  const toggleFavorite = async (courseId: string, skipConfirmation = false) => {
     try {
       const userId = authState.user?.id
       setIsLoadingFavorites(true)
@@ -170,6 +170,7 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
       setIsLoadingFavorites(false)
     }
   }
+
 
   const addCourse = (course: Course) => {
     setCourses((prev) => [...prev, course])
