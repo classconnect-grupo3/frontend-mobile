@@ -7,6 +7,9 @@ import React from 'react';
 import Toast from "react-native-toast-message";
 import { useAuth } from '@/contexts/sessionAuth';
 import { ModuleData } from '@/components/courses/ModuleCard';
+import * as DocumentPicker from "expo-document-picker"
+import { uploadFileToModuleResource } from "@/firebaseConfig"
+import { FirebaseError } from 'firebase/app';
 
 interface Props {
   courseId: string;
@@ -32,7 +35,7 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
           Authorization: `Bearer ${authState?.token}`,
         },
        });
-       setModules(data); // ⚠️ Ajustar si tu backend devuelve { modules: [...] }
+       setModules(data);
      } catch (e) {
        console.error("Error fetching modules:", e);
      } finally {
@@ -60,7 +63,7 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
       await courseClient.post(
         '/modules', 
         {
-          content: "empty_content",
+          resources: newModule.resources,
           course_id: newModule.course_id,
           description: newModule.description,
           title: newModule.title
@@ -94,7 +97,7 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
         {
           title: updatedModule.title,
           description: updatedModule.description,
-          content: "empty_content", // or actual content if available
+          resources: updatedModule.resources,
         },
         {
           headers: {
@@ -136,24 +139,71 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
   };
   
 
-  const handleAddResource = (moduleId: string) => {
-    setModules((prev) =>
-      prev.map((mod) =>
+  const handleAddResource = async (moduleId: string) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true })
+      if (!result.assets || result.assets.length === 0) return
+  
+      const { uri, name } = result.assets[0]
+      const teacherId = authState?.user?.id
+      if (!teacherId) throw new Error("Missing teacher ID")
+  
+      const file = await uploadFileToModuleResource(uri, courseId, moduleId, teacherId)
+      if (!file) return
+  
+      const newResource = {
+        id: `res_${Date.now()}`,
+        name: file.fileName,
+        url: file.downloadUrl,
+        size: file.fileSize,
+        type: file.contentType,
+      }
+  
+      const updatedModules = modules.map((mod) =>
         mod.id === moduleId
           ? {
               ...mod,
-              resources: [
-                ...mod.resources,
-                {
-                  id: `r${Date.now()}`,
-                  name: 'New Resource',
-                },
-              ],
+              resources: [...(mod.resources || []), newResource],
             }
           : mod
       )
-    );
-  };
+  
+      const updatedModule = updatedModules.find((mod) => mod.id === moduleId)!
+  
+      await courseClient.put(
+        `/modules/${updatedModule.id}`,
+        {
+          resources: updatedModule.resources,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${authState?.token}`,
+          },
+        }
+      )
+  
+      setModules(updatedModules)
+  
+      Toast.show({
+        type: "success",
+        text1: "Recurso agregado correctamente",
+        text2: newResource.name,
+      })
+    } catch (error) {
+      console.error("Error al agregar recurso:", error)
+      if (error instanceof FirebaseError) {
+        console.log("FirebaseError code:", error.code)
+        console.log("FirebaseError message:", error.message)
+        console.log("FirebaseError customData:", error.customData)
+      }
+      Toast.show({
+        type: "error",
+        text1: "Error al agregar recurso",
+        text2: error instanceof Error ? error.message : "Intente nuevamente",
+      })
+    }
+  }
+  
 
   return (
     <>

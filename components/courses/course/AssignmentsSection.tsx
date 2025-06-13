@@ -67,7 +67,7 @@ export const AssignmentsSection = ({
   }
 
   // Función para manejar la apertura de archivos
-  const handleOpenFile = (url) => {
+  const handleOpenFile = (url: string) => {
     if (!url) return
 
     Linking.openURL(url).catch((err) => {

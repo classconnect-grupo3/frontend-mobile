@@ -9,6 +9,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Linking,
 } from 'react-native';
 import { AntDesign, Feather, Entypo, MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet } from 'react-native';
@@ -17,13 +18,22 @@ if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
 }
 
-export interface ModuleData {
-  id: string,
-  course_id: string;
-  title: string;
-  description: string;
-  content: string;
+type ModuleResource = {
+  id: string
+  name: string
+  url: string
+  size?: number
+  type?: string
 }
+
+export interface ModuleData {
+  id: string
+  course_id: string
+  title: string
+  description: string
+  resources: ModuleResource[]
+}
+
 
 export interface ModuleCardProps {
   moduleData: ModuleData;
@@ -103,6 +113,37 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
             />
           ) : (
             <Text style={styles.description}>{description}</Text>
+          )}
+                    <Text style={styles.heading}>Recursos</Text>
+
+          { moduleData.resources?.length != 0 && (          
+            <FlatList
+              data={moduleData.resources}
+              keyExtractor={(item) => item.id}
+              style={{ marginTop: 8, backgroundColor: '#f9f9f9', padding: 8, borderRadius: 8 }}
+              renderItem={({ item }) => (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, marginTop: 4 }}>
+                  <Feather name="file-text" size={16} color="#555" style={{ marginRight: 8 }} />
+                  <Text
+                      onPress={() => Linking.openURL(item.url)}
+                      style={{ marginLeft: 8, color: "#007bff", textDecorationLine: "underline" }}
+                  >
+                      {item.name}
+                  </Text>
+                  { editMode && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        const updatedResources = moduleData.resources.filter((res) => res.id !== item.id); 
+                        onUpdateModule({ ...moduleData, resources: updatedResources });
+                      }} 
+                      style={{ marginLeft: 'auto' , flexDirection: 'row', alignItems: 'center' }}> 
+                      <Text style={styles.deleteResource}>Eliminar</Text>More actions
+                      <Entypo name="cross" size={16} color="#ff0000" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            />
           )}
 
           <TouchableOpacity onPress={() => onAddResource(moduleData.id)} style={styles.addResourceButton}>

@@ -206,7 +206,7 @@ export default function MyCoursesScreen() {
               renderItem={({ item }) => (
                 <WideCourseCard
                   course={item}
-                  onPress={() => router.push(`/course/${item.id}/${item.role === "teacher" ? "index" : "student"}`)}
+                  onPress={() => router.push(item.role === "teacher" ? `/course/${item.id}` : `/course/${item.id}/student`)}
                   showFavoriteButton={item.role === "student"}
                 />
               )}

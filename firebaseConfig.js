@@ -116,6 +116,57 @@ export const uploadFileToSubmission = async (fileUri, courseId, assignmentId, st
   }
 }
 
+export const uploadFileToModuleResource = async (
+  fileUri,
+  courseId,
+  moduleId,
+  teacherId
+) => {
+  try {
+    const fileName = fileUri.split("/").pop()
+    const fileExtension = fileName?.split(".").pop() ?? "bin"
+
+    const storagePath = `courses/${courseId}/modules/${moduleId}/resources/${teacherId}_${Date.now()}.${fileExtension}`
+    const storageRef = ref(getStorage(), storagePath)
+
+    const response = await fetch(fileUri)
+    const blob = await response.blob()
+
+    const uploadTask = uploadBytesResumable(storageRef, blob)
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+          console.log(`Upload progress: ${progress}%`)
+        },
+        (error) => {
+          console.error("Upload failed:", error)
+          reject(error)
+        },
+        async () => {
+          try {
+            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref)
+            resolve({
+              downloadUrl,
+              fileName,
+              fileSize: blob.size,
+              contentType: blob.type,
+            })
+          } catch (error) {
+            reject(error)
+          }
+        }
+      )
+    })
+  } catch (error) {
+    console.error("Error preparing module resource upload:", error)
+    throw error
+  }
+}
+
+
 // /**
 //  * Sube un archivo a Firebase Storage para una entrega específica.
 //  * 
