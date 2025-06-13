@@ -16,6 +16,7 @@ import { AssignmentsSection } from "@/components/courses/course/AssignmentsSecti
 import { ModulesSection } from "@/components/courses/course/ModulesSection"
 import { DownloadModal } from "@/components/courses/course/DownloadModal"
 import { KeyboardAvoidingView, SafeAreaView, Platform } from "react-native"
+import { FeedbackSection } from "@/components/courses/course/FeedbackSection"
 import React from "react"
 
 interface Question {
@@ -227,7 +228,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   }
 
   // Datos para el FlatList principal
-  const mainSections = [{ type: "tasks" }, { type: "exams" }, { type: "modules" }]
+  const mainSections = [{ type: "tasks" }, { type: "exams" }, { type: "modules" }, { type: "feedback" }]
 
   const renderMainSection = ({ item }: { item: { type: string } }) => {
     switch (item.type) {
@@ -263,6 +264,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         )
       case "modules":
         return <ModulesSection courseId={course.id} isTeacher={teacher} />
+      case "feedback":
+        return <FeedbackSection courseId={course.id} isTeacher={teacher} />
       default:
         return null
     }
