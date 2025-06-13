@@ -206,7 +206,13 @@ export default function MyCoursesScreen() {
               renderItem={({ item }) => (
                 <WideCourseCard
                   course={item}
-                  onPress={() => router.push(`/course/${item.id}/${item.role === "teacher" ? "index" : "student"}`)}
+                  onPress={() => {
+                    if (item.role === "teacher") {
+                      router.push(`/course/${item.id}`)
+                    } else {
+                      router.push(`/course/${item.id}/student`)
+                    }
+                  }}
                   showFavoriteButton={item.role === "student"}
                 />
               )}
@@ -238,7 +244,6 @@ const localStyles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16,
-    color: "#333",
   },
   subtitle: {
     fontSize: 14,
