@@ -326,7 +326,7 @@ export default function SearchScreen() {
               contentContainerStyle={styles.listContainer}
             />
           )
-        ) : courses.length === 0 ? (
+        ) :courses !== null && courses.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialIcons name="school-off" size={48} color="#ccc" />
             <Text style={styles.emptyStateText}>No se encontraron cursos</Text>
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: "#666",
+    color: "#333",
     marginTop: 16,
     textAlign: "center",
   },
