@@ -155,6 +155,7 @@ export const uploadFileToModuleResource = async (
               contentType: blob.type,
             })
           } catch (error) {
+            console.error("get download URL error: ", error)
             reject(error)
           }
         }

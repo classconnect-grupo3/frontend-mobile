@@ -26,25 +26,26 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
   const auth = useAuth()
   const authState = auth?.authState
 
- useEffect(() => {
-   const fetchModules = async () => {
-     try {
-       setLoading(true);
-       const { data } = await courseClient.get(`/modules/course/${courseId}`, {
-        headers: {
-          Authorization: `Bearer ${authState?.token}`,
-        },
-       });
-       setModules(data);
-     } catch (e) {
-       console.error("Error fetching modules:", e);
-     } finally {
-       setLoading(false);
-     }
-   };
+  const fetchModules = async () => {
+    try {
+      setLoading(true);
+      const { data } = await courseClient.get(`/modules/course/${courseId}`, {
+       headers: {
+         Authorization: `Bearer ${authState?.token}`,
+       },
+      });
+      setModules(data);
+    } catch (e) {
+      console.error("Error fetching modules:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-   fetchModules();
- }, [courseId]);
+  useEffect(() => {
+    fetchModules();
+    console.log("Modules: ", modules);
+  }, [courseId]);
 
   const handleAddModule = async () => {
     try {
@@ -52,8 +53,7 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
         Toast.show({ type: "error", text1: "No hay sesión de usuario" })
         return
       }
-      const newModule: ModuleData = {
-        id: Date.now().toString(), 
+      const newModule = {
         course_id: courseId,
         title: newTitle.trim() || 'Nuevo módulo',
         description: newDescription.trim(),
@@ -75,7 +75,8 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
         },
       )
 
-      setModules((prev) => [...prev, newModule]);
+      await fetchModules(); 
+      console.log("Modules: ", modules);
       setNewTitle('');
       setNewDescription('');
       setModalVisible(false);
@@ -96,6 +97,7 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
         `/modules/${updatedModule.id}`,
         {
           title: updatedModule.title,
+          course_id: updatedModule.course_id,
           description: updatedModule.description,
           resources: updatedModule.resources,
         },
@@ -143,14 +145,17 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
     try {
       const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true })
       if (!result.assets || result.assets.length === 0) return
+
+      console.log("1. Got document")
   
       const { uri, name } = result.assets[0]
       const teacherId = authState?.user?.id
       if (!teacherId) throw new Error("Missing teacher ID")
   
       const file = await uploadFileToModuleResource(uri, courseId, moduleId, teacherId)
+      console.log("2. Uploaded file")
       if (!file) return
-  
+      console.log("3. File isn't null")
       const newResource = {
         id: `res_${Date.now()}`,
         name: file.fileName,
@@ -169,10 +174,21 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
       )
   
       const updatedModule = updatedModules.find((mod) => mod.id === moduleId)!
+
+      console.log("3.5 Updating module: ", updatedModule.id)
+      console.log(        {
+        title: updatedModule.title,
+        course_id: updatedModule.course_id,
+        description: updatedModule.description,
+        resources: updatedModule.resources,
+      })
   
       await courseClient.put(
         `/modules/${updatedModule.id}`,
         {
+          title: updatedModule.title,
+          course_id: updatedModule.course_id,
+          description: updatedModule.description,
           resources: updatedModule.resources,
         },
         {
@@ -181,7 +197,7 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
           },
         }
       )
-  
+      console.log("4. Updated module")
       setModules(updatedModules)
   
       Toast.show({
