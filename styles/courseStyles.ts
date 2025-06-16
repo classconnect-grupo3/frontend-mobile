@@ -65,6 +65,7 @@ export const styles = StyleSheet.create({
   materialToggleText: {
     fontSize: 16,
     fontWeight: "500",
+    color: "#333"
   },
   arrowIcon: {
     marginRight: 8,
@@ -83,6 +84,7 @@ export const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 16,
     marginBottom: 8,
+    color: "#333",
   },
   deleteButton: {
     backgroundColor: "#ff4d4f",

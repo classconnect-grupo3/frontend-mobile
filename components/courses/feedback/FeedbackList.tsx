@@ -65,7 +65,7 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
         start_score: score ?? 0,
         }
 
-      const { data } = await courseClient.get(url, {
+      const { data } = await courseClient.put(url, {
         headers: {
           Authorization: `Bearer ${auth?.authState.token}`,
         },

@@ -84,6 +84,7 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
       ]);
 
       const isFavorite = (id: string) => favoriteIds.includes(id);
+      console.log("courses fetched: ", allData.data)
 
       const teacherCourses = (allData.data.teacher ?? []).map((c: any) => ({
         ...c,

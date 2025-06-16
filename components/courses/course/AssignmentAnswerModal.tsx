@@ -42,9 +42,6 @@ export const AssignmentAnswerModal = ({ visible, onClose, assignment, onRefresh 
     >
   >({})
 
-  console.log("Assignment: ", assignment)
-  console.log("Assignment Questions: ", assignment.questions)
-
   const handleChange = (questionId: string, value: string) => {
     setResponses((prev) => ({ ...prev, [questionId]: value }))
   }

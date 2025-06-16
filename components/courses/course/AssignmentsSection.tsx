@@ -144,7 +144,6 @@ export const AssignmentsSection = ({
   }
 
   const getStatusText = (assignment: Assignment) => {
-    console.log("Assignment:", assignment)
     const status = getDerivedStatus(assignment)
     switch (status) {
       case "submitted":
