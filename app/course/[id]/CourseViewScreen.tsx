@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useCourses } from "@/contexts/CoursesContext"
 import { View, Text, TouchableOpacity, Modal, FlatList } from "react-native"
@@ -16,8 +17,8 @@ import { AssignmentsSection } from "@/components/courses/course/AssignmentsSecti
 import { ModulesSection } from "@/components/courses/course/ModulesSection"
 import { DownloadModal } from "@/components/courses/course/DownloadModal"
 import { KeyboardAvoidingView, SafeAreaView, Platform } from "react-native"
-import React from "react"
 import { AddQuestionsModal } from "@/components/courses/course/AddQuestionsModal"
+import { ViewQuestionsModal } from "@/components/courses/course/ViewQuestionsModal"
 
 interface Question {
   id: string
@@ -29,20 +30,18 @@ interface Question {
   points: number
 }
 
-interface Answer {
-  id: string
-  question_id: string
-  type: string
-  content: string
-}
-
 export interface StudentSubmission {
   assignment_id: string
   id: string
   status: "draft" | "submitted" | "late"
   submitted_at?: string
   content: string
-  answers?: Answer[]
+  answers?: {
+    id: string
+    content: string
+    question_id: string
+    type: string
+  }[]
 }
 
 export interface Assignment {
@@ -83,6 +82,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const [showDownloadModal, setShowDownloadModal] = useState(false)
   const [selectedAssignmentForQuestions, setSelectedAssignmentForQuestions] = useState<Assignment | null>(null)
   const [showAddQuestionsModal, setShowAddQuestionsModal] = useState(false)
+  const [showViewQuestionsModal, setShowViewQuestionsModal] = useState(false)
+
   const course = courses.find((c) => c.id === id)
   const auth = useAuth()
   const authState = auth?.authState
@@ -241,6 +242,14 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
+  const handleViewQuestions = (assignmentId: string) => {
+    const assignment = allAssignments.find((a) => a.id === assignmentId)
+    if (assignment) {
+      setSelectedAssignmentForQuestions(assignment)
+      setShowViewQuestionsModal(true)
+    }
+  }
+
   const renderMainSection = ({ item }: { item: { type: string } }) => {
     switch (item.type) {
       case "tasks":
@@ -256,7 +265,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             isTeacher={teacher}
             onDownload={handleDownload}
             onRefresh={fetchAssignments}
-            onAddQuestions={handleAddQuestions}
           />
         )
       case "exams":
@@ -273,6 +281,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             onDownload={handleDownload}
             onRefresh={fetchAssignments}
             onAddQuestions={handleAddQuestions}
+            onViewQuestions={handleViewQuestions}
           />
         )
       case "modules":
@@ -393,6 +402,19 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           }}
           onSuccess={() => {
             fetchAssignments() // Refresh assignments after adding questions
+          }}
+        />
+        <ViewQuestionsModal
+          visible={showViewQuestionsModal}
+          assignment={selectedAssignmentForQuestions}
+          onClose={() => {
+            setShowViewQuestionsModal(false)
+            setSelectedAssignmentForQuestions(null)
+          }}
+          onAddQuestions={() => {
+            setShowViewQuestionsModal(false)
+            setShowAddQuestionsModal(true)
+            // selectedAssignmentForQuestions is already set
           }}
         />
       </SafeAreaView>

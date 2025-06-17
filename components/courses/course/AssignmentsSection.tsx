@@ -25,7 +25,8 @@ interface Props {
   onRefresh: () => void
   onSubmit: (assignmentId: string) => Promise<void>
   course_id: string
-  onAddQuestions?: (assignmentId: string) => void // Add this new prop
+  onAddQuestions?: (assignmentId: string) => void
+  onViewQuestions?: (assignmentId: string) => void
 }
 
 type FilterStatus = "all" | "no_submission" | "draft" | "submitted" | "late"
@@ -45,7 +46,8 @@ export const AssignmentsSection = ({
   onSubmit,
   type,
   course_id,
-  onAddQuestions, // Add this
+  onAddQuestions,
+  onViewQuestions,
 }: Props) => {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false)
   const [assignmentModalType, setAssignmentModalType] = useState<"task" | "exam">("task")
@@ -531,17 +533,31 @@ export const AssignmentsSection = ({
 
           {isTeacher && (
             <>
-              {onAddQuestions && (
+              {/* Show View Questions and Add Questions buttons only for exams */}
+              {assignment.type === "exam" && onViewQuestions && (
                 <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: "#4CAF50", marginBottom: 8 }]}
+                  style={styles.viewQuestionsButton}
+                  onPress={(e) => {
+                    e.stopPropagation()
+                    onViewQuestions(assignment.id)
+                  }}
+                >
+                  <Text style={styles.viewQuestionsButtonText}>View Questions ({assignment.questions.length})</Text>
+                </TouchableOpacity>
+              )}
+
+              {assignment.type === "exam" && onAddQuestions && (
+                <TouchableOpacity
+                  style={styles.addQuestionsButton}
                   onPress={(e) => {
                     e.stopPropagation()
                     onAddQuestions(assignment.id)
                   }}
                 >
-                  <Text style={styles.actionButtonText}>Add Questions ({assignment.questions.length})</Text>
+                  <Text style={styles.addQuestionsButtonText}>Add Questions</Text>
                 </TouchableOpacity>
               )}
+
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={(e) => {
@@ -846,6 +862,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     marginBottom: 8,
+  },
+  // New button styles for View Questions and Add Questions
+  viewQuestionsButton: {
+    backgroundColor: "#E8F4FD",
+    borderWidth: 1,
+    borderColor: "#1976D2",
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  viewQuestionsButtonText: {
+    color: "#1976D2",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  addQuestionsButton: {
+    backgroundColor: "#E3F2FD",
+    borderWidth: 1,
+    borderColor: "#2196F3",
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  addQuestionsButtonText: {
+    color: "#2196F3",
+    fontSize: 14,
+    fontWeight: "600",
   },
   deleteButton: {
     alignSelf: "flex-start",
