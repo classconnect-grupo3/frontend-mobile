@@ -55,6 +55,7 @@ export interface Assignment {
   course_name?: string
   time_limit?: number // en minutos para exámenes
   questions: Question[]
+  passing_score?: number,
   submission?: StudentSubmission
 }
 
@@ -250,6 +251,14 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
+  const handlePassingScoreUpdate = (assignmentId: string, newPassingScore: number | null) => {
+    setAllAssignments((prev) =>
+      prev.map((assignment) =>
+        assignment.id === assignmentId ? { ...assignment, passing_score: newPassingScore ?? undefined } : assignment,
+      ),
+    )
+  }
+
   const renderMainSection = ({ item }: { item: { type: string } }) => {
     switch (item.type) {
       case "tasks":
@@ -427,6 +436,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             setShowAddQuestionsModal(true)
             // selectedAssignmentForQuestions is already set
           }}
+          onPassingScoreUpdate={handlePassingScoreUpdate}
         />
       </SafeAreaView>
     </KeyboardAvoidingView>

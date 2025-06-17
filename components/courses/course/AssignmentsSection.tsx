@@ -177,15 +177,23 @@ export const AssignmentsSection = ({
         Toast.show({ type: "error", text1: "No hay sesión de usuario" })
         return
       }
+
+      // Determine passing score based on has_passing_score flag
+      let passingScore: number | undefined = undefined
+      if (type === "exam" && data.has_passing_score && data.passing_score) {
+        passingScore = data.passing_score
+      }
+
       const newAssignment: Omit<Assignment, "id"> = {
-        // TODO chequear estos argumentos
         course_id: course_id,
         description: data.description ? data.description : "",
         due_date: data.due_date.toISOString(),
-        instructions: "default_instructions", // idem instrucciones
+        instructions: "default_instructions",
         questions: [],
         title: data.title,
         type: type === "task" ? "homework" : "exam",
+        time_limit: data.time_limit,
+        passing_score: passingScore,
       }
       console.log("Creating new assignment: ", newAssignment)
       await courseClient.post(
@@ -195,11 +203,11 @@ export const AssignmentsSection = ({
           description: newAssignment.description,
           due_date: newAssignment.due_date,
           instructions: newAssignment.instructions,
-          passing_score: 50,
+          passing_score: passingScore,
           questions: newAssignment.questions,
-          status: "default_status", // que deberiamos poner en status aca? no es una submission
-          grace_period: 1, // es necesario el grace period?? qué es? xd
           title: newAssignment.title,
+          status: "published",
+          grace_period: 30, // what is grace_period? 
           total_points: 100,
           type: newAssignment.type,
         },
@@ -212,7 +220,6 @@ export const AssignmentsSection = ({
 
       Toast.show({ type: "success", text1: "Assignment creado" })
       onRefresh()
-      // Recargar assignments después de la entrega
     } catch (e) {
       console.error("Error creando assignment:", e)
       Toast.show({ type: "error", text1: "No se pudo crear el assignment" })
@@ -320,6 +327,18 @@ export const AssignmentsSection = ({
               <MaterialIcons name="timer" size={16} color="#666" />
               <Text style={styles.detailsInfoLabel}>Tiempo límite:</Text>
               <Text style={styles.detailsInfoValue}>{assignment.time_limit} minutos</Text>
+            </View>
+          )}
+
+          {assignment.type === "exam" && (
+            <View style={styles.detailsInfoRow}>
+              <MaterialIcons name="grade" size={16} color="#666" />
+              <Text style={styles.detailsInfoLabel}>Puntuación mínima:</Text>
+              <Text style={styles.detailsInfoValue}>
+                {assignment.passing_score !== null && assignment.passing_score !== undefined
+                  ? `${assignment.passing_score} puntos`
+                  : "Sin puntuación mínima"}
+              </Text>
             </View>
           )}
 
@@ -463,6 +482,7 @@ export const AssignmentsSection = ({
     const isSubmitted = assignment.submission?.status === "submitted"
     const isLate = assignment.submission?.status === "late"
     const isExpanded = expandedAssignment === assignment.id
+    const totalPoints = assignment.questions.reduce((sum, q) => sum + (q.points || 0), 0)
 
     return (
       <View key={assignment.id} style={styles.assignmentCardContainer}>
@@ -526,6 +546,20 @@ export const AssignmentsSection = ({
             </View>
           )}
 
+          {assignment.type === "exam" && (
+            <View style={styles.passingScoreInfo}>
+              <MaterialIcons name="grade" size={16} color="#eb9b3b" />
+              <Text style={styles.passingScoreText}>
+              {assignment.passing_score !== null && assignment.passing_score !== undefined
+                  ? `Puntuación mínima: ${assignment.passing_score} puntos`
+                  : "Sin puntuación mínima"}
+                {assignment.passing_score !== null &&
+                  assignment.passing_score !== undefined &&
+                  totalPoints > 0 &&
+                  ` (${Math.round((assignment.passing_score / totalPoints) * 100)}%)`}
+              </Text>
+            </View>
+          )}
           <Text style={styles.assignmentMeta}>
             📚 Tipo: {assignment.type === "exam" ? "Examen" : "Tarea"} • 📄 Preguntas: {assignment.questions.length}
           </Text>
@@ -911,7 +945,24 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 8,
   },
-  // New button styles for View Questions and Add Questions
+  passingScoreInfo: {
+    height: 32,
+    alignContent: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "#fff3e6",
+    borderRadius: 10,
+    textAlignVertical: "center"
+  },
+  passingScoreText: {
+    fontSize: 12,
+    color: "#eb9b3b",
+    marginLeft: 6,
+    fontWeight: "500",
+    textAlignVertical: "center",
+  },
   viewQuestionsButton: {
     backgroundColor: "#E8F4FD",
     borderColor: "#1976D2",
