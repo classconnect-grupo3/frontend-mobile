@@ -265,6 +265,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             isTeacher={teacher}
             onDownload={handleDownload}
             onRefresh={fetchAssignments}
+            onAddQuestions={handleAddQuestions}
+            onViewQuestions={handleViewQuestions}
           />
         )
       case "exams":

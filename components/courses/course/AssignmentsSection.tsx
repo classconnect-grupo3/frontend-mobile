@@ -532,8 +532,7 @@ export const AssignmentsSection = ({
 
           {isTeacher && (
             <>
-              {/* Show View Questions and Add Questions buttons only for exams */}
-              {assignment.type === "exam" && onViewQuestions && (
+              {onViewQuestions && (
                 <TouchableOpacity
                   style={styles.viewQuestionsButton}
                   onPress={(e) => {
@@ -545,7 +544,7 @@ export const AssignmentsSection = ({
                 </TouchableOpacity>
               )}
 
-              {assignment.type === "exam" && onAddQuestions && (
+              {onAddQuestions && (
                 <TouchableOpacity
                   style={styles.addQuestionsButton}
                   onPress={(e) => {
