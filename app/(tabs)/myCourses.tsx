@@ -238,7 +238,6 @@ const localStyles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16,
-    color: "#333",
   },
   subtitle: {
     fontSize: 14,
