@@ -9,6 +9,7 @@ import { client } from "@/lib/http";
 import { router } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
 import { fetchProfileImage } from "@/firebaseConfig";
+import axios from "axios";
 
 type AuthState = {
     token: string | null;
@@ -74,9 +75,19 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         console.log('User data for saved in fetchUser:', user);
 
         return user;
-      } catch (e) {
-        console.error('Failed to fetch user info:', e);
-        return undefined;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error("Axios error:", {
+            message: error.message,
+            code: error.code,
+            responseData: error.response?.data,
+            responseStatus: error.response?.status,
+            headers: error.response?.headers,
+          });
+        } else {
+          console.error("Unexpected login error:", error);
+        }
+        throw error;
       }
     };
 
@@ -165,7 +176,17 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
 
         router.replace("/(tabs)");
       } catch (error) {
-        console.error('Login error:', error);
+        if (axios.isAxiosError(error)) {
+          console.error("Axios error:", {
+            message: error.message,
+            code: error.code,
+            responseData: error.response?.data,
+            responseStatus: error.response?.status,
+            headers: error.response?.headers,
+          });
+        } else {
+          console.error("Unexpected login error:", error);
+        }
         throw error;
       }
     };

@@ -3,7 +3,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from "react-native"
 import React from "react"
 import { useEffect, useState } from "react"
-import { styles as courseStyles } from "@/styles/courseStyles"
 import { NewAssignmentModal } from "@/components/NewAssignmentModal"
 import { courseClient } from "@/lib/courseClient"
 import Toast from "react-native-toast-message"
@@ -16,7 +15,7 @@ import type { AssignmentFormData } from "@/components/NewAssignmentModal"
 
 interface Props {
   label: string
-  assignments: Assignment[] // assignments include both assignments (aka homeworks) and exams
+  assignments: Assignment[]
   setAssignments: React.Dispatch<React.SetStateAction<Assignment[]>>
   type: "exam" | "task"
   loading: boolean
@@ -25,6 +24,8 @@ interface Props {
   onRefresh: () => void
   onSubmit: (assignmentId: string) => Promise<void>
   course_id: string
+  onAddQuestions?: (assignmentId: string) => void
+  onViewQuestions?: (assignmentId: string) => void
 }
 
 type FilterStatus = "all" | "no_submission" | "draft" | "submitted" | "late"
@@ -44,6 +45,8 @@ export const AssignmentsSection = ({
   onSubmit,
   type,
   course_id,
+  onAddQuestions,
+  onViewQuestions,
 }: Props) => {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false)
   const [assignmentModalType, setAssignmentModalType] = useState<"task" | "exam">("task")
@@ -67,7 +70,7 @@ export const AssignmentsSection = ({
   }
 
   // Función para manejar la apertura de archivos
-  const handleOpenFile = (url) => {
+  const handleOpenFile = (url: string) => {
     if (!url) return
 
     Linking.openURL(url).catch((err) => {
@@ -174,15 +177,23 @@ export const AssignmentsSection = ({
         Toast.show({ type: "error", text1: "No hay sesión de usuario" })
         return
       }
+
+      // Determine passing score based on has_passing_score flag
+      let passingScore: number | undefined = undefined
+      if (type === "exam" && data.has_passing_score && data.passing_score) {
+        passingScore = data.passing_score
+      }
+
       const newAssignment: Omit<Assignment, "id"> = {
-        // TODO chequear estos argumentos
         course_id: course_id,
         description: data.description ? data.description : "",
         due_date: data.due_date.toISOString(),
-        instructions: "default_instructions", // idem instrucciones
+        instructions: "default_instructions",
         questions: [],
         title: data.title,
         type: type === "task" ? "homework" : "exam",
+        time_limit: data.time_limit,
+        passing_score: passingScore,
       }
       console.log("Creating new assignment: ", newAssignment)
       await courseClient.post(
@@ -192,11 +203,11 @@ export const AssignmentsSection = ({
           description: newAssignment.description,
           due_date: newAssignment.due_date,
           instructions: newAssignment.instructions,
-          passing_score: 50,
+          passing_score: passingScore,
           questions: newAssignment.questions,
-          status: "default_status", // que deberiamos poner en status aca? no es una submission
-          grace_period: 1, // es necesario el grace period?? qué es? xd
           title: newAssignment.title,
+          status: "published",
+          grace_period: 30, // what is grace_period? 
           total_points: 100,
           type: newAssignment.type,
         },
@@ -209,7 +220,6 @@ export const AssignmentsSection = ({
 
       Toast.show({ type: "success", text1: "Assignment creado" })
       onRefresh()
-      // Recargar assignments después de la entrega
     } catch (e) {
       console.error("Error creando assignment:", e)
       Toast.show({ type: "error", text1: "No se pudo crear el assignment" })
@@ -317,6 +327,18 @@ export const AssignmentsSection = ({
               <MaterialIcons name="timer" size={16} color="#666" />
               <Text style={styles.detailsInfoLabel}>Tiempo límite:</Text>
               <Text style={styles.detailsInfoValue}>{assignment.time_limit} minutos</Text>
+            </View>
+          )}
+
+          {assignment.type === "exam" && (
+            <View style={styles.detailsInfoRow}>
+              <MaterialIcons name="grade" size={16} color="#666" />
+              <Text style={styles.detailsInfoLabel}>Puntuación mínima:</Text>
+              <Text style={styles.detailsInfoValue}>
+                {assignment.passing_score !== null && assignment.passing_score !== undefined
+                  ? `${assignment.passing_score} puntos`
+                  : "Sin puntuación mínima"}
+              </Text>
             </View>
           )}
 
@@ -460,6 +482,7 @@ export const AssignmentsSection = ({
     const isSubmitted = assignment.submission?.status === "submitted"
     const isLate = assignment.submission?.status === "late"
     const isExpanded = expandedAssignment === assignment.id
+    const totalPoints = assignment.questions.reduce((sum, q) => sum + (q.points || 0), 0)
 
     return (
       <View key={assignment.id} style={styles.assignmentCardContainer}>
@@ -523,20 +546,61 @@ export const AssignmentsSection = ({
             </View>
           )}
 
+          {assignment.type === "exam" && (
+            <View style={styles.passingScoreInfo}>
+              <MaterialIcons name="grade" size={16} color="#eb9b3b" />
+              <Text style={styles.passingScoreText}>
+              {assignment.passing_score !== null && assignment.passing_score !== undefined
+                  ? `Puntuación mínima: ${assignment.passing_score} puntos`
+                  : "Sin puntuación mínima"}
+                {assignment.passing_score !== null &&
+                  assignment.passing_score !== undefined &&
+                  totalPoints > 0 &&
+                  ` (${Math.round((assignment.passing_score / totalPoints) * 100)}%)`}
+              </Text>
+            </View>
+          )}
           <Text style={styles.assignmentMeta}>
             📚 Tipo: {assignment.type === "exam" ? "Examen" : "Tarea"} • 📄 Preguntas: {assignment.questions.length}
           </Text>
 
           {isTeacher && (
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={(e) => {
-                e.stopPropagation()
-                handleDeleteAssignment(assignment.id)
-              }}
-            >
-              <Text style={styles.assignmentDelete}>Eliminar</Text>
-            </TouchableOpacity>
+            <>
+              {onViewQuestions && (
+                <TouchableOpacity
+                  style={styles.viewQuestionsButton}
+                  onPress={(e) => {
+                    e.stopPropagation()
+                    onViewQuestions(assignment.id)
+                  }}
+                >
+                  <Text style={styles.viewQuestionsButtonText}>View Questions ({assignment.questions.length})</Text>
+                </TouchableOpacity>
+              )}
+
+              {onAddQuestions && (
+                <TouchableOpacity
+                  style={styles.addQuestionsButton}
+                  onPress={(e) => {
+                    e.stopPropagation()
+                    onAddQuestions(assignment.id)
+                  }}
+                >
+                  <Text style={styles.addQuestionsButtonText}>Add Questions</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={styles.deleteAssignmentButton}
+                onPress={(e) => {
+                  e.stopPropagation()
+                  handleDeleteAssignment(assignment.id)
+                }}
+              >
+                <MaterialIcons name="delete" size={18} color="rgb(238, 69, 69)" />
+                <Text style={styles.deleteButtonText}>Eliminar</Text>
+              </TouchableOpacity>
+            </>
           )}
 
           {!isTeacher && (
@@ -645,8 +709,8 @@ export const AssignmentsSection = ({
   }
 
   return (
-    <View>
-      <Text style={courseStyles.sectionHeader}>{label}</Text>
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionHeader}>{label}</Text>
       <Text style={styles.subtitle}>
         {filteredAssignments.length} de {assignments?.length || 0} {label.toLowerCase()}
       </Text>
@@ -659,18 +723,18 @@ export const AssignmentsSection = ({
             setShowAssignmentModal(true)
             label === "Tareas" ? setAssignmentModalType("task") : setAssignmentModalType("exam")
           }}
-          style={courseStyles.addButton}
+          style={styles.addButton}
         >
-          <Text style={courseStyles.buttonText}>+ Agregar {label === "Tareas" ? "tarea" : "exámenes"}</Text>
+          <Text style={styles.addButtonText}>+ Agregar {label === "Tareas" ? "tarea" : "exámenes"}</Text>
         </TouchableOpacity>
       )}
 
       {loading ? (
-        <Text style={courseStyles.assignmentDescription}>Cargando {label.toLowerCase()}...</Text>
+        <Text style={styles.loadingText}>Cargando {label.toLowerCase()}...</Text>
       ) : !filteredAssignments || filteredAssignments.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialIcons name="assignment" size={48} color="#ccc" />
-          <Text style={courseStyles.assignmentDescription}>
+          <Text style={styles.emptyText}>
             No hay {label.toLowerCase()} {statusFilter !== "all" ? `con el filtro seleccionado` : "disponibles"}
           </Text>
         </View>
@@ -701,17 +765,66 @@ export const AssignmentsSection = ({
 }
 
 const styles = StyleSheet.create({
+  sectionContainer: {
+    backgroundColor: "#f8f9fa",
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 8,
+  },
   subtitle: {
     fontSize: 14,
     color: "#666",
     marginBottom: 12,
-    paddingHorizontal: 8,
+  },
+  addButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    paddingVertical: 20,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: 32,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    marginTop: 8,
   },
   filtersContainer: {
-    backgroundColor: "#f8f9fa",
-    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderRadius: 12,
     marginBottom: 16,
     overflow: "hidden",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   filterToggle: {
     flexDirection: "row",
@@ -739,7 +852,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   picker: {
-    backgroundColor: "#fff",
+    backgroundColor: "#f8f9fa",
     borderRadius: 4,
   },
   assignmentCard: {
@@ -747,11 +860,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    elevation: 2,
+    elevation: 1,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   assignmentHeader: {
     flexDirection: "row",
@@ -832,14 +945,68 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 8,
   },
-  deleteButton: {
-    alignSelf: "flex-start",
-    marginTop: 8,
+  passingScoreInfo: {
+    height: 32,
+    alignContent: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "#fff3e6",
+    borderRadius: 10,
+    textAlignVertical: "center"
   },
-  assignmentDelete: {
-    color: "#F44336",
-    fontSize: 14,
+  passingScoreText: {
+    fontSize: 12,
+    color: "#eb9b3b",
+    marginLeft: 6,
     fontWeight: "500",
+    textAlignVertical: "center",
+  },
+  viewQuestionsButton: {
+    backgroundColor: "#E8F4FD",
+    borderColor: "#1976D2",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    marginBottom: 8,
+    height: 44,
+    borderRadius: 10,
+  },
+  viewQuestionsButtonText: {
+    color: "#1976D2",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  addQuestionsButton: {
+    backgroundColor: "#E3F2FD",
+    borderColor: "#2196F3",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    marginBottom: 8,
+    height: 44,
+    borderRadius: 10,
+  },
+  addQuestionsButtonText: {
+    color: "#1976D2",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  deleteAssignmentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor:"rgb(255, 231, 231)",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    height: 44,
+    borderRadius: 10,
+  },
+  deleteButtonText: {
+    color: 'rgb(238, 69, 69)',
+    fontWeight: '500',
+    marginLeft: 6,
   },
   studentActions: {
     marginTop: 8,
@@ -880,10 +1047,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
-  emptyContainer: {
-    alignItems: "center",
-    paddingVertical: 32,
-  },
   paginationContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -922,11 +1085,11 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
     padding: 16,
-    elevation: 2,
+    elevation: 1,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   detailsInfoSection: {
     backgroundColor: "#fff",
