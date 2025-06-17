@@ -1,29 +1,31 @@
-import { View, Text, TouchableOpacity } from 'react-native';
-import React, { useState } from 'react';
-import { styles as courseStyles } from '@/styles/courseStyles';
-import { NewAssignmentModal } from '@/components/NewAssignmentModal'; // reuse this for now
-import { Assignment } from '@/app/course/[id]/CourseViewScreen';
+"use client"
+
+import { View, Text, TouchableOpacity } from "react-native"
+import React from "react"
+import { useState } from "react"
+import { styles as courseStyles } from "@/styles/courseStyles"
+import { NewAssignmentModal as NewTaskModal } from "@/components/NewAssignmentModal" // reuse this for now
+import type { Assignment } from "@/app/course/[id]/CourseViewScreen"
 
 interface Props {
-  exams: Assignment[] | null;
-  setExams: React.Dispatch<React.SetStateAction<Assignment[] | null>>;
-  loading: boolean;
-  onSubmit: (examId: string) => void;
-  isTeacher: boolean;
+  exams: Assignment[] | null
+  setExams: React.Dispatch<React.SetStateAction<Assignment[] | null>>
+  loading: boolean
+  onSubmit: (examId: string) => void
+  onAddQuestions: (examId: string) => void
+  isTeacher: boolean
 }
 
-export const ExamsSection = ({ exams, setExams, loading, onSubmit, isTeacher }: Props) => {
-  const [showExamModal, setShowExamModal] = useState(false);
+export const ExamsSection = ({ exams, setExams, loading, onSubmit, onAddQuestions, isTeacher }: Props) => {
+  const [showExamModal, setShowExamModal] = useState(false)
 
-  const handleAddExam = (exam: Omit<Assignment, 'id'>) => {
-    setExams((prev) => 
-        [ ...(prev ?? []), { ...exam, id: Date.now().toString() }]
-        );
-  };
+  const handleAddExam = (exam: Omit<Assignment, "id">) => {
+    setExams((prev) => [...(prev ?? []), { ...exam, id: Date.now().toString() }])
+  }
 
   const handleDeleteExam = (id: string) => {
-    setExams((prev) => (prev ?? []).filter((e) => e.id !== id));
-  };
+    setExams((prev) => (prev ?? []).filter((e) => e.id !== id))
+  }
 
   return (
     <>
@@ -47,16 +49,21 @@ export const ExamsSection = ({ exams, setExams, loading, onSubmit, isTeacher }: 
             <Text style={courseStyles.taskDeadline}>📅 {exam.due_date}</Text>
 
             {isTeacher && (
-              <TouchableOpacity onPress={() => handleDeleteExam(exam.id)}>
-                <Text style={courseStyles.taskDelete}>Eliminar</Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={[courseStyles.addButton, { backgroundColor: "#4CAF50", marginBottom: 8 }]}
+                  onPress={() => onAddQuestions(exam.id)}
+                >
+                  <Text style={courseStyles.buttonText}>Add Questions  ({exam.questions.length})</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteExam(exam.id)}>
+                  <Text style={courseStyles.taskDelete}>Eliminar</Text>
+                </TouchableOpacity>
+              </>
             )}
 
             {!isTeacher && (
-              <TouchableOpacity
-                style={courseStyles.addButton}
-                onPress={() => onSubmit(exam.id)}
-              >
+              <TouchableOpacity style={courseStyles.addButton} onPress={() => onSubmit(exam.id)}>
                 <Text style={courseStyles.buttonText}>Entregar</Text>
               </TouchableOpacity>
             )}
@@ -64,11 +71,7 @@ export const ExamsSection = ({ exams, setExams, loading, onSubmit, isTeacher }: 
         ))
       )}
 
-      <NewTaskModal
-        visible={showExamModal}
-        onClose={() => setShowExamModal(false)}
-        onCreate={handleAddExam}
-      />
+      <NewTaskModal visible={showExamModal} onClose={() => setShowExamModal(false)} onCreate={handleAddExam} />
     </>
-  );
-};
+  )
+}

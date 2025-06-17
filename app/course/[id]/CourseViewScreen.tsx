@@ -17,6 +17,7 @@ import { ModulesSection } from "@/components/courses/course/ModulesSection"
 import { DownloadModal } from "@/components/courses/course/DownloadModal"
 import { KeyboardAvoidingView, SafeAreaView, Platform } from "react-native"
 import React from "react"
+import { AddQuestionsModal } from "@/components/courses/course/AddQuestionsModal"
 
 interface Question {
   id: string
@@ -28,18 +29,20 @@ interface Question {
   points: number
 }
 
+interface Answer {
+  id: string
+  question_id: string
+  type: string
+  content: string
+}
+
 export interface StudentSubmission {
   assignment_id: string
   id: string
   status: "draft" | "submitted" | "late"
   submitted_at?: string
   content: string
-  answers?: {
-    id: string
-    content: string
-    question_id: string
-    type: string
-  }[]
+  answers?: Answer[]
 }
 
 export interface Assignment {
@@ -78,7 +81,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   // Nuevos estados para modales y funcionalidades mejoradas
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [showDownloadModal, setShowDownloadModal] = useState(false)
-
+  const [selectedAssignmentForQuestions, setSelectedAssignmentForQuestions] = useState<Assignment | null>(null)
+  const [showAddQuestionsModal, setShowAddQuestionsModal] = useState(false)
   const course = courses.find((c) => c.id === id)
   const auth = useAuth()
   const authState = auth?.authState
@@ -229,6 +233,14 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   // Datos para el FlatList principal
   const mainSections = [{ type: "tasks" }, { type: "exams" }, { type: "modules" }]
 
+  const handleAddQuestions = (assignmentId: string) => {
+    const assignment = allAssignments.find((a) => a.id === assignmentId)
+    if (assignment) {
+      setSelectedAssignmentForQuestions(assignment)
+      setShowAddQuestionsModal(true)
+    }
+  }
+
   const renderMainSection = ({ item }: { item: { type: string } }) => {
     switch (item.type) {
       case "tasks":
@@ -244,6 +256,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             isTeacher={teacher}
             onDownload={handleDownload}
             onRefresh={fetchAssignments}
+            onAddQuestions={handleAddQuestions}
           />
         )
       case "exams":
@@ -259,6 +272,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             isTeacher={teacher}
             onDownload={handleDownload}
             onRefresh={fetchAssignments}
+            onAddQuestions={handleAddQuestions}
           />
         )
       case "modules":
@@ -369,6 +383,17 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           visible={showDownloadModal}
           assignment={selectedAssignment}
           onClose={() => setShowDownloadModal(false)}
+        />
+        <AddQuestionsModal
+          visible={showAddQuestionsModal}
+          assignment={selectedAssignmentForQuestions}
+          onClose={() => {
+            setShowAddQuestionsModal(false)
+            setSelectedAssignmentForQuestions(null)
+          }}
+          onSuccess={() => {
+            fetchAssignments() // Refresh assignments after adding questions
+          }}
         />
       </SafeAreaView>
     </KeyboardAvoidingView>

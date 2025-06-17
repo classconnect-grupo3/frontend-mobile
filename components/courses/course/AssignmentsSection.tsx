@@ -16,7 +16,7 @@ import type { AssignmentFormData } from "@/components/NewAssignmentModal"
 
 interface Props {
   label: string
-  assignments: Assignment[] // assignments include both assignments (aka homeworks) and exams
+  assignments: Assignment[]
   setAssignments: React.Dispatch<React.SetStateAction<Assignment[]>>
   type: "exam" | "task"
   loading: boolean
@@ -25,6 +25,7 @@ interface Props {
   onRefresh: () => void
   onSubmit: (assignmentId: string) => Promise<void>
   course_id: string
+  onAddQuestions?: (assignmentId: string) => void // Add this new prop
 }
 
 type FilterStatus = "all" | "no_submission" | "draft" | "submitted" | "late"
@@ -44,6 +45,7 @@ export const AssignmentsSection = ({
   onSubmit,
   type,
   course_id,
+  onAddQuestions, // Add this
 }: Props) => {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false)
   const [assignmentModalType, setAssignmentModalType] = useState<"task" | "exam">("task")
@@ -528,15 +530,28 @@ export const AssignmentsSection = ({
           </Text>
 
           {isTeacher && (
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={(e) => {
-                e.stopPropagation()
-                handleDeleteAssignment(assignment.id)
-              }}
-            >
-              <Text style={styles.assignmentDelete}>Eliminar</Text>
-            </TouchableOpacity>
+            <>
+              {onAddQuestions && (
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: "#4CAF50", marginBottom: 8 }]}
+                  onPress={(e) => {
+                    e.stopPropagation()
+                    onAddQuestions(assignment.id)
+                  }}
+                >
+                  <Text style={styles.actionButtonText}>Add Questions ({assignment.questions.length})</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={(e) => {
+                  e.stopPropagation()
+                  handleDeleteAssignment(assignment.id)
+                }}
+              >
+                <Text style={styles.assignmentDelete}>Eliminar</Text>
+              </TouchableOpacity>
+            </>
           )}
 
           {!isTeacher && (
