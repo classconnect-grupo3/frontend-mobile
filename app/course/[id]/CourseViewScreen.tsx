@@ -1,11 +1,10 @@
 "use client"
 
-import React from "react"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useCourses } from "@/contexts/CoursesContext"
-import { View, Text, TouchableOpacity, Modal, FlatList } from "react-native"
+import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from "react-native"
 import { useEffect, useState } from "react"
-import { AntDesign } from "@expo/vector-icons"
+import { AntDesign, MaterialIcons } from "@expo/vector-icons"
 import { styles as modalStyles } from "@/styles/modalStyle"
 import { styles as courseStyles } from "@/styles/courseStyles"
 import { styles as homeScreenStyles } from "@/styles/homeScreenStyles"
@@ -19,6 +18,7 @@ import { DownloadModal } from "@/components/courses/course/DownloadModal"
 import { KeyboardAvoidingView, SafeAreaView, Platform } from "react-native"
 import { AddQuestionsModal } from "@/components/courses/course/AddQuestionsModal"
 import { ViewQuestionsModal } from "@/components/courses/course/ViewQuestionsModal"
+import React from "react"
 
 interface Question {
   id: string
@@ -306,48 +306,57 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const renderFooter = () => (
     <View>
       {/* Sección de alumnos */}
-      <TouchableOpacity style={courseStyles.materialToggle} onPress={() => setShowAlumnos(!showAlumnos)}>
-        <View style={courseStyles.materialToggleRow}>
-          <AntDesign name={showAlumnos ? "up" : "down"} size={16} color="#333" style={courseStyles.arrowIcon} />
-          <Text style={courseStyles.materialToggleText}>Ver alumnos</Text>
-        </View>
-      </TouchableOpacity>
+      <View style={styles.footerSection}>
+        <TouchableOpacity style={styles.sectionToggle} onPress={() => setShowAlumnos(!showAlumnos)}>
+          <View style={styles.toggleRow}>
+            <AntDesign name={showAlumnos ? "up" : "down"} size={16} color="#333" style={styles.arrowIcon} />
+            <Text style={styles.toggleText}>Ver alumnos</Text>
+          </View>
+        </TouchableOpacity>
 
-      {showAlumnos && (
-        <View style={courseStyles.listContainer}>
-          {alumnos.map((a, i) => (
-            <Text key={i} style={courseStyles.listItem}>
-              • {a}
+        {showAlumnos && (
+          <View style={styles.listContainer}>
+            {alumnos.map((a, i) => (
+              <Text key={i} style={styles.listItem}>
+                • {a}
+              </Text>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Docentes Titulares */}
+      <View style={styles.footerSection}>
+        <Text style={styles.sectionHeader}>Docentes Titulares</Text>
+        <View style={styles.listContainer}>
+          {docentesTitulares.map((d, i) => (
+            <Text key={i} style={styles.listItem}>
+              • {d}
             </Text>
           ))}
         </View>
-      )}
-
-      {/* Docentes Titulares */}
-      <Text style={courseStyles.sectionHeader}>Docentes Titulares</Text>
-      <View style={courseStyles.listContainer}>
-        {docentesTitulares.map((d, i) => (
-          <Text key={i} style={courseStyles.listItem}>
-            • {d}
-          </Text>
-        ))}
       </View>
 
       {/* Docentes auxiliares */}
-      <Text style={courseStyles.sectionHeader}>Docentes auxiliares</Text>
-      <View style={courseStyles.listContainer}>
-        {docentesAuxiliares.map((d, i) => (
-          <Text key={i} style={courseStyles.listItem}>
-            • {d}
-          </Text>
-        ))}
+      <View style={styles.footerSection}>
+        <Text style={styles.sectionHeader}>Docentes auxiliares</Text>
+        <View style={styles.listContainer}>
+          {docentesAuxiliares.map((d, i) => (
+            <Text key={i} style={styles.listItem}>
+              • {d}
+            </Text>
+          ))}
+        </View>
       </View>
 
       {/* Botón eliminar curso */}
       {teacher && (
-        <TouchableOpacity style={courseStyles.deleteButton} onPress={() => setShowConfirmModal(true)}>
-          <Text style={courseStyles.buttonText}>Eliminar curso</Text>
-        </TouchableOpacity>
+        <View style={styles.footerSection}>
+          <TouchableOpacity style={styles.deleteButton} onPress={() => setShowConfirmModal(true)}>
+            <MaterialIcons name="delete" size={20} color="#dc3545" />
+            <Text style={styles.deleteButtonText}>Eliminar curso</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* Espacio final */}
@@ -367,7 +376,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           renderItem={renderMainSection}
           ListHeaderComponent={renderHeader}
           ListFooterComponent={renderFooter}
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         />
@@ -421,6 +430,76 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     </KeyboardAvoidingView>
   )
 }
+
+const styles = StyleSheet.create({
+  footerSection: {
+    backgroundColor: "#f8f9fa",
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 12,
+  },
+  sectionToggle: {
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 10,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  toggleText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333",
+    marginLeft: 8,
+  },
+  arrowIcon: {
+    marginRight: 8,
+  },
+  listContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  listItem: {
+    fontSize: 14,
+    marginBottom: 4,
+    color: "#333",
+  },
+  deleteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffebee",
+    borderWidth: 1,
+    borderColor: "#dc3545",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+  },
+  deleteButtonText: {
+    color: "#dc3545",
+    fontWeight: "bold",
+    fontSize: 16,
+    marginLeft: 8,
+  },
+})
 
 export const options = {
   headerShown: false,

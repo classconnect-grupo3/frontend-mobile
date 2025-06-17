@@ -3,7 +3,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from "react-native"
 import React from "react"
 import { useEffect, useState } from "react"
-import { styles as courseStyles } from "@/styles/courseStyles"
 import { NewAssignmentModal } from "@/components/NewAssignmentModal"
 import { courseClient } from "@/lib/courseClient"
 import Toast from "react-native-toast-message"
@@ -559,13 +558,14 @@ export const AssignmentsSection = ({
               )}
 
               <TouchableOpacity
-                style={styles.deleteButton}
+                style={styles.deleteAssignmentButton}
                 onPress={(e) => {
                   e.stopPropagation()
                   handleDeleteAssignment(assignment.id)
                 }}
               >
-                <Text style={styles.assignmentDelete}>Eliminar</Text>
+                <MaterialIcons name="delete" size={18} color="rgb(238, 69, 69)" />
+                <Text style={styles.deleteButtonText}>Eliminar</Text>
               </TouchableOpacity>
             </>
           )}
@@ -676,8 +676,8 @@ export const AssignmentsSection = ({
   }
 
   return (
-    <View>
-      <Text style={courseStyles.sectionHeader}>{label}</Text>
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionHeader}>{label}</Text>
       <Text style={styles.subtitle}>
         {filteredAssignments.length} de {assignments?.length || 0} {label.toLowerCase()}
       </Text>
@@ -690,18 +690,18 @@ export const AssignmentsSection = ({
             setShowAssignmentModal(true)
             label === "Tareas" ? setAssignmentModalType("task") : setAssignmentModalType("exam")
           }}
-          style={courseStyles.addButton}
+          style={styles.addButton}
         >
-          <Text style={courseStyles.buttonText}>+ Agregar {label === "Tareas" ? "tarea" : "exámenes"}</Text>
+          <Text style={styles.addButtonText}>+ Agregar {label === "Tareas" ? "tarea" : "exámenes"}</Text>
         </TouchableOpacity>
       )}
 
       {loading ? (
-        <Text style={courseStyles.assignmentDescription}>Cargando {label.toLowerCase()}...</Text>
+        <Text style={styles.loadingText}>Cargando {label.toLowerCase()}...</Text>
       ) : !filteredAssignments || filteredAssignments.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialIcons name="assignment" size={48} color="#ccc" />
-          <Text style={courseStyles.assignmentDescription}>
+          <Text style={styles.emptyText}>
             No hay {label.toLowerCase()} {statusFilter !== "all" ? `con el filtro seleccionado` : "disponibles"}
           </Text>
         </View>
@@ -732,17 +732,66 @@ export const AssignmentsSection = ({
 }
 
 const styles = StyleSheet.create({
+  sectionContainer: {
+    backgroundColor: "#f8f9fa",
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 8,
+  },
   subtitle: {
     fontSize: 14,
     color: "#666",
     marginBottom: 12,
-    paddingHorizontal: 8,
+  },
+  addButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    paddingVertical: 20,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: 32,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    marginTop: 8,
   },
   filtersContainer: {
-    backgroundColor: "#f8f9fa",
-    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderRadius: 12,
     marginBottom: 16,
     overflow: "hidden",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   filterToggle: {
     flexDirection: "row",
@@ -770,7 +819,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   picker: {
-    backgroundColor: "#fff",
+    backgroundColor: "#f8f9fa",
     borderRadius: 4,
   },
   assignmentCard: {
@@ -778,11 +827,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    elevation: 2,
+    elevation: 1,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   assignmentHeader: {
     flexDirection: "row",
@@ -866,13 +915,13 @@ const styles = StyleSheet.create({
   // New button styles for View Questions and Add Questions
   viewQuestionsButton: {
     backgroundColor: "#E8F4FD",
-    borderWidth: 1,
     borderColor: "#1976D2",
-    borderRadius: 6,
     paddingVertical: 10,
     paddingHorizontal: 16,
     alignItems: "center",
     marginBottom: 8,
+    height: 44,
+    borderRadius: 10,
   },
   viewQuestionsButtonText: {
     color: "#1976D2",
@@ -881,27 +930,33 @@ const styles = StyleSheet.create({
   },
   addQuestionsButton: {
     backgroundColor: "#E3F2FD",
-    borderWidth: 1,
     borderColor: "#2196F3",
-    borderRadius: 6,
     paddingVertical: 10,
     paddingHorizontal: 16,
     alignItems: "center",
     marginBottom: 8,
+    height: 44,
+    borderRadius: 10,
   },
   addQuestionsButtonText: {
-    color: "#2196F3",
+    color: "#1976D2",
     fontSize: 14,
     fontWeight: "600",
   },
-  deleteButton: {
-    alignSelf: "flex-start",
-    marginTop: 8,
+  deleteAssignmentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor:"rgb(255, 231, 231)",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    height: 44,
+    borderRadius: 10,
   },
-  assignmentDelete: {
-    color: "#F44336",
-    fontSize: 14,
-    fontWeight: "500",
+  deleteButtonText: {
+    color: 'rgb(238, 69, 69)',
+    fontWeight: '500',
+    marginLeft: 6,
   },
   studentActions: {
     marginTop: 8,
@@ -942,10 +997,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
-  emptyContainer: {
-    alignItems: "center",
-    paddingVertical: 32,
-  },
   paginationContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -984,11 +1035,11 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
     padding: 16,
-    elevation: 2,
+    elevation: 1,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   detailsInfoSection: {
     backgroundColor: "#fff",
