@@ -14,21 +14,33 @@ import React from "react"
 const feedbackTypes = ["POSITIVO", "NEGATIVO", "NEUTRO"] as const
 
 const schema = z.object({
-  feedback: z.string().min(5, "El feedback debe tener al menos 5 caracteres"),
+  feedback: z
+    .string()
+    .min(10, "El feedback debe tener al menos 10 caracteres")
+    .max(500, "El feedback no puede exceder 500 caracteres"),
   feedback_type: z.enum(feedbackTypes),
   score: z.number().min(1, "La puntuación debe ser al menos 1").max(5, "La puntuación debe ser máximo 5"),
 })
 
 type FormData = z.infer<typeof schema>
 
-interface FeedbackFormProps {
+interface StudentFeedbackFormProps {
   visible: boolean
   onClose: () => void
   courseId: string
+  studentId: string
+  studentName: string
   onSuccess?: () => void
 }
 
-export function FeedbackForm({ visible, onClose, courseId, onSuccess }: FeedbackFormProps) {
+export function StudentFeedbackForm({
+  visible,
+  onClose,
+  courseId,
+  studentId,
+  studentName,
+  onSuccess,
+}: StudentFeedbackFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const auth = useAuth()
@@ -51,39 +63,62 @@ export function FeedbackForm({ visible, onClose, courseId, onSuccess }: Feedback
   const onSubmit = async (data: FormData) => {
     if (!auth?.authState.user?.id) {
       Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "No se pudo identificar al usuario",
+        type: "error de autenticación",
+        text1: "Error de autenticación",
+        text2: "No se pudo identificar al docente",
       })
       return
     }
 
     try {
       setIsSubmitting(true)
-      await courseClient.post(
-        `/courses/${courseId}/feedback`,
-        {
-          ...data,
-          student_uuid: auth.authState.user.id,
+
+      const payload = {
+        course_id: courseId,
+        feedback: data.feedback.trim(),
+        feedback_type: data.feedback_type,
+        score: data.score,
+        student_uuid: studentId,
+        teacher_uuid: auth.authState.user.id,
+      }
+
+      console.log("Sending feedback payload:", payload)
+
+      await courseClient.post(`/courses/${courseId}/student-feedback`, payload, {
+        headers: {
+          Authorization: `Bearer ${auth.authState.token}`,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${auth.authState.token}`,
-          },
-        },
-      )
-      console.log("Feedback enviado exitosamente:", data)
+      })
+
       setShowSuccess(true)
       reset()
+
+      Toast.show({
+        type: "success",
+        text1: "Feedback enviado exitosamente",
+        text2: `${studentName} ha sido notificado sobre el nuevo feedback`,
+      })
+
       if (onSuccess) {
         onSuccess()
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al enviar feedback:", error)
+
+      let errorMessage = "No se pudo enviar el feedback. Intente nuevamente."
+
+      if (error.response?.status === 400) {
+        errorMessage = "Datos inválidos. Verifique la información ingresada."
+      } else if (error.response?.status === 403) {
+        errorMessage = "No tiene permisos para enviar feedback a este estudiante."
+      } else if (error.response?.status === 404) {
+        errorMessage = "Estudiante o curso no encontrado."
+      }
+
       Toast.show({
         type: "error",
-        text1: "Error",
-        text2: "No se pudo enviar el feedback. Intente nuevamente.",
+        text1: "Error al enviar feedback",
+        text2: errorMessage,
       })
     } finally {
       setIsSubmitting(false)
@@ -101,15 +136,18 @@ export function FeedbackForm({ visible, onClose, courseId, onSuccess }: Feedback
   const renderStars = (rating: number, onPress: (rating: number) => void) => {
     return (
       <View style={styles.starsContainer}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity key={star} onPress={() => onPress(star)} style={styles.starButton}>
-            <MaterialIcons
-              name={rating >= star ? "star" : "star-border"}
-              size={32}
-              color={rating >= star ? "#FFD700" : "#ccc"}
-            />
-          </TouchableOpacity>
-        ))}
+        <Text style={styles.starsLabel}>Puntuación:</Text>
+        <View style={styles.stars}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <TouchableOpacity key={star} onPress={() => onPress(star)} style={styles.starButton}>
+              <MaterialIcons
+                name={rating >= star ? "star" : "star-border"}
+                size={32}
+                color={rating >= star ? "#FFD700" : "#ccc"}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
     )
   }
@@ -123,9 +161,10 @@ export function FeedbackForm({ visible, onClose, courseId, onSuccess }: Feedback
               <View style={styles.successIconContainer}>
                 <MaterialIcons name="check-circle" size={64} color="#4CAF50" />
               </View>
-              <Text style={styles.successTitle}>¡Gracias por tu feedback!</Text>
+              <Text style={styles.successTitle}>¡Feedback enviado exitosamente!</Text>
               <Text style={styles.successMessage}>
-                Tu opinión es muy importante para nosotros y nos ayuda a mejorar la calidad de nuestros cursos.
+                El estudiante {studentName} ha sido notificado sobre tu feedback y podrá verlo en su sección "Mis
+                Feedbacks".
               </Text>
               <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
                 <Text style={styles.closeButtonText}>Cerrar</Text>
@@ -140,9 +179,13 @@ export function FeedbackForm({ visible, onClose, courseId, onSuccess }: Feedback
                 </TouchableOpacity>
               </View>
 
+              <View style={styles.studentInfo}>
+                <MaterialIcons name="person" size={20} color="#666" />
+                <Text style={styles.studentName}>Para: {studentName}</Text>
+              </View>
+
               <ScrollView style={styles.formContainer}>
                 <View style={styles.formContent}>
-                  <Text style={styles.sectionTitle}>¿Cómo calificarías este curso?</Text>
                   <Controller
                     control={control}
                     name="score"
@@ -171,7 +214,7 @@ export function FeedbackForm({ visible, onClose, courseId, onSuccess }: Feedback
                                   ? styles.positiveButton
                                   : type === "NEGATIVO"
                                     ? styles.negativeButton
-                                    : styles.suggestionButton),
+                                    : styles.neutralButton),
                             ]}
                             onPress={() => onChange(type)}
                           >
@@ -189,24 +232,26 @@ export function FeedbackForm({ visible, onClose, courseId, onSuccess }: Feedback
                     )}
                   />
 
-                  <Text style={styles.sectionTitle}>Comentarios</Text>
+                  <Text style={styles.sectionTitle}>Comentarios *</Text>
                   <Controller
                     control={control}
                     name="feedback"
                     render={({ field: { onChange, onBlur, value } }) => (
-                      <>
+                      <View style={styles.textInputContainer}>
                         <TextInput
                           style={[styles.textInput, errors.feedback && styles.inputError]}
-                          placeholder="Escribe tu opinión sobre el curso..."
+                          placeholder="Escribe tu feedback para el estudiante..."
                           value={value}
                           onBlur={onBlur}
                           onChangeText={onChange}
                           multiline
-                          numberOfLines={5}
+                          numberOfLines={6}
                           textAlignVertical="top"
+                          maxLength={500}
                         />
+                        <Text style={styles.characterCount}>{value.length}/500 caracteres</Text>
                         {errors.feedback && <Text style={styles.errorText}>{errors.feedback.message}</Text>}
-                      </>
+                      </View>
                     )}
                   />
 
@@ -247,7 +292,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 12,
     overflow: "hidden",
-    maxHeight: "80%",
+    maxHeight: "85%",
   },
   header: {
     flexDirection: "row",
@@ -265,6 +310,20 @@ const styles = StyleSheet.create({
   closeIcon: {
     padding: 4,
   },
+  studentInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#f8f9fa",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e9ecef",
+  },
+  studentName: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333",
+    marginLeft: 8,
+  },
   formContainer: {
     maxHeight: 500,
   },
@@ -280,9 +339,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   starsContainer: {
+    marginBottom: 16,
+  },
+  starsLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  stars: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 16,
   },
   starButton: {
     padding: 4,
@@ -316,7 +383,7 @@ const styles = StyleSheet.create({
   negativeButton: {
     backgroundColor: "#F44336",
   },
-  suggestionButton: {
+  neutralButton: {
     backgroundColor: "#2196F3",
   },
   feedbackTypeText: {
@@ -397,5 +464,14 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  textInputContainer: {
+    marginBottom: 16,
+  },
+  characterCount: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "right",
+    marginTop: 4,
   },
 })

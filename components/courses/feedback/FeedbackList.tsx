@@ -36,36 +36,19 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
   const fetchFeedbacks = async (page = 1, query = searchQuery, type = filterType, score = filterScore) => {
     try {
       setLoading(true)
-      let url = `/courses/${courseId}/feedback`
 
-    //   if (query) {
-    //     url += `&search=${encodeURIComponent(query)}`
-    //   }
+      const body: any = {
+        end_date: "2056-01-02T15:04:05Z",
+        end_score: score ?? 5,
+        start_date: "2000-01-02T15:04:05Z",
+        start_score: score ?? 0,
+      }
 
-    //   if (type !== "ALL") {
-    //     url += `&type=${type}`
-    //   }
+      if (type !== "ALL") {
+        body.feedback_type = type
+      }
 
-    //   if (score !== null) {
-    //     url += `&score=${score}`
-    //   }
-    //   this goes in the body as filters
-    //     {
-    //     "end_date": "string",
-    //     "end_score": 0,
-    //     "feedback_type": "POSITIVO",
-    //     "start_date": "string",
-    //     "start_score": 0
-    //     }
-        const body = {
-          end_date: "2056-01-02T15:04:05Z",
-          end_score: score ?? 5,
-          feedback_type: type,
-          start_date: "2000-01-02T15:04:05Z",
-          start_score: score ?? 0,
-        }
-
-      const { data } = await courseClient.put(url, {}, {
+      const { data } = await courseClient.put(`/courses/${courseId}/feedback`, body, {
         headers: {
           Authorization: `Bearer ${auth?.authState.token}`,
         },
@@ -73,12 +56,33 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
 
       console.log("Feedbacks data:", data)
 
-      setFeedbacks(data.data || [])
-      setTotalPages(data.total_pages || 1)
+      let processedFeedbacks = data || []
+
+      // Filtrar por tipo si no es "ALL"
+      if (type !== "ALL") {
+        processedFeedbacks = processedFeedbacks.filter((feedback: Feedback) => feedback.feedback_type === type)
+      }
+
+      // Filtrar por búsqueda si existe
+      if (query.trim()) {
+        const queryLower = query.toLowerCase()
+        processedFeedbacks = processedFeedbacks.filter(
+          (feedback: Feedback) =>
+            feedback.feedback.toLowerCase().includes(queryLower) ||
+            feedback.student_name.toLowerCase().includes(queryLower),
+        )
+      }
+
+      // Filtrar por puntuación si se especifica
+      if (score !== null) {
+        processedFeedbacks = processedFeedbacks.filter((feedback: Feedback) => feedback.score === score)
+      }
+
+      setFeedbacks(processedFeedbacks)
+      setTotalPages(Math.max(1, Math.ceil(processedFeedbacks.length / 10)))
       setCurrentPage(page)
     } catch (error) {
       console.error("Error fetching feedbacks:", error)
-      console.log("Error details:", error.response?.data || error.message)
       Toast.show({
         type: "error",
         text1: "Error",
@@ -204,6 +208,33 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
           <MaterialIcons name="filter-list" size={24} color="#007AFF" />
         </TouchableOpacity>
       </View>
+
+      {feedbacks.length > 0 && (
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{feedbacks.length}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statNumber, { color: "#4CAF50" }]}>
+              {feedbacks.filter((f) => f.feedback_type === "POSITIVO").length}
+            </Text>
+            <Text style={styles.statLabel}>Positivos</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statNumber, { color: "#F44336" }]}>
+              {feedbacks.filter((f) => f.feedback_type === "NEGATIVO").length}
+            </Text>
+            <Text style={styles.statLabel}>Negativos</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statNumber, { color: "#2196F3" }]}>
+              {feedbacks.filter((f) => f.feedback_type === "NEUTRO").length}
+            </Text>
+            <Text style={styles.statLabel}>Neutros</Text>
+          </View>
+        </View>
+      )}
 
       {showFilters && (
         <View style={styles.filtersContainer}>
@@ -342,6 +373,27 @@ const styles = StyleSheet.create({
   },
   filterToggle: {
     padding: 4,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  statItem: {
+    alignItems: "center",
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
   },
   filtersContainer: {
     backgroundColor: "#f8f9fa",

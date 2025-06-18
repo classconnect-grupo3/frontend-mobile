@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router"
 import { useCourses } from "@/contexts/CoursesContext"
 import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from "react-native"
 import { useEffect, useState } from "react"
-import { AntDesign } from "@expo/vector-icons"
+import { AntDesign, MaterialIcons } from "@expo/vector-icons"
 import { styles as modalStyles } from "@/styles/modalStyle"
 import { styles as courseStyles } from "@/styles/courseStyles"
 import { styles as homeScreenStyles } from "@/styles/homeScreenStyles"
@@ -17,6 +17,8 @@ import { ModulesSection } from "@/components/courses/course/ModulesSection"
 import { DownloadModal } from "@/components/courses/course/DownloadModal"
 import { KeyboardAvoidingView, SafeAreaView, Platform } from "react-native"
 import { FeedbackSection } from "@/components/courses/course/FeedbackSection"
+import { StudentFeedbackForm } from "@/components/courses/feedback/StudentFeedbackForm"
+import type { JSX } from "react" // Declare JSX variable
 import React from "react"
 
 interface Question {
@@ -76,6 +78,19 @@ interface UserData {
   is_admin: boolean
 }
 
+interface Student {
+  uid: string
+  name: string
+  surname: string
+  email: string
+  phone: string
+  latitude: number
+  longitude: number
+  is_active: boolean
+  is_blocked: boolean
+  is_admin: boolean
+}
+
 interface CourseMembersData {
   teacher: UserData | null
   auxTeachers: UserData[]
@@ -88,7 +103,6 @@ interface Props {
 
 export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const { id } = useLocalSearchParams()
-  console.log("Course ID:", id)
   const router = useRouter()
   const { courses, reloadCourses } = useCourses()
   const [showAlumnos, setShowAlumnos] = useState(false)
@@ -96,11 +110,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const [loadingAssignments, setLoadingAssignments] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [hasFetchedAssignments, setHasFetchedAssignments] = useState(false)
-
-  // Nuevos estados para modales y funcionalidades mejoradas
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [showDownloadModal, setShowDownloadModal] = useState(false)
-
   const [membersData, setMembersData] = useState<CourseMembersData>({
     teacher: null,
     auxTeachers: [],
@@ -108,10 +119,11 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   })
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [hasFetchedMembers, setHasFetchedMembers] = useState(false)
-
-  const course = courses.find((c) => c.id === id)
+  const [selectedStudent, setSelectedStudent] = useState<UserData | null>(null)
+  const [showStudentForm, setShowStudentForm] = useState(false)
   const auth = useAuth()
   const authState = auth?.authState
+  const course = courses.find((c) => c.id === id)
 
   useEffect(() => {
     if (course?.id && authState?.token && !hasFetchedAssignments) {
@@ -139,7 +151,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const tasks = allAssignments.filter((a) => a.type === "homework")
   const exams = allAssignments.filter((a) => a.type === "exam")
 
-  // Nuevas funciones para manejar los modales
   const handleDownload = (assignment: Assignment) => {
     setSelectedAssignment(assignment)
     setShowDownloadModal(true)
@@ -165,7 +176,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
       )
 
       Toast.show({ type: "success", text1: "Tarea entregada" })
-      // Recargar assignments después de la entrega
       fetchAssignments()
     } catch (e) {
       console.error("Error entregando tarea:", e)
@@ -221,7 +231,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
-  // Función para obtener assignments
   const fetchAssignments = async () => {
     try {
       setLoadingAssignments(true)
@@ -234,7 +243,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         },
       })
       if (data !== null) {
-        // Enriquecer assignments con información del curso
         const enrichedAssignments = data.map((assignment: any) => ({
           ...assignment,
           course_name: course.title,
@@ -242,7 +250,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
         const submissions = await fetchSubmissions()
         if (submissions) {
-          // Enriquecer assignments con las entregas del estudiante
           const assignmentsWithSubmissions = enrichAssignmentsWithSubmissions(enrichedAssignments, submissions)
           setAllAssignments(assignmentsWithSubmissions)
         } else {
@@ -266,7 +273,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         throw new Error("No auth token available")
       }
 
-      // Obtener los IDs de los miembros del curso
       const { data: membersIds } = await courseClient.get<CourseMembers>(`/courses/${course.id}/members`, {
         headers: {
           Authorization: `Bearer ${authState.token}`,
@@ -275,24 +281,23 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
       console.log("Course members IDs:", membersIds)
 
-      if (membersIds.students_ids === null ) {
+      if (membersIds.students_ids === null) {
         membersIds.students_ids = []
       }
       if (membersIds.aux_teachers_ids === null) {
         membersIds.aux_teachers_ids = []
       }
 
-      // Recopilar todos los IDs únicos
       const allUserIds = [membersIds.teacher_id, ...membersIds.aux_teachers_ids, ...membersIds.students_ids].filter(
         Boolean,
-      ) // Filtrar valores nulos/undefined
+      )
 
       if (allUserIds.length === 0) {
         console.log("No members found for this course")
         return
       }
       console.log("All user IDs to fetch:", allUserIds)
-      // Obtener la información de todos los usuarios
+
       const { data: usersResponse } = await courseClient.post(
         "/users/batch",
         {
@@ -309,7 +314,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
       const usersData = usersResponse.data || []
 
-      // Organizar los datos por rol
       const teacher = usersData.find((user: UserData) => user.uid === membersIds.teacher_id) || null
       const auxTeachers = membersIds.aux_teachers_ids
         .map((id) => usersData.find((user: UserData) => user.uid === id))
@@ -335,23 +339,14 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
-  // Funciones para manejar acciones de estudiantes
   const handleApproveStudent = async (studentId: string, name: string, surname: string) => {
     try {
-      // TODO: Implementar endpoint para aprobar estudiante
-      // await courseClient.post(`/courses/${course.id}/students/${studentId}/approve`, {}, {
-      //   headers: { Authorization: `Bearer ${authState?.token}` }
-      // })
-
       console.log(`Aprobar estudiante: ${name} ${surname} (${studentId})`)
       Toast.show({
         type: "success",
         text1: "Estudiante aprobado",
         text2: `${name} ${surname} ha sido aprobado en el curso`,
       })
-
-      // Recargar miembros después de la acción
-      // fetchCourseMembers()
     } catch (error) {
       console.error("Error approving student:", error)
       Toast.show({
@@ -364,20 +359,12 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
   const handleRejectStudent = async (studentId: string, name: string, surname: string) => {
     try {
-      // TODO: Implementar endpoint para desaprobar/remover estudiante
-      // await courseClient.post(`/courses/${course.id}/students/${studentId}/reject`, {}, {
-      //   headers: { Authorization: `Bearer ${authState?.token}` }
-      // })
-
       console.log(`Desaprobar estudiante: ${name} ${surname} (${studentId})`)
       Toast.show({
         type: "success",
         text1: "Estudiante removido",
         text2: `${name} ${surname} ha sido removido del curso`,
       })
-
-      // Recargar miembros después de la acción
-      // fetchCourseMembers()
     } catch (error) {
       console.error("Error rejecting student:", error)
       Toast.show({
@@ -390,35 +377,21 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
   const handleRemoveAuxTeacher = async (teacherId: string, name: string, surname: string) => {
     try {
-      // await courseClient.delete(`/courses/${course.id}/aux-teachers/${teacherId}`,{
-      //     "aux_teacher_id": "string",
-      //     "teacher_id": "string"
-      //   }, {
-      //   headers: { Authorization: `Bearer ${authState?.token}` }
-      // })
+      const url = `/courses/${course.id}/aux-teacher/remove?aux_teacher_id=${teacherId}&teacher_id=${authState?.user?.id}`
 
-      const data = await courseClient.delete(
-          `/courses/${course.id}/aux-teacher/remove`,
-          {
-            aux_teacher_id: teacherId,
-            teacher_id: auth.authState.user?.id,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${auth.authState.token}`,
-            },
-          },
-        )
+      const data = await courseClient.delete(url, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`,
+        },
+      })
 
       console.log(`Remover docente auxiliar salio bien: ${name} ${surname} (${teacherId})`)
+      console.log("Response data:", data)
       Toast.show({
         type: "success",
         text1: "Docente auxiliar removido",
         text2: `${name} ${surname} ya no es docente auxiliar`,
       })
-
-      // Recargar miembros después de la acción
-      // fetchCourseMembers()
     } catch (error) {
       console.error("Error removing aux teacher:", error)
       Toast.show({
@@ -429,7 +402,30 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
-  // Componente para tarjeta de estudiante
+  const handleSendFeedbackToStudent = (student: UserData) => {
+    // if (!student.is_active) {
+    //   Toast.show({
+    //     type: "warning",
+    //     text1: "Estudiante inactivo",
+    //     text2: "No se puede enviar feedback a estudiantes inactivos",
+    //   })
+    //   return
+    // }
+
+    setSelectedStudent(student)
+    setShowStudentForm(true)
+  }
+
+  const handleFeedbackSuccess = () => {
+    Toast.show({
+      type: "success",
+      text1: "Feedback enviado",
+      text2: "El feedback ha sido enviado al estudiante",
+    })
+    setShowStudentForm(false)
+    setSelectedStudent(null)
+  }
+
   const StudentCard = ({
     student,
     isTeacher,
@@ -464,6 +460,28 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             </View>
           </View>
         </View>
+
+        {isTeacher && (
+          <TouchableOpacity
+            style={[memberCardStyles.feedbackButton, 
+              // TODO descomentar cuando tengamos lo de desabilitado
+              // !student.is_active && memberCardStyles.feedbackButtonDisabled
+            ]}
+            onPress={() => handleSendFeedbackToStudent(student)}
+            
+            // disabled={!student.is_active}
+          >
+            <MaterialIcons name="feedback" size={18} color={student.is_active ? "#fff" : "#fff"} />
+            <Text
+              style={[
+                memberCardStyles.feedbackButtonText,
+                // !student.is_active && memberCardStyles.feedbackButtonTextDisabled,
+              ]}
+            >
+              Feedback
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {isTeacher && (
@@ -482,7 +500,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     </View>
   )
 
-  // Componente para tarjeta de docente
   const TeacherCard = ({
     teacher,
     isMain,
@@ -526,7 +543,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     </View>
   )
 
-  // Datos para el FlatList principal
   const mainSections = [{ type: "tasks" }, { type: "exams" }, { type: "modules" }, { type: "feedback" }]
 
   const renderMainSection = ({ item }: { item: { type: string } }) => {
@@ -584,7 +600,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
   const renderFooter = () => (
     <View>
-      {/* Sección de alumnos */}
       <TouchableOpacity style={courseStyles.materialToggle} onPress={() => setShowAlumnos(!showAlumnos)}>
         <View style={courseStyles.materialToggleRow}>
           <AntDesign name={showAlumnos ? "up" : "down"} size={16} color="#333" style={courseStyles.arrowIcon} />
@@ -612,7 +627,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         </View>
       )}
 
-      {/* Docente Titular */}
       <Text style={courseStyles.sectionHeader}>Docente Titular</Text>
       <View style={courseStyles.listContainer}>
         {loadingMembers ? (
@@ -624,7 +638,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         )}
       </View>
 
-      {/* Docentes auxiliares */}
       <Text style={courseStyles.sectionHeader}>Docentes auxiliares ({membersData.auxTeachers.length})</Text>
       <View style={courseStyles.listContainer}>
         {loadingMembers ? (
@@ -644,14 +657,12 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         )}
       </View>
 
-      {/* Botón eliminar curso */}
       {teacher && (
         <TouchableOpacity style={courseStyles.deleteButton} onPress={() => setShowConfirmModal(true)}>
           <Text style={courseStyles.buttonText}>Eliminar curso</Text>
         </TouchableOpacity>
       )}
 
-      {/* Espacio final */}
       <View style={{ height: 40 }} />
     </View>
   )
@@ -694,6 +705,19 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           assignment={selectedAssignment}
           onClose={() => setShowDownloadModal(false)}
         />
+        {selectedStudent && (
+          <StudentFeedbackForm
+            visible={showStudentForm}
+            onClose={() => {
+              setShowStudentForm(false)
+              setSelectedStudent(null)
+            }}
+            courseId={course.id}
+            studentId={selectedStudent.uid}
+            studentName={`${selectedStudent.name} ${selectedStudent.surname}`}
+            onSuccess={handleFeedbackSuccess}
+          />
+        )}
       </SafeAreaView>
     </KeyboardAvoidingView>
   )
@@ -728,7 +752,7 @@ const memberCardStyles = StyleSheet.create({
   },
   userInfo: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: 12,
   },
   avatar: {
@@ -757,7 +781,7 @@ const memberCardStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#333",
-    flex: 1,
+    marginBottom: 4,
   },
   userEmail: {
     fontSize: 14,
@@ -766,6 +790,7 @@ const memberCardStyles = StyleSheet.create({
   },
   statusContainer: {
     flexDirection: "row",
+    marginBottom: 8,
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -786,6 +811,34 @@ const memberCardStyles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
     fontWeight: "500",
+  },
+  feedbackButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginLeft: 8,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  feedbackButtonDisabled: {
+    backgroundColor: "#ccc",
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  feedbackButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  feedbackButtonTextDisabled: {
+    color: "#999",
   },
   actions: {
     flexDirection: "row",
