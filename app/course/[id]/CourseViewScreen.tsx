@@ -377,7 +377,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
   const handleRemoveAuxTeacher = async (teacherId: string, name: string, surname: string) => {
     try {
-      const url = `/courses/${course.id}/aux-teacher/remove?aux_teacher_id=${teacherId}&teacher_id=${authState?.user?.id}`
+      const url = `/courses/${course.id}/aux-teacher/remove?auxTeacherId=${teacherId}&teacherId=${authState?.user?.id}`
 
       const data = await courseClient.delete(url, {
         headers: {
@@ -386,14 +386,15 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
       })
 
       console.log(`Remover docente auxiliar salio bien: ${name} ${surname} (${teacherId})`)
-      console.log("Response data:", data)
       Toast.show({
         type: "success",
         text1: "Docente auxiliar removido",
         text2: `${name} ${surname} ya no es docente auxiliar`,
       })
+      fetchCourseMembers()
     } catch (error) {
       console.error("Error removing aux teacher:", error)
+      console.error("more error details:", e.response?.data || e.message)
       Toast.show({
         type: "error",
         text1: "Error",
