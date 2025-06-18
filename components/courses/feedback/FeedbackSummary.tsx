@@ -37,7 +37,6 @@ export function FeedbackSummary({ courseId, visible, onClose }: FeedbackSummaryP
     }
   }, [visible, courseId])
 
-  // Modificar la función fetchSummary para extraer correctamente el texto del objeto de respuesta
   const fetchSummary = async () => {
     try {
       setLoading(true)
@@ -51,8 +50,10 @@ export function FeedbackSummary({ courseId, visible, onClose }: FeedbackSummaryP
 
       console.log("Feedback summary data:", data)
 
-      // Extraer el texto del objeto de respuesta usando optional chaining
-      const summaryText = data?.candidates?.[0]?.content?.parts?.[0]?.text || ""
+      const data_string = JSON.stringify(data)
+
+      const summaryText = data_string
+      console.log("Extracted summary text:", summaryText)
 
       if (!summaryText) {
         setError("No se pudo obtener el resumen. El formato de respuesta es inválido.")
