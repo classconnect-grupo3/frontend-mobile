@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput } from "react-native"
 import { MaterialIcons } from "@expo/vector-icons"
 import { courseClient } from "@/lib/courseClient"
@@ -21,32 +21,75 @@ interface FeedbackListProps {
   courseId: string
 }
 
+const ITEMS_PER_PAGE = 5
+
 export function FeedbackList({ courseId }: FeedbackListProps) {
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
+  const [allFeedbacks, setAllFeedbacks] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState<"ALL" | "POSITIVO" | "NEGATIVO" | "NEUTRO">("ALL")
   const [filterScore, setFilterScore] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [allFeedbacks, setAllFeedbacks] = useState<Feedback[]>([])
   const auth = useAuth()
 
-  const fetchFeedbacks = async (page = 1, query = searchQuery, type = filterType, score = filterScore) => {
+  // Memoized filtered feedbacks
+  const filteredFeedbacks = useMemo(() => {
+    let processed = [...allFeedbacks]
+
+    // Filtrar por tipo si no es "ALL"
+    if (filterType !== "ALL") {
+      processed = processed.filter((feedback) => feedback.feedback_type === filterType)
+    }
+
+    // Filtrar por búsqueda si existe
+    if (searchQuery.trim()) {
+      const queryLower = searchQuery.toLowerCase()
+      processed = processed.filter(
+        (feedback) =>
+          feedback.feedback.toLowerCase().includes(queryLower) ||
+          feedback.student_name.toLowerCase().includes(queryLower),
+      )
+    }
+
+    // Filtrar por puntuación si se especifica
+    if (filterScore !== null) {
+      processed = processed.filter((feedback) => feedback.score === filterScore)
+    }
+
+    return processed
+  }, [allFeedbacks, filterType, searchQuery, filterScore])
+
+  // Memoized pagination calculations
+  const paginationData = useMemo(() => {
+    const totalItems = filteredFeedbacks.length
+    const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE))
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    const endIndex = startIndex + ITEMS_PER_PAGE
+    const currentPageFeedbacks = filteredFeedbacks.slice(startIndex, endIndex)
+
+    return {
+      totalItems,
+      totalPages,
+      currentPageFeedbacks,
+      startIndex,
+      endIndex,
+    }
+  }, [filteredFeedbacks, currentPage])
+
+  const fetchFeedbacks = async () => {
     try {
       setLoading(true)
 
       const body: any = {
         end_date: "2056-01-02T15:04:05Z",
-        end_score: score ?? 5,
+        end_score: 5,
         start_date: "2000-01-02T15:04:05Z",
-        start_score: score ?? 0,
+        start_score: 0,
       }
 
-      if (type !== "ALL") {
-        body.feedback_type = type
-      }
+      console.log("Fetching feedbacks in course:", courseId)
+      console.log("Request body:", body)
 
       const { data } = await courseClient.put(`/courses/${courseId}/feedback`, body, {
         headers: {
@@ -56,31 +99,11 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
 
       console.log("Feedbacks data:", data)
 
-      let processedFeedbacks = data || []
+      const processedFeedbacks = data || []
+      setAllFeedbacks(processedFeedbacks)
 
-      // Filtrar por tipo si no es "ALL"
-      if (type !== "ALL") {
-        processedFeedbacks = processedFeedbacks.filter((feedback: Feedback) => feedback.feedback_type === type)
-      }
-
-      // Filtrar por búsqueda si existe
-      if (query.trim()) {
-        const queryLower = query.toLowerCase()
-        processedFeedbacks = processedFeedbacks.filter(
-          (feedback: Feedback) =>
-            feedback.feedback.toLowerCase().includes(queryLower) ||
-            feedback.student_name.toLowerCase().includes(queryLower),
-        )
-      }
-
-      // Filtrar por puntuación si se especifica
-      if (score !== null) {
-        processedFeedbacks = processedFeedbacks.filter((feedback: Feedback) => feedback.score === score)
-      }
-
-      setFeedbacks(processedFeedbacks)
-      setTotalPages(Math.max(1, Math.ceil(processedFeedbacks.length / 10)))
-      setCurrentPage(page)
+      // Reset to first page when data changes
+      setCurrentPage(1)
     } catch (error) {
       console.error("Error fetching feedbacks:", error)
       Toast.show({
@@ -94,32 +117,44 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
   }
 
   useEffect(() => {
-    fetchFeedbacks(1, "", "ALL", 5)
+    fetchFeedbacks()
   }, [courseId])
 
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, filterType, filterScore])
+
   const handleSearch = () => {
-    fetchFeedbacks(1, searchQuery, filterType, filterScore)
+    // The search is handled automatically by the useMemo
+    setCurrentPage(1)
   }
 
   const handleFilter = (type: "ALL" | "POSITIVO" | "NEGATIVO" | "NEUTRO") => {
     setFilterType(type)
-    fetchFeedbacks(1, searchQuery, type, filterScore)
+    setCurrentPage(1)
   }
 
   const handleScoreFilter = (score: number | null) => {
     setFilterScore(score)
-    fetchFeedbacks(1, searchQuery, filterType, score)
+    setCurrentPage(1)
   }
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      fetchFeedbacks(currentPage + 1)
+    if (currentPage < paginationData.totalPages) {
+      setCurrentPage(currentPage + 1)
     }
   }
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      fetchFeedbacks(currentPage - 1)
+      setCurrentPage(currentPage - 1)
+    }
+  }
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= paginationData.totalPages) {
+      setCurrentPage(page)
     }
   }
 
@@ -183,7 +218,11 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <MaterialIcons name="feedback" size={48} color="#ccc" />
-      <Text style={styles.emptyStateText}>No hay feedbacks disponibles</Text>
+      <Text style={styles.emptyStateText}>
+        {allFeedbacks.length === 0
+          ? "No hay feedbacks disponibles"
+          : "No se encontraron feedbacks con los filtros aplicados"}
+      </Text>
       {(searchQuery || filterType !== "ALL" || filterScore !== null) && (
         <TouchableOpacity
           style={styles.resetFiltersButton}
@@ -191,7 +230,7 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
             setSearchQuery("")
             setFilterType("ALL")
             setFilterScore(null)
-            fetchFeedbacks(1, "", "ALL", null)
+            setCurrentPage(1)
           }}
         >
           <Text style={styles.resetFiltersText}>Limpiar filtros</Text>
@@ -199,6 +238,36 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
       )}
     </View>
   )
+
+  const renderPaginationNumbers = () => {
+    const { totalPages } = paginationData
+    const maxVisiblePages = 5
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1)
+    }
+
+    const pages = []
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i)
+    }
+
+    return (
+      <View style={styles.paginationNumbers}>
+        {pages.map((page) => (
+          <TouchableOpacity
+            key={page}
+            style={[styles.pageNumber, currentPage === page && styles.pageNumberActive]}
+            onPress={() => goToPage(page)}
+          >
+            <Text style={[styles.pageNumberText, currentPage === page && styles.pageNumberTextActive]}>{page}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -209,27 +278,27 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
         </TouchableOpacity>
       </View>
 
-      {feedbacks.length > 0 && (
+      {filteredFeedbacks.length > 0 && (
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{feedbacks.length}</Text>
+            <Text style={styles.statNumber}>{filteredFeedbacks.length}</Text>
             <Text style={styles.statLabel}>Total</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: "#4CAF50" }]}>
-              {feedbacks.filter((f) => f.feedback_type === "POSITIVO").length}
+              {filteredFeedbacks.filter((f) => f.feedback_type === "POSITIVO").length}
             </Text>
             <Text style={styles.statLabel}>Positivos</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: "#F44336" }]}>
-              {feedbacks.filter((f) => f.feedback_type === "NEGATIVO").length}
+              {filteredFeedbacks.filter((f) => f.feedback_type === "NEGATIVO").length}
             </Text>
             <Text style={styles.statLabel}>Negativos</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: "#2196F3" }]}>
-              {feedbacks.filter((f) => f.feedback_type === "NEUTRO").length}
+              {filteredFeedbacks.filter((f) => f.feedback_type === "NEUTRO").length}
             </Text>
             <Text style={styles.statLabel}>Neutros</Text>
           </View>
@@ -238,19 +307,6 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
 
       {showFilters && (
         <View style={styles.filtersContainer}>
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar en feedbacks..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={handleSearch}
-            />
-            <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-              <MaterialIcons name="search" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-
           <Text style={styles.filterLabel}>Filtrar por tipo:</Text>
           <View style={styles.filterTypeContainer}>
             <TouchableOpacity
@@ -313,32 +369,48 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
       ) : (
         <>
           <FlatList
-            data={feedbacks}
+            data={paginationData.currentPageFeedbacks}
             renderItem={renderFeedbackItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
             ListEmptyComponent={renderEmptyState}
           />
 
-          {feedbacks.length > 0 && (
+          {paginationData.totalPages > 1 && (
             <View style={styles.paginationContainer}>
-              <TouchableOpacity
-                style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
-                onPress={handlePrevPage}
-                disabled={currentPage === 1}
-              >
-                <MaterialIcons name="chevron-left" size={20} color={currentPage === 1 ? "#ccc" : "#007AFF"} />
-              </TouchableOpacity>
-              <Text style={styles.paginationText}>
-                Página {currentPage} de {totalPages}
-              </Text>
-              <TouchableOpacity
-                style={[styles.paginationButton, currentPage === totalPages && styles.paginationButtonDisabled]}
-                onPress={handleNextPage}
-                disabled={currentPage === totalPages}
-              >
-                <MaterialIcons name="chevron-right" size={20} color={currentPage === totalPages ? "#ccc" : "#007AFF"} />
-              </TouchableOpacity>
+              <View style={styles.paginationInfo}>
+                <Text style={styles.paginationInfoText}>
+                  Mostrando {paginationData.startIndex + 1}-
+                  {Math.min(paginationData.endIndex, paginationData.totalItems)} de {paginationData.totalItems}
+                </Text>
+              </View>
+
+              <View style={styles.paginationControls}>
+                <TouchableOpacity
+                  style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
+                  onPress={handlePrevPage}
+                  disabled={currentPage === 1}
+                >
+                  <MaterialIcons name="chevron-left" size={20} color={currentPage === 1 ? "#ccc" : "#007AFF"} />
+                </TouchableOpacity>
+
+                {renderPaginationNumbers()}
+
+                <TouchableOpacity
+                  style={[
+                    styles.paginationButton,
+                    currentPage === paginationData.totalPages && styles.paginationButtonDisabled,
+                  ]}
+                  onPress={handleNextPage}
+                  disabled={currentPage === paginationData.totalPages}
+                >
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={20}
+                    color={currentPage === paginationData.totalPages ? "#ccc" : "#007AFF"}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </>
@@ -547,13 +619,23 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   paginationContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: "#e9ecef",
+  },
+  paginationInfo: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  paginationInfoText: {
+    fontSize: 12,
+    color: "#666",
+  },
+  paginationControls: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   paginationButton: {
     padding: 8,
@@ -561,10 +643,27 @@ const styles = StyleSheet.create({
   paginationButtonDisabled: {
     opacity: 0.5,
   },
-  paginationText: {
+  paginationNumbers: {
+    flexDirection: "row",
+    marginHorizontal: 12,
+  },
+  pageNumber: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginHorizontal: 2,
+    borderRadius: 6,
+    backgroundColor: "#f8f9fa",
+  },
+  pageNumberActive: {
+    backgroundColor: "#007AFF",
+  },
+  pageNumberText: {
     fontSize: 14,
     color: "#666",
-    marginHorizontal: 12,
+    fontWeight: "500",
+  },
+  pageNumberTextActive: {
+    color: "#fff",
   },
   emptyState: {
     padding: 24,

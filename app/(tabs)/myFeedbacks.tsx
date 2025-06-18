@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import {
   View,
   Text,
@@ -27,17 +27,16 @@ interface StudentFeedback {
   score: number
   course_name: string
   course_id: string
-  teacher_name: string
+  teacher_uuid: string
   created_at: string
 }
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 5
 
 export default function MyFeedbacksScreen() {
-  const [feedbacks, setFeedbacks] = useState<StudentFeedback[]>([])
+  const [allFeedbacks, setAllFeedbacks] = useState<StudentFeedback[]>([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState<"ALL" | "POSITIVO" | "NEGATIVO" | "NEUTRO">("ALL")
   const [filterCourse, setFilterCourse] = useState<string>("")
@@ -49,28 +48,65 @@ export default function MyFeedbacksScreen() {
 
   const auth = useAuth()
 
+  // Filtrar feedbacks usando useMemo para optimizar rendimiento
+  const filteredFeedbacks = useMemo(() => {
+    let filtered = [...allFeedbacks]
+
+    // Filtrar por tipo
+    if (filterType !== "ALL") {
+      filtered = filtered.filter((feedback) => feedback.feedback_type === filterType)
+    }
+
+    // Filtrar por curso
+    if (filterCourse) {
+      filtered = filtered.filter((feedback) => feedback.course_id === filterCourse)
+    }
+
+    return filtered
+  }, [allFeedbacks, filterType, filterCourse, searchQuery])
+
+  // Calcular paginación usando useMemo
+  const paginationData = useMemo(() => {
+    const totalItems = filteredFeedbacks.length
+    const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE))
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    const endIndex = startIndex + ITEMS_PER_PAGE
+    const currentPageFeedbacks = filteredFeedbacks.slice(startIndex, endIndex)
+
+    return {
+      totalItems,
+      totalPages,
+      startIndex,
+      endIndex,
+      currentPageFeedbacks,
+      showingStart: totalItems > 0 ? startIndex + 1 : 0,
+      showingEnd: Math.min(endIndex, totalItems),
+    }
+  }, [filteredFeedbacks, currentPage])
+
   useEffect(() => {
     if (auth?.authState.user?.id) {
       fetchFeedbacks()
     }
   }, [auth?.authState.user?.id])
 
-  const fetchFeedbacks = async (page = 1, query = searchQuery, type = filterType, courseId = filterCourse) => {
+  // Reset a página 1 cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, filterType, filterCourse])
+
+  const fetchFeedbacks = async () => {
     try {
       setLoading(true)
       if (!auth?.authState.user?.id) return
 
       const body: any = {
-        course_id: courseId || "",
+        course_id: "",
         end_date: "2056-01-02T15:04:05Z",
         end_score: 5,
         start_date: "2000-01-02T15:04:05Z",
         start_score: 0,
       }
-
-      if (type !== "ALL") {
-        body.feedback_type = type
-    }
 
       const { data } = await courseClient.put(`/feedback/student/${auth.authState.user.id}`, body, {
         headers: {
@@ -80,23 +116,7 @@ export default function MyFeedbacksScreen() {
 
       console.log("Feedbacks data:", data)
 
-      let processedFeedbacks = data || []
-
-      // Filtrar por tipo si no es "ALL"
-      if (type !== "ALL") {
-        processedFeedbacks = processedFeedbacks.filter((feedback: StudentFeedback) => feedback.feedback_type === type)
-      }
-
-      // Filtrar por búsqueda si existe
-      if (query.trim()) {
-        const queryLower = query.toLowerCase()
-        processedFeedbacks = processedFeedbacks.filter(
-          (feedback: StudentFeedback) =>
-            feedback.feedback.toLowerCase().includes(queryLower) ||
-            feedback.course_name.toLowerCase().includes(queryLower) ||
-            feedback.teacher_name.toLowerCase().includes(queryLower),
-        )
-      }
+      const processedFeedbacks = data || []
 
       // Extraer cursos únicos para el filtro
       const uniqueCourses = Array.from(
@@ -104,14 +124,7 @@ export default function MyFeedbacksScreen() {
       ).map(([id, name]) => ({ id, name }))
       setCourses(uniqueCourses)
 
-      // Paginación manual
-      const startIndex = (page - 1) * ITEMS_PER_PAGE
-      const endIndex = startIndex + ITEMS_PER_PAGE
-      const paginatedFeedbacks = processedFeedbacks.slice(startIndex, endIndex)
-
-      setFeedbacks(paginatedFeedbacks)
-      setTotalPages(Math.max(1, Math.ceil(processedFeedbacks.length / ITEMS_PER_PAGE)))
-      setCurrentPage(page)
+      setAllFeedbacks(processedFeedbacks)
     } catch (error) {
       console.error("Error fetching feedbacks:", error)
       Toast.show({
@@ -163,17 +176,20 @@ export default function MyFeedbacksScreen() {
   }
 
   const handleSearch = () => {
-    fetchFeedbacks(1, searchQuery, filterType, filterCourse)
+    // La búsqueda se maneja automáticamente por el useMemo
+    setCurrentPage(1)
   }
 
   const handleFilter = (type: "ALL" | "POSITIVO" | "NEGATIVO" | "NEUTRO") => {
     setFilterType(type)
-    fetchFeedbacks(1, searchQuery, type, filterCourse)
   }
 
   const handleCourseFilter = (courseId: string) => {
     setFilterCourse(courseId)
-    fetchFeedbacks(1, searchQuery, filterType, courseId)
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
   }
 
   const renderStars = (score: number) => {
@@ -209,14 +225,14 @@ export default function MyFeedbacksScreen() {
         <View style={styles.feedbackHeader}>
           <View style={styles.courseInfo}>
             <MaterialIcons name="school" size={16} color="#666" />
-            <Text style={styles.courseName}>{item.course_name}</Text>
+            <Text style={styles.courseName}>{item.course_id}</Text>
           </View>
           <Text style={styles.feedbackDate}>{formattedDate}</Text>
         </View>
 
         <View style={styles.teacherInfo}>
           <MaterialIcons name="person" size={16} color="#666" />
-          <Text style={styles.teacherName}>Docente: {item.teacher_name}</Text>
+          <Text style={styles.teacherName}>Docente: {item.teacher_uuid}</Text>
         </View>
 
         <View style={styles.feedbackContent}>
@@ -241,10 +257,58 @@ export default function MyFeedbacksScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <MaterialIcons name="feedback" size={64} color="#ccc" />
-      <Text style={styles.emptyStateText}>No tienes feedbacks aún</Text>
-      <Text style={styles.emptyStateSubtext}>Los feedbacks de tus docentes aparecerán aquí</Text>
+      <Text style={styles.emptyStateText}>
+        {allFeedbacks.length === 0 ? "No tienes feedbacks aún" : "No se encontraron feedbacks"}
+      </Text>
+      <Text style={styles.emptyStateSubtext}>
+        {allFeedbacks.length === 0
+          ? "Los feedbacks de tus docentes aparecerán aquí"
+          : "Intenta ajustar los filtros de búsqueda"}
+      </Text>
+      {(searchQuery || filterType !== "ALL" || filterCourse) && (
+        <TouchableOpacity
+          style={styles.resetFiltersButton}
+          onPress={() => {
+            setSearchQuery("")
+            setFilterType("ALL")
+            setFilterCourse("")
+          }}
+        >
+          <Text style={styles.resetFiltersText}>Limpiar filtros</Text>
+        </TouchableOpacity>
+      )}
     </View>
   )
+
+  const renderPaginationNumbers = () => {
+    const { totalPages } = paginationData
+    const maxVisiblePages = 5
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1)
+    }
+
+    const pages = []
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i)
+    }
+
+    return (
+      <View style={styles.paginationNumbers}>
+        {pages.map((page) => (
+          <TouchableOpacity
+            key={page}
+            style={[styles.pageNumber, currentPage === page && styles.pageNumberActive]}
+            onPress={() => handlePageChange(page)}
+          >
+            <Text style={[styles.pageNumberText, currentPage === page && styles.pageNumberTextActive]}>{page}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    )
+  }
 
   return (
     <View style={homeScreenStyles.container}>
@@ -254,33 +318,27 @@ export default function MyFeedbacksScreen() {
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Mis Feedbacks</Text>
           <TouchableOpacity
-            style={[styles.summaryButton, (loadingSummary || feedbacks.length === 0) && styles.summaryButtonDisabled]}
+            style={[
+              styles.summaryButton,
+              (loadingSummary || allFeedbacks.length === 0) && styles.summaryButtonDisabled,
+            ]}
             onPress={fetchSummary}
-            disabled={loadingSummary || feedbacks.length === 0}
+            disabled={loadingSummary || allFeedbacks.length === 0}
           >
             {loadingSummary ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <>
                 <MaterialIcons name="auto-awesome" size={20} color="#fff" />
-                <Text style={styles.summaryButtonText}>{feedbacks.length === 0 ? "Sin feedbacks" : "Resumen IA"}</Text>
+                <Text style={styles.summaryButtonText}>
+                  {allFeedbacks.length === 0 ? "Sin feedbacks" : "Resumen IA"}
+                </Text>
               </>
             )}
           </TouchableOpacity>
         </View>
 
         <View style={styles.actionsContainer}>
-          <View style={styles.searchContainer}>
-            <MaterialIcons name="search" size={20} color="#666" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar feedbacks..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={handleSearch}
-            />
-          </View>
-
           <TouchableOpacity style={styles.filterToggle} onPress={() => setShowFilters(!showFilters)}>
             <MaterialIcons name="filter-list" size={24} color="#007AFF" />
           </TouchableOpacity>
@@ -341,38 +399,48 @@ export default function MyFeedbacksScreen() {
           </View>
         ) : (
           <>
-            <Text style={styles.resultsCount}>
-              {feedbacks.length} {feedbacks.length === 1 ? "feedback encontrado" : "feedbacks encontrados"}
-            </Text>
+            {paginationData.totalItems > 0 && (
+              <View style={styles.resultsInfo}>
+                <Text style={styles.resultsCount}>
+                  Mostrando {paginationData.showingStart}-{paginationData.showingEnd} de {paginationData.totalItems}{" "}
+                  feedbacks
+                </Text>
+              </View>
+            )}
 
             <FlatList
-              data={feedbacks}
+              data={paginationData.currentPageFeedbacks}
               renderItem={renderFeedbackItem}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContainer}
               ListEmptyComponent={renderEmptyState}
             />
 
-            {feedbacks.length > 0 && totalPages > 1 && (
+            {paginationData.totalPages > 1 && (
               <View style={styles.paginationContainer}>
                 <TouchableOpacity
                   style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
-                  onPress={() => fetchFeedbacks(currentPage - 1)}
+                  onPress={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
-                  <Text style={styles.paginationText}>Anterior</Text>
+                  <MaterialIcons name="chevron-left" size={20} color={currentPage === 1 ? "#ccc" : "#007AFF"} />
                 </TouchableOpacity>
 
-                <Text style={styles.paginationInfo}>
-                  Página {currentPage} de {totalPages}
-                </Text>
+                {renderPaginationNumbers()}
 
                 <TouchableOpacity
-                  style={[styles.paginationButton, currentPage === totalPages && styles.paginationButtonDisabled]}
-                  onPress={() => fetchFeedbacks(currentPage + 1)}
-                  disabled={currentPage === totalPages}
+                  style={[
+                    styles.paginationButton,
+                    currentPage === paginationData.totalPages && styles.paginationButtonDisabled,
+                  ]}
+                  onPress={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === paginationData.totalPages}
                 >
-                  <Text style={styles.paginationText}>Siguiente</Text>
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={20}
+                    color={currentPage === paginationData.totalPages ? "#ccc" : "#007AFF"}
+                  />
                 </TouchableOpacity>
               </View>
             )}
@@ -498,10 +566,12 @@ const styles = StyleSheet.create({
   filterButtonTextActive: {
     color: "#fff",
   },
+  resultsInfo: {
+    marginBottom: 16,
+  },
   resultsCount: {
     fontSize: 14,
     color: "#666",
-    marginBottom: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -592,25 +662,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 16,
     paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#e9ecef",
   },
   paginationButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    padding: 8,
   },
   paginationButtonDisabled: {
-    backgroundColor: "#ccc",
+    opacity: 0.5,
   },
-  paginationText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "500",
+  paginationNumbers: {
+    flexDirection: "row",
+    marginHorizontal: 16,
   },
-  paginationInfo: {
+  pageNumber: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 2,
+    borderRadius: 6,
+    backgroundColor: "#f8f9fa",
+  },
+  pageNumberActive: {
+    backgroundColor: "#007AFF",
+  },
+  pageNumberText: {
     fontSize: 14,
     color: "#666",
-    marginHorizontal: 16,
+    fontWeight: "500",
+  },
+  pageNumberTextActive: {
+    color: "#fff",
   },
   emptyState: {
     flex: 1,
@@ -630,6 +711,15 @@ const styles = StyleSheet.create({
     color: "#999",
     marginTop: 8,
     textAlign: "center",
+  },
+  resetFiltersButton: {
+    marginTop: 16,
+    padding: 8,
+  },
+  resetFiltersText: {
+    color: "#007AFF",
+    fontSize: 14,
+    fontWeight: "500",
   },
   modalOverlay: {
     flex: 1,
