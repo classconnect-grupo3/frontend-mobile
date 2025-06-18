@@ -53,12 +53,22 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="favorites"
+        name="favourites"
         options={{
           title: "Favoritos",
           headerTitleAlign: "left",
           tabBarIcon: ({ color }: { color: string }) => <MaterialIcons size={28} name="star" color={color} />,
           headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="myFeedbacks"
+        options={{
+          title: "Mis Feedbacks",
+          tabBarIcon: ({ color, focused }) => (
+            // <TabBarIcon name={focused ? "chatbubble" : "chatbubble-outline"} color={color} />
+            <MaterialIcons size={28} name="feedback" color={color} />
+          ),
         }}
       />
     </Tabs>

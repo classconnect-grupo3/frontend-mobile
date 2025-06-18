@@ -198,7 +198,7 @@ export default function MyCoursesScreen() {
         ) : (
           <>
             <Text style={localStyles.subtitle}>
-              {filteredCourses.length} {filteredCourses.length === 1 ? "curso" : "cursos"} encontrados
+              {filteredCourses.length} {filteredCourses.length === 1 ? "curso encontrado" : "cursos encontrados"}
             </Text>
 
             <FlatList
