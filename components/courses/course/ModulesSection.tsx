@@ -154,11 +154,9 @@ export const ModulesSection = ({ courseId, isTeacher }: Props) => {
       if (!file) return
       console.log("3. File isn't null")
       const newResource = {
-        id: `res_${Date.now()}`,
+        id: Math.floor(Math.random() * 100000),
         name: file.fileName,
         url: file.downloadUrl,
-        size: file.fileSize,
-        type: file.contentType,
       }
 
       const updatedModules = modules.map((mod) =>
