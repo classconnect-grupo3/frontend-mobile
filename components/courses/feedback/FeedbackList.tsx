@@ -58,24 +58,27 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
     //     "start_score": 0
     //     }
         const body = {
-        end_date: "",
-        end_score: score ?? 0,
-        feedback_type: type,
-        start_date: "",
-        start_score: score ?? 0,
+          end_date: "2056-01-02T15:04:05Z",
+          end_score: score ?? 5,
+          feedback_type: type,
+          start_date: "2000-01-02T15:04:05Z",
+          start_score: score ?? 0,
         }
 
-      const { data } = await courseClient.put(url, {
+      const { data } = await courseClient.put(url, {}, {
         headers: {
           Authorization: `Bearer ${auth?.authState.token}`,
         },
       })
+
+      console.log("Feedbacks data:", data)
 
       setFeedbacks(data.data || [])
       setTotalPages(data.total_pages || 1)
       setCurrentPage(page)
     } catch (error) {
       console.error("Error fetching feedbacks:", error)
+      console.log("Error details:", error.response?.data || error.message)
       Toast.show({
         type: "error",
         text1: "Error",
@@ -87,7 +90,7 @@ export function FeedbackList({ courseId }: FeedbackListProps) {
   }
 
   useEffect(() => {
-    fetchFeedbacks()
+    fetchFeedbacks(1, "", "ALL", 5)
   }, [courseId])
 
   const handleSearch = () => {
