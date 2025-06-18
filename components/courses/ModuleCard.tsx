@@ -9,6 +9,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Linking,
 } from 'react-native';
 import { AntDesign, Feather, Entypo, MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet } from 'react-native';
@@ -17,13 +18,20 @@ if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
 }
 
-export interface ModuleData {
-  id: string,
-  course_id: string;
-  title: string;
-  description: string;
-  content: string;
+type ModuleResource = {
+  id: string
+  name: string
+  url: string
 }
+
+export interface ModuleData {
+  id: string
+  course_id: string
+  title: string
+  description: string
+  resources: ModuleResource[]
+}
+
 
 export interface ModuleCardProps {
   moduleData: ModuleData;
@@ -44,6 +52,9 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
   const toggleExpanded = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpanded(!expanded);
+    if (expanded) {
+      setEditMode(false);
+    }
   };
 
   const toggleEditMode = () => {
@@ -67,9 +78,12 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
         backgroundColor: '#fff',
         borderRadius: 12,
         padding: 16,
-        marginBottom: 12,
-        elevation: 4,
+        elevation: 1,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
+        shadowRadius: 2,
+        marginBottom: 12,
       }}>
       <TouchableOpacity
         onPress={toggleExpanded}
@@ -92,7 +106,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
       </TouchableOpacity>
 
       {expanded && (
-        <View style={{ marginTop: 12 }}>
+        <View>
           {editMode ? (
             <TextInput
               value={description}
@@ -103,6 +117,40 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
             />
           ) : (
             <Text style={styles.description}>{description}</Text>
+          )}
+          <Text style={styles.heading}>Recursos</Text>
+          { moduleData.resources?.length > 0 ? (          
+            <FlatList
+              data={moduleData.resources}
+              keyExtractor={(item) => item.id}
+              style={{ marginTop: 8, backgroundColor: '#f9f9f9', padding: 12, borderRadius: 8 }}
+              renderItem={({ item }) => (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, marginTop: 4 }}>
+                  <Feather name="file-text" size={16} color="#555" style={{ marginRight: 8 }} />
+                  <Text
+                      onPress={() => Linking.openURL(item.url)}
+                      style={styles.file}
+                  >
+                      {item.name}
+                  </Text>
+                  { editMode && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        const updatedResources = moduleData.resources.filter((res) => res.id !== item.id); 
+                        onUpdateModule({ ...moduleData, resources: updatedResources });
+                      }} 
+                      style={{ marginLeft: 'auto' , flexDirection: 'row', alignItems: 'center' }}> 
+                      <Text style={styles.deleteResource}>Eliminar</Text>More actions
+                      <Entypo name="cross" size={16} color="#ff0000" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            />
+          ) : (
+            <Text style={styles.greyText}>
+              No se han agregado recursos a este módulo.
+            </Text>
           )}
 
           <TouchableOpacity onPress={() => onAddResource(moduleData.id)} style={styles.addResourceButton}>
@@ -127,16 +175,16 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
               isTeacher && (
               <>
                 <TouchableOpacity 
+                  style={styles.editButton} 
+                  onPress={toggleEditMode}>
+                  <MaterialIcons name="edit" size={18} color="#1976D2" />
+                  <Text style={styles.editButtonText}>Editar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
                   style={styles.deleteButton} 
                   onPress={() => setShowDeleteModal(true)}>
                   <MaterialIcons name="delete" size={18} color="rgb(238, 69, 69)" />
                   <Text style={styles.deleteButtonText}>Eliminar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.editButton} 
-                  onPress={toggleEditMode}>
-                  <MaterialIcons name="edit" size={18} color="#333" />
-                  <Text style={styles.editButtonText}>Editar</Text>
                 </TouchableOpacity>
               </>
               )
@@ -176,7 +224,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ moduleData, onUpdateModule, onA
 
 const styles = StyleSheet.create({
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     color: '#333',
   },
@@ -185,13 +233,27 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: '#333',
   },
-  file: {
+  file: { 
+    color: "#007bff", 
+    textDecorationLine: "underline",
     fontSize: 12,
-    color: '#555',
+    flexShrink: 1,
+    flexWrap: 'wrap',
+    flex: 1, 
+  },
+  greyText: {
+    fontSize: 14,
+    color: "grey",
   },
   addResourceButton: {
+    backgroundColor: "#ecffe6",
     padding: 4,
+    paddingHorizontal: 8,
+    alignContent: "center",
+    marginTop: 8,
     alignItems: 'flex-start',
+    borderRadius: 10,
+    alignSelf: "flex-start",
   },
 
   buttonText: {
@@ -202,7 +264,7 @@ const styles = StyleSheet.create({
 
   description: {
     fontSize: 14,
-    color: '#555',
+    color: 'grey',
     marginBottom: 12,
   },
 
@@ -210,32 +272,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    borderBottomWidth: 1,
+    borderWidth: 1,
     borderRadius: 8,
     padding: 8,
     borderColor: '#ccc',
-    paddingBottom: 8,
+    textAlignVertical: "center",
+    marginBottom: 8,
   },
 
   editDescription: {
-    borderBottomWidth: 1,
-    color: '#333',
+    borderWidth: 1,
+    color: 'grey',
     borderColor: '#ccc',
     borderRadius: 8,
     padding: 8,
     fontSize: 14,
-    textAlignVertical: 'top', 
-    marginBottom: 12,
-  },
-
-  editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-end',
-    backgroundColor: '#e0e0e0',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    marginBottom: 8,
+    textAlignVertical: "center",
   },
 
   deleteButton: {
@@ -245,7 +298,8 @@ const styles = StyleSheet.create({
     backgroundColor:"rgb(255, 231, 231)",
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    height: 44,
+    borderRadius: 10,
   },
 
   deleteButtonText: {
@@ -258,25 +312,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-end',
-    backgroundColor: 'green',
+    backgroundColor: '#007AFF',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    height: 44,
+    borderRadius: 10,
   },
 
   cancelButton: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-end',
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#ededed',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    height: 44,
+    borderRadius: 10,
   },
 
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: "#E3F2FD",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    height: 44,
+    borderRadius: 10,
+  },
   editButtonText: {
-    color: '#333',
-    fontWeight: '500',
+    color: "#1976D2",
+    fontSize: 14,
+    fontWeight: "600",
     marginLeft: 6,
   },
 
@@ -286,7 +353,7 @@ const styles = StyleSheet.create({
   },
 
   cancelButtonText: {
-    color: '#333',
+    color: 'grey',
     fontWeight: '500',
   },
 

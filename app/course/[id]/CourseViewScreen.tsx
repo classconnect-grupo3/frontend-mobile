@@ -16,10 +16,11 @@ import { AssignmentsSection } from "@/components/courses/course/AssignmentsSecti
 import { ModulesSection } from "@/components/courses/course/ModulesSection"
 import { DownloadModal } from "@/components/courses/course/DownloadModal"
 import { KeyboardAvoidingView, SafeAreaView, Platform } from "react-native"
+import { AddQuestionsModal } from "@/components/courses/course/AddQuestionsModal"
+import { ViewQuestionsModal } from "@/components/courses/course/ViewQuestionsModal"
 import { FeedbackSection } from "@/components/courses/course/FeedbackSection"
 import { StudentFeedbackForm } from "@/components/courses/feedback/StudentFeedbackForm"
-import type { JSX } from "react" // Declare JSX variable
-import React from "react"
+import type { JSX } from "react"
 
 interface Question {
   id: string
@@ -54,8 +55,9 @@ export interface Assignment {
   type: "homework" | "exam"
   course_id: string
   course_name?: string
-  time_limit?: number // en minutos para exámenes
+  time_limit?: number
   questions: Question[]
+  passing_score?: number
   submission?: StudentSubmission
 }
 
@@ -112,6 +114,9 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const [hasFetchedAssignments, setHasFetchedAssignments] = useState(false)
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [showDownloadModal, setShowDownloadModal] = useState(false)
+  const [selectedAssignmentForQuestions, setSelectedAssignmentForQuestions] = useState<Assignment | null>(null)
+  const [showAddQuestionsModal, setShowAddQuestionsModal] = useState(false)
+  const [showViewQuestionsModal, setShowViewQuestionsModal] = useState(false)
   const [membersData, setMembersData] = useState<CourseMembersData>({
     teacher: null,
     auxTeachers: [],
@@ -379,13 +384,13 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     try {
       const url = `/courses/${course.id}/aux-teacher/remove?auxTeacherId=${teacherId}&teacherId=${authState?.user?.id}`
 
-      const data = await courseClient.delete(url, {
+      await courseClient.delete(url, {
         headers: {
           Authorization: `Bearer ${authState.token}`,
         },
       })
 
-      console.log(`Remover docente auxiliar salio bien: ${name} ${surname} (${teacherId})`)
+      console.log(`Remover docente auxiliar exitoso: ${name} ${surname} (${teacherId})`)
       Toast.show({
         type: "success",
         text1: "Docente auxiliar removido",
@@ -394,7 +399,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
       fetchCourseMembers()
     } catch (error) {
       console.error("Error removing aux teacher:", error)
-      console.error("more error details:", e.response?.data || e.message)
       Toast.show({
         type: "error",
         text1: "Error",
@@ -404,14 +408,14 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   }
 
   const handleSendFeedbackToStudent = (student: UserData) => {
-    // if (!student.is_active) {
-    //   Toast.show({
-    //     type: "warning",
-    //     text1: "Estudiante inactivo",
-    //     text2: "No se puede enviar feedback a estudiantes inactivos",
-    //   })
-    //   return
-    // }
+    if (!student.is_active) {
+      Toast.show({
+        type: "warning",
+        text1: "Estudiante inactivo",
+        text2: "No se puede enviar feedback a estudiantes inactivos",
+      })
+      return
+    }
 
     setSelectedStudent(student)
     setShowStudentForm(true)
@@ -464,19 +468,15 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
         {isTeacher && (
           <TouchableOpacity
-            style={[memberCardStyles.feedbackButton, 
-              // TODO descomentar cuando tengamos lo de desabilitado
-              // !student.is_active && memberCardStyles.feedbackButtonDisabled
-            ]}
+            style={[memberCardStyles.feedbackButton, !student.is_active && memberCardStyles.feedbackButtonDisabled]}
             onPress={() => handleSendFeedbackToStudent(student)}
-            
-            // disabled={!student.is_active}
+            disabled={!student.is_active}
           >
-            <MaterialIcons name="feedback" size={18} color={student.is_active ? "#fff" : "#fff"} />
+            <MaterialIcons name="feedback" size={18} color={student.is_active ? "#fff" : "#999"} />
             <Text
               style={[
                 memberCardStyles.feedbackButtonText,
-                // !student.is_active && memberCardStyles.feedbackButtonTextDisabled,
+                !student.is_active && memberCardStyles.feedbackButtonTextDisabled,
               ]}
             >
               Feedback
@@ -546,6 +546,30 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
   const mainSections = [{ type: "tasks" }, { type: "exams" }, { type: "modules" }, { type: "feedback" }]
 
+  const handleAddQuestions = (assignmentId: string) => {
+    const assignment = allAssignments.find((a) => a.id === assignmentId)
+    if (assignment) {
+      setSelectedAssignmentForQuestions(assignment)
+      setShowAddQuestionsModal(true)
+    }
+  }
+
+  const handleViewQuestions = (assignmentId: string) => {
+    const assignment = allAssignments.find((a) => a.id === assignmentId)
+    if (assignment) {
+      setSelectedAssignmentForQuestions(assignment)
+      setShowViewQuestionsModal(true)
+    }
+  }
+
+  const handlePassingScoreUpdate = (assignmentId: string, newPassingScore: number | null) => {
+    setAllAssignments((prev) =>
+      prev.map((assignment) =>
+        assignment.id === assignmentId ? { ...assignment, passing_score: newPassingScore ?? undefined } : assignment,
+      ),
+    )
+  }
+
   const renderMainSection = ({ item }: { item: { type: string } }) => {
     switch (item.type) {
       case "tasks":
@@ -561,6 +585,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             isTeacher={teacher}
             onDownload={handleDownload}
             onRefresh={fetchAssignments}
+            onAddQuestions={handleAddQuestions}
+            onViewQuestions={handleViewQuestions}
           />
         )
       case "exams":
@@ -576,6 +602,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             isTeacher={teacher}
             onDownload={handleDownload}
             onRefresh={fetchAssignments}
+            onAddQuestions={handleAddQuestions}
+            onViewQuestions={handleViewQuestions}
           />
         )
       case "modules":
@@ -601,6 +629,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
   const renderFooter = () => (
     <View>
+      {/* Sección de alumnos */}
       <TouchableOpacity style={courseStyles.materialToggle} onPress={() => setShowAlumnos(!showAlumnos)}>
         <View style={courseStyles.materialToggleRow}>
           <AntDesign name={showAlumnos ? "up" : "down"} size={16} color="#333" style={courseStyles.arrowIcon} />
@@ -628,6 +657,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         </View>
       )}
 
+      {/* Docente Titular */}
       <Text style={courseStyles.sectionHeader}>Docente Titular</Text>
       <View style={courseStyles.listContainer}>
         {loadingMembers ? (
@@ -639,6 +669,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         )}
       </View>
 
+      {/* Docentes auxiliares */}
       <Text style={courseStyles.sectionHeader}>Docentes auxiliares ({membersData.auxTeachers.length})</Text>
       <View style={courseStyles.listContainer}>
         {loadingMembers ? (
@@ -658,12 +689,14 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         )}
       </View>
 
+      {/* Botón eliminar curso */}
       {teacher && (
         <TouchableOpacity style={courseStyles.deleteButton} onPress={() => setShowConfirmModal(true)}>
           <Text style={courseStyles.buttonText}>Eliminar curso</Text>
         </TouchableOpacity>
       )}
 
+      {/* Espacio final */}
       <View style={{ height: 40 }} />
     </View>
   )
@@ -680,7 +713,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           renderItem={renderMainSection}
           ListHeaderComponent={renderHeader}
           ListFooterComponent={renderFooter}
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         />
@@ -705,6 +738,30 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           visible={showDownloadModal}
           assignment={selectedAssignment}
           onClose={() => setShowDownloadModal(false)}
+        />
+        <AddQuestionsModal
+          visible={showAddQuestionsModal}
+          assignment={selectedAssignmentForQuestions}
+          onClose={() => {
+            setShowAddQuestionsModal(false)
+            setSelectedAssignmentForQuestions(null)
+          }}
+          onSuccess={() => {
+            fetchAssignments()
+          }}
+        />
+        <ViewQuestionsModal
+          visible={showViewQuestionsModal}
+          assignment={selectedAssignmentForQuestions}
+          onClose={() => {
+            setShowViewQuestionsModal(false)
+            setSelectedAssignmentForQuestions(null)
+          }}
+          onAddQuestions={() => {
+            setShowViewQuestionsModal(false)
+            setShowAddQuestionsModal(true)
+          }}
+          onPassingScoreUpdate={handlePassingScoreUpdate}
         />
         {selectedStudent && (
           <StudentFeedbackForm
@@ -886,3 +943,4 @@ const memberCardStyles = StyleSheet.create({
 export const options = {
   headerShown: false,
 }
+

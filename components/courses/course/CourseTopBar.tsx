@@ -17,8 +17,9 @@ interface Props {
 
 export function CourseTopBar({ role, onBack, canEdit = false, course, onEditSuccess }: Props) {
   const [showEditModal, setShowEditModal] = useState(false)
-  const { authState } = useAuth()
-  const profileImageUrl = authState.user?.profilePicUrl
+  const authContext = useAuth()
+  const authState = authContext?.authState
+  const profileImageUrl = authState?.user?.profilePicUrl
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("es-ES", {
