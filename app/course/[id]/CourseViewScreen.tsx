@@ -23,6 +23,7 @@ import { StudentFeedbackForm } from "@/components/courses/feedback/StudentFeedba
 import type { JSX } from "react"
 import { SubmissionsListModal } from "@/components/courses/course/SubmissionsListModal"
 import { GradeSubmissionModal } from "@/components/courses/course/GradeSubmissionModal"
+import { GradesSummary } from "@/components/courses/course/GradesSummary"
 import React from "react"
 
 interface Question {
@@ -555,7 +556,13 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     </View>
   )
 
-  const mainSections = [{ type: "tasks" }, { type: "exams" }, { type: "modules" }, { type: "feedback" }]
+  const mainSections = [
+    ...(teacher ? [] : [{ type: "grades" }]), // Solo para estudiantes
+    { type: "tasks" },
+    { type: "exams" },
+    { type: "modules" },
+    { type: "feedback" },
+  ]
 
   const handleAddQuestions = (assignmentId: string) => {
     const assignment = allAssignments.find((a) => a.id === assignmentId)
@@ -603,6 +610,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
   const renderMainSection = ({ item }: { item: { type: string } }) => {
     switch (item.type) {
+      case "grades":
+        return <GradesSummary assignments={allAssignments} />
       case "tasks":
         return (
           <AssignmentsSection

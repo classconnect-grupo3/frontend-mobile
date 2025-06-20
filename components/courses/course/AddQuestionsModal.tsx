@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import { useState } from "react"
 import {
   Modal,
   View,
@@ -12,12 +12,13 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native"
-import { MaterialIcons, FontAwesome } from "@expo/vector-icons"
+import { MaterialIcons } from "@expo/vector-icons"
 import { Picker } from "@react-native-picker/picker"
 import { courseClient } from "@/lib/courseClient"
 import Toast from "react-native-toast-message"
 import { useAuth } from "@/contexts/sessionAuth"
 import type { Assignment } from "@/app/course/[id]/CourseViewScreen"
+import React from "react"
 
 interface Question {
   id: string
@@ -42,7 +43,15 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
   const authContext = useAuth()
   const authState = authContext?.authState
 
+  // Calcular puntos totales
+  const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
+  const remainingPoints = 100 - totalPoints
+  const isPointsValid = totalPoints === 100
+
   const addNewQuestion = () => {
+    // Calcular puntos sugeridos para la nueva pregunta
+    const suggestedPoints = remainingPoints > 0 ? Math.min(remainingPoints, 10) : 10
+
     const newQuestion: Question = {
       id: `temp_${Date.now()}`,
       text: "",
@@ -50,7 +59,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
       options: [],
       correct_answers: [],
       order: questions.length,
-      points: 10,
+      points: suggestedPoints,
     }
     setQuestions([...questions, newQuestion])
   }
@@ -86,7 +95,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
     const newOptions = (question.options || []).filter((_, i) => i !== optionIndex)
     // Also remove from correct answers if it was selected
     const newCorrectAnswers = (question.correct_answers || []).filter(
-      (answer) => answer !== question.options?.[optionIndex]
+      (answer) => answer !== question.options?.[optionIndex],
     )
     updateQuestion(questionIndex, { options: newOptions, correct_answers: newCorrectAnswers })
   }
@@ -106,10 +115,37 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
     updateQuestion(questionIndex, { correct_answers: newCorrectAnswers })
   }
 
+  // Función para distribuir puntos automáticamente
+  const distributePointsEvenly = () => {
+    if (questions.length === 0) return
+
+    const pointsPerQuestion = Math.floor(100 / questions.length)
+    const remainder = 100 % questions.length
+
+    const updatedQuestions = questions.map((q, index) => ({
+      ...q,
+      points: pointsPerQuestion + (index < remainder ? 1 : 0),
+    }))
+
+    setQuestions(updatedQuestions)
+  }
+
   const validateQuestions = (): boolean => {
+    if (totalPoints !== 100) {
+      Alert.alert(
+        "Error de puntuación",
+        `Las preguntas deben sumar exactamente 100 puntos. Actualmente suman ${totalPoints} puntos.`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Distribuir automáticamente", onPress: distributePointsEvenly },
+        ],
+      )
+      return false
+    }
+
     for (let i = 0; i < questions.length; i++) {
       const question = questions[i]
-      
+
       if (!question.text.trim()) {
         Alert.alert("Error", `La pregunta ${i + 1} debe tener texto`)
         return false
@@ -126,7 +162,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
           return false
         }
 
-        if (question.options.some(opt => !opt.trim())) {
+        if (question.options.some((opt) => !opt.trim())) {
           Alert.alert("Error", `Todas las opciones de la pregunta ${i + 1} deben tener texto`)
           return false
         }
@@ -161,7 +197,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
 
       // Prepare questions for API
       const apiQuestions = questions.map((q, index) => ({
-        id: index.toString(), // Let backend generate ID for new questions
+        id: index.toString(),
         text: q.text.trim(),
         type: q.type,
         options: q.type === "multiple_choice" ? q.options : undefined,
@@ -170,9 +206,6 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
         points: q.points,
       }))
 
-      // Calculate total points
-      const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
-
       // Prepare the complete assignment data for update
       const updateData = {
         title: assignment.title,
@@ -180,10 +213,10 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
         instructions: assignment.instructions,
         due_date: assignment.due_date,
         type: assignment.type,
-        status: "active", // or whatever status is appropriate
-        grace_period: 1, // default value
-        passing_score: Math.floor(totalPoints * 0.6), // 60% to pass
-        total_points: totalPoints,
+        status: "active",
+        grace_period: 1,
+        passing_score: assignment.passing_score || 60, // Mantener el passing_score existente o usar 60 por defecto
+        total_points: 100, // Siempre 100 puntos
         questions: apiQuestions,
       }
 
@@ -196,7 +229,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
       Toast.show({
         type: "success",
         text1: "Preguntas agregadas exitosamente",
-        text2: `Se agregaron ${questions.length} preguntas al examen`,
+        text2: `Se agregaron ${questions.length} preguntas (100 puntos total)`,
       })
 
       setQuestions([])
@@ -204,7 +237,6 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
       onClose()
     } catch (error) {
       console.error("Error updating assignment with questions:", error)
-      console.log("Error details:", error.response?.data || error.message)
       Toast.show({
         type: "error",
         text1: "Error al agregar preguntas",
@@ -214,6 +246,50 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
       setIsSubmitting(false)
     }
   }
+
+  const renderPointsIndicator = () => (
+    <View style={[styles.pointsIndicator, !isPointsValid && styles.pointsIndicatorError]}>
+      <View style={styles.pointsHeader}>
+        <MaterialIcons
+          name={isPointsValid ? "check-circle" : "error"}
+          size={20}
+          color={isPointsValid ? "#4CAF50" : "#F44336"}
+        />
+        <Text style={[styles.pointsTitle, !isPointsValid && styles.pointsError]}>
+          Puntuación Total: {totalPoints}/100
+        </Text>
+      </View>
+
+      <View style={styles.pointsBar}>
+        <View
+          style={[
+            styles.pointsBarFill,
+            {
+              width: `${Math.min(totalPoints, 100)}%`,
+              backgroundColor: isPointsValid ? "#4CAF50" : totalPoints > 100 ? "#F44336" : "#FF9800",
+            },
+          ]}
+        />
+      </View>
+
+      <View style={styles.pointsActions}>
+        <Text style={styles.pointsRemaining}>
+          {remainingPoints > 0
+            ? `Faltan ${remainingPoints} puntos`
+            : remainingPoints < 0
+              ? `Excede por ${Math.abs(remainingPoints)} puntos`
+              : "✓ Puntuación perfecta"}
+        </Text>
+
+        {questions.length > 0 && !isPointsValid && (
+          <TouchableOpacity style={styles.distributeButton} onPress={distributePointsEvenly}>
+            <MaterialIcons name="auto-fix-high" size={16} color="#007AFF" />
+            <Text style={styles.distributeButtonText}>Distribuir automáticamente</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  )
 
   const renderQuestion = (question: Question, index: number) => (
     <View key={question.id} style={styles.questionCard}>
@@ -242,11 +318,13 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={question.type}
-            onValueChange={(type) => updateQuestion(index, { 
-              type: type as "text" | "multiple_choice" | "file",
-              options: type === "multiple_choice" ? [""] : [],
-              correct_answers: type === "multiple_choice" ? [] : undefined
-            })}
+            onValueChange={(type) =>
+              updateQuestion(index, {
+                type: type as "text" | "multiple_choice" | "file",
+                options: type === "multiple_choice" ? [""] : [],
+                correct_answers: type === "multiple_choice" ? [] : undefined,
+              })
+            }
             style={styles.picker}
           >
             <Picker.Item label="Texto" value="text" />
@@ -258,17 +336,22 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
 
       {/* Points */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Puntos *</Text>
-        <TextInput
-          style={styles.numberInput}
-          placeholder="10"
-          value={question.points.toString()}
-          onChangeText={(text) => {
-            const points = parseInt(text) || 0
-            updateQuestion(index, { points })
-          }}
-          keyboardType="numeric"
-        />
+        <Text style={styles.label}>Puntos</Text>
+        <View style={styles.pointsInputContainer}>
+          <TextInput
+            style={[styles.numberInput, question.points > remainingPoints + question.points && styles.pointsInputError]}
+            placeholder="10"
+            value={question.points.toString()}
+            onChangeText={(text) => {
+              const points = Number.parseInt(text) || 0
+              updateQuestion(index, { points })
+            }}
+            keyboardType="numeric"
+          />
+          <Text style={styles.pointsHint}>
+            {question.points > remainingPoints + question.points ? "⚠️ Excede puntos disponibles" : "✓ Válido"}
+          </Text>
+        </View>
       </View>
 
       {/* Multiple Choice Options */}
@@ -287,7 +370,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
               <TouchableOpacity
                 style={[
                   styles.correctCheckbox,
-                  (question.correct_answers || []).includes(option) && styles.correctCheckboxSelected
+                  (question.correct_answers || []).includes(option) && styles.correctCheckboxSelected,
                 ]}
                 onPress={() => toggleCorrectAnswer(index, option)}
               >
@@ -303,27 +386,20 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
                 onChangeText={(text) => updateOption(index, optionIndex, text)}
               />
 
-              <TouchableOpacity
-                onPress={() => removeOption(index, optionIndex)}
-                style={styles.removeOptionButton}
-              >
+              <TouchableOpacity onPress={() => removeOption(index, optionIndex)} style={styles.removeOptionButton}>
                 <MaterialIcons name="close" size={16} color="#F44336" />
               </TouchableOpacity>
             </View>
           ))}
 
-          <Text style={styles.helpText}>
-            Marca las opciones correctas haciendo clic en el círculo verde
-          </Text>
+          <Text style={styles.helpText}>Marca las opciones correctas haciendo clic en el círculo verde</Text>
         </View>
       )}
 
       {question.type === "file" && (
         <View style={styles.helpSection}>
           <MaterialIcons name="info" size={16} color="#666" />
-          <Text style={styles.helpText}>
-            Los estudiantes podrán subir un archivo como respuesta a esta pregunta
-          </Text>
+          <Text style={styles.helpText}>Los estudiantes podrán subir un archivo como respuesta a esta pregunta</Text>
         </View>
       )}
     </View>
@@ -337,11 +413,12 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <MaterialIcons name="close" size={24} color="#333" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            Agregar Preguntas - {assignment?.title}
-          </Text>
+          <Text style={styles.headerTitle}>Agregar Preguntas - {assignment?.title}</Text>
           <View style={styles.headerRight} />
         </View>
+
+        {/* Points Indicator */}
+        {questions.length > 0 && renderPointsIndicator()}
 
         {/* Content */}
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -350,7 +427,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
               <MaterialIcons name="quiz" size={64} color="#ccc" />
               <Text style={styles.emptyStateTitle}>No hay preguntas aún</Text>
               <Text style={styles.emptyStateDescription}>
-                Agrega preguntas para que los estudiantes puedan responder este examen
+                Agrega preguntas que sumen exactamente 100 puntos para que los estudiantes puedan responder este examen
               </Text>
             </View>
           ) : (
@@ -370,9 +447,12 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.saveButton, questions.length === 0 && styles.disabledButton]}
+            style={[
+              styles.saveButton,
+              (questions.length === 0 || !isPointsValid || isSubmitting) && styles.disabledButton,
+            ]}
             onPress={handleSubmit}
-            disabled={questions.length === 0 || isSubmitting}
+            disabled={questions.length === 0 || !isPointsValid || isSubmitting}
           >
             {isSubmitting ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -380,7 +460,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
               <MaterialIcons name="save" size={20} color="#fff" />
             )}
             <Text style={styles.saveButtonText}>
-              {isSubmitting ? "Guardando..." : `Guardar ${questions.length} preguntas`}
+              {isSubmitting ? "Guardando..." : `Guardar ${questions.length} preguntas (${totalPoints}/100 pts)`}
             </Text>
           </TouchableOpacity>
         </View>
@@ -415,7 +495,64 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   headerRight: {
-    width: 40, // To balance the close button
+    width: 40,
+  },
+  pointsIndicator: {
+    backgroundColor: "#e8f5e8",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e9ecef",
+  },
+  pointsIndicatorError: {
+    backgroundColor: "#ffeaea",
+  },
+  pointsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  pointsTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#4CAF50",
+    marginLeft: 8,
+  },
+  pointsError: {
+    color: "#F44336",
+  },
+  pointsBar: {
+    height: 8,
+    backgroundColor: "#e9ecef",
+    borderRadius: 4,
+    marginBottom: 8,
+    overflow: "hidden",
+  },
+  pointsBarFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  pointsActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  pointsRemaining: {
+    fontSize: 14,
+    color: "#666",
+  },
+  distributeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e3f2fd",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  distributeButtonText: {
+    color: "#007AFF",
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: 4,
   },
   content: {
     flex: 1,
@@ -480,6 +617,10 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: "top",
   },
+  pointsInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   numberInput: {
     borderWidth: 1,
     borderColor: "#e9ecef",
@@ -489,6 +630,16 @@ const styles = StyleSheet.create({
     color: "#333",
     backgroundColor: "#fff",
     width: 100,
+    marginRight: 12,
+  },
+  pointsInputError: {
+    borderColor: "#F44336",
+    backgroundColor: "#ffeaea",
+  },
+  pointsHint: {
+    fontSize: 12,
+    color: "#666",
+    flex: 1,
   },
   pickerContainer: {
     borderWidth: 1,

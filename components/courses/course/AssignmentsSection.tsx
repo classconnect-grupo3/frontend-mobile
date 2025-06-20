@@ -273,6 +273,9 @@ export const AssignmentsSection = ({
 
   // Componente para renderizar los detalles expandidos de una tarea
   const renderExpandedDetails = (assignment: Assignment) => {
+    const isGraded = assignment.submission?.score !== undefined && assignment.submission?.score !== null
+    const hasGrade = isGraded && assignment.submission?.score >= 0
+
     const formatDate = (dateString: string) => {
       return new Date(dateString).toLocaleDateString("es-ES", {
         weekday: "long",
@@ -358,6 +361,84 @@ export const AssignmentsSection = ({
           <Text style={styles.detailsSectionTitle}>Descripción</Text>
           <Text style={styles.detailsText}>{assignment.description}</Text>
         </View>
+
+        {/* Sección de calificación y retroalimentación */}
+        {!isTeacher && assignment.submission && hasGrade && (
+          <View style={styles.detailsSection}>
+            <Text style={styles.detailsSectionTitle}>Calificación</Text>
+
+            {/* Tarjeta de calificación */}
+            <View style={styles.gradeCard}>
+              <View style={styles.gradeHeader}>
+                <MaterialIcons
+                  name="grade"
+                  size={24}
+                  color={
+                    assignment.submission.score >= 70
+                      ? "#4CAF50"
+                      : assignment.submission.score >= 50
+                        ? "#FF9800"
+                        : "#F44336"
+                  }
+                />
+                <View style={styles.gradeInfo}>
+                  <Text style={styles.gradeScore}>{assignment.submission.score}/100</Text>
+                  <Text
+                    style={[
+                      styles.gradeLabel,
+                      {
+                        color:
+                          assignment.submission.score >= 70
+                            ? "#4CAF50"
+                            : assignment.submission.score >= 50
+                              ? "#FF9800"
+                              : "#F44336",
+                      },
+                    ]}
+                  >
+                    {assignment.submission.score >= 70
+                      ? "Excelente"
+                      : assignment.submission.score >= 50
+                        ? "Bueno"
+                        : "Necesita mejorar"}
+                  </Text>
+                </View>
+                <Text style={styles.gradePercentage}>{Math.round(assignment.submission.score)}%</Text>
+              </View>
+
+              {/* Barra de progreso */}
+              <View style={styles.progressBarContainer}>
+                <View
+                  style={[
+                    styles.progressBar,
+                    {
+                      width: `${Math.min(assignment.submission.score, 100)}%`,
+                      backgroundColor:
+                        assignment.submission.score >= 70
+                          ? "#4CAF50"
+                          : assignment.submission.score >= 50
+                            ? "#FF9800"
+                            : "#F44336",
+                    },
+                  ]}
+                />
+              </View>
+
+              {/* Fecha de calificación */}
+              {assignment.submission.graded_at && (
+                <Text style={styles.gradedDate}>Calificado el {formatDate(assignment.submission.graded_at)}</Text>
+              )}
+            </View>
+
+            {/* Retroalimentación del docente */}
+            {assignment.submission.feedback && (
+              <View style={styles.feedbackContainer}>
+                <Text style={styles.feedbackTitle}>Comentarios del docente:</Text>
+                <Text style={styles.feedbackText}>{assignment.submission.feedback}</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Estado de entrega y respuestas */}
         {assignment.submission ? (
@@ -481,12 +562,17 @@ export const AssignmentsSection = ({
     const isLate = assignment.submission?.status === "late"
     const isExpanded = expandedAssignment === assignment.id
     const totalPoints = assignment.questions.reduce((sum, q) => sum + (q.points || 0), 0)
+    const isGraded = assignment.submission?.score !== undefined && assignment.submission?.score !== null
+    const hasGrade = isGraded && assignment.submission?.score >= 0
 
     return (
       <View key={assignment.id} style={styles.assignmentCardContainer}>
         <TouchableOpacity
           style={[styles.assignmentCard, isExpanded && styles.assignmentCardExpanded]}
-          onPress={() => setExpandedAssignment(isExpanded ? null : assignment.id)}
+          onPress={() => {
+            if (isTeacher) return
+            setExpandedAssignment(isExpanded ? null : assignment.id)
+          }}
         >
           <View style={styles.assignmentHeader}>
             <View style={styles.assignmentTitleRow}>
@@ -499,12 +585,14 @@ export const AssignmentsSection = ({
               <Text style={styles.assignmentTitle} numberOfLines={2}>
                 {assignment.title}
               </Text>
-              <FontAwesome
-                name={isExpanded ? "chevron-up" : "chevron-down"}
-                size={16}
-                color="#666"
-                style={styles.expandIcon}
-              />
+              { !isTeacher && (
+                <FontAwesome
+                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color="#666"
+                  style={styles.expandIcon}
+                />
+              )}
             </View>
 
             {onDownload && (
@@ -645,6 +733,38 @@ export const AssignmentsSection = ({
                   )}
                 </View>
               )}
+            </View>
+          )}
+
+          {/* Indicador de calificación para estudiantes */}
+          {!isTeacher && hasGrade && (
+            <View style={styles.gradeIndicator}>
+              <MaterialIcons
+                name="grade"
+                size={16}
+                color={
+                  assignment.submission.score >= 70
+                    ? "#4CAF50"
+                    : assignment.submission.score >= 50
+                      ? "#FF9800"
+                      : "#F44336"
+                }
+              />
+              <Text
+                style={[
+                  styles.gradeText,
+                  {
+                    color:
+                      assignment.submission.score >= 70
+                        ? "#4CAF50"
+                        : assignment.submission.score >= 50
+                          ? "#FF9800"
+                          : "#F44336",
+                  },
+                ]}
+              >
+                {assignment.submission.score}/100
+              </Text>
             </View>
           )}
         </TouchableOpacity>
@@ -1307,5 +1427,89 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     marginLeft: 6,
+  },
+    gradeIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  gradeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  gradeCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  gradeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  gradeInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  gradeScore: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  gradeLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  gradePercentage: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#666",
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: "#e9ecef",
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  gradedDate: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "center",
+  },
+  feedbackContainer: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: "#007AFF",
+  },
+  feedbackTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  feedbackText: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 20,
   },
 })
