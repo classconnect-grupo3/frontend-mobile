@@ -1,5 +1,5 @@
 "use client"
-import Toast from 'react-native-toast-message';
+import Toast from "react-native-toast-message"
 import { useState, useRef } from "react"
 import {
   Modal,
@@ -232,6 +232,78 @@ export function AssignmentDetailModal({ visible, assignment, onClose, onStartExa
     )
   }
 
+  const renderGradeAndFeedback = () => {
+    if (!assignment.submission || (assignment.submission.score === undefined && !assignment.submission.feedback)) {
+      return null
+    }
+
+    return (
+      <View style={styles.gradeSection}>
+        <Text style={styles.sectionTitle}>Calificación y Retroalimentación</Text>
+
+        {/* Calificación */}
+        {assignment.submission.score !== undefined && (
+          <View style={styles.gradeCard}>
+            <View style={styles.gradeHeader}>
+              <MaterialIcons name="grade" size={24} color="#4CAF50" />
+              <Text style={styles.gradeTitle}>Calificación</Text>
+            </View>
+
+            <View style={styles.gradeContent}>
+              <View style={styles.scoreContainer}>
+                <Text style={styles.scoreValue}>{assignment.submission.score}</Text>
+                <Text style={styles.scoreOutOf}>/ 100</Text>
+              </View>
+
+              <View style={styles.gradeBar}>
+                <View
+                  style={[
+                    styles.gradeBarFill,
+                    {
+                      width: `${Math.min(assignment.submission.score, 100)}%`,
+                      backgroundColor:
+                        assignment.submission.score >= 70
+                          ? "#4CAF50"
+                          : assignment.submission.score >= 50
+                            ? "#FF9800"
+                            : "#F44336",
+                    },
+                  ]}
+                />
+              </View>
+
+              <Text style={styles.gradePercentage}>
+                {assignment.submission.score >= 70
+                  ? "¡Excelente trabajo!"
+                  : assignment.submission.score >= 50
+                    ? "Buen trabajo"
+                    : "Necesita mejorar"}
+              </Text>
+            </View>
+
+            {assignment.submission.graded_at && (
+              <Text style={styles.gradedDate}>Calificado el {formatDate(assignment.submission.graded_at)}</Text>
+            )}
+          </View>
+        )}
+
+        {/* Retroalimentación */}
+        {assignment.submission.feedback && (
+          <View style={styles.feedbackCard}>
+            <View style={styles.feedbackHeader}>
+              <MaterialIcons name="feedback" size={20} color="#2196F3" />
+              <Text style={styles.feedbackTitle}>Comentarios del docente</Text>
+            </View>
+
+            <View style={styles.feedbackContent}>
+              <Text style={styles.feedbackText}>{assignment.submission.feedback}</Text>
+            </View>
+          </View>
+        )}
+      </View>
+    )
+  }
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={{ flex: 1 }}>
@@ -304,6 +376,8 @@ export function AssignmentDetailModal({ visible, assignment, onClose, onStartExa
           </View>
 
           {renderSubmissionAnswers()}
+
+          {renderGradeAndFeedback()}
 
           {assignment.type === "exam" && (
             <View style={styles.warningSection}>
@@ -653,5 +727,99 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginLeft: 8,
     marginRight: "auto",
+  },
+  gradeSection: {
+    marginBottom: 24,
+  },
+  gradeCard: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4CAF50",
+  },
+  gradeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  gradeTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginLeft: 8,
+  },
+  gradeContent: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  scoreContainer: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: 12,
+  },
+  scoreValue: {
+    fontSize: 36,
+    fontWeight: "bold",
+    color: "#4CAF50",
+  },
+  scoreOutOf: {
+    fontSize: 18,
+    color: "#666",
+    marginLeft: 4,
+  },
+  gradeBar: {
+    width: "100%",
+    height: 8,
+    backgroundColor: "#e9ecef",
+    borderRadius: 4,
+    marginBottom: 8,
+    overflow: "hidden",
+  },
+  gradeBarFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  gradePercentage: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
+  },
+  gradedDate: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "center",
+    fontStyle: "italic",
+  },
+  feedbackCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+    borderLeftWidth: 4,
+    borderLeftColor: "#2196F3",
+  },
+  feedbackHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  feedbackTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginLeft: 8,
+  },
+  feedbackContent: {
+    backgroundColor: "#f8f9fa",
+    padding: 12,
+    borderRadius: 8,
+  },
+  feedbackText: {
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 20,
   },
 })

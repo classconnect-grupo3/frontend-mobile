@@ -26,6 +26,7 @@ interface Props {
   course_id: string
   onAddQuestions?: (assignmentId: string) => void
   onViewQuestions?: (assignmentId: string) => void
+  onViewSubmissions?: (assignmentId: string) => void
 }
 
 type FilterStatus = "all" | "no_submission" | "draft" | "submitted" | "late"
@@ -47,6 +48,7 @@ export const AssignmentsSection = ({
   course_id,
   onAddQuestions,
   onViewQuestions,
+  onViewSubmissions,
 }: Props) => {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false)
   const [assignmentModalType, setAssignmentModalType] = useState<"task" | "exam">("task")
@@ -181,6 +183,8 @@ export const AssignmentsSection = ({
       let passingScore: number | undefined = undefined
       if (type === "exam" && data.has_passing_score && data.passing_score) {
         passingScore = data.passing_score
+      } else {
+        passingScore = 4
       }
 
       const newAssignment: Omit<Assignment, "id"> = {
@@ -206,7 +210,7 @@ export const AssignmentsSection = ({
           questions: newAssignment.questions,
           title: newAssignment.title,
           status: "published",
-          grace_period: 30, // what is grace_period? 
+          grace_period: 30, // what is grace_period?
           total_points: 100,
           type: newAssignment.type,
         },
@@ -221,6 +225,7 @@ export const AssignmentsSection = ({
       onRefresh()
     } catch (e) {
       console.error("Error creando assignment:", e)
+      console.log("more info: ", e.response?.data || e.message)
       Toast.show({ type: "error", text1: "No se pudo crear el assignment" })
     }
   }
@@ -268,6 +273,9 @@ export const AssignmentsSection = ({
 
   // Componente para renderizar los detalles expandidos de una tarea
   const renderExpandedDetails = (assignment: Assignment) => {
+    const isGraded = assignment.submission?.score !== undefined && assignment.submission?.score !== null
+    const hasGrade = isGraded && assignment.submission?.score >= 0
+
     const formatDate = (dateString: string) => {
       return new Date(dateString).toLocaleDateString("es-ES", {
         weekday: "long",
@@ -354,11 +362,83 @@ export const AssignmentsSection = ({
           <Text style={styles.detailsText}>{assignment.description}</Text>
         </View>
 
-        {/* Instrucciones */}
-        <View style={styles.detailsSection}>
-          <Text style={styles.detailsSectionTitle}>Instrucciones</Text>
-          <Text style={styles.detailsText}>{assignment.instructions}</Text>
-        </View>
+        {/* Sección de calificación y retroalimentación */}
+        {!isTeacher && assignment.submission && hasGrade && (
+          <View style={styles.detailsSection}>
+            <Text style={styles.detailsSectionTitle}>Calificación</Text>
+
+            {/* Tarjeta de calificación */}
+            <View style={styles.gradeCard}>
+              <View style={styles.gradeHeader}>
+                <MaterialIcons
+                  name="grade"
+                  size={24}
+                  color={
+                    assignment.submission.score >= 70
+                      ? "#4CAF50"
+                      : assignment.submission.score >= 50
+                        ? "#FF9800"
+                        : "#F44336"
+                  }
+                />
+                <View style={styles.gradeInfo}>
+                  <Text style={styles.gradeScore}>{assignment.submission.score}/100</Text>
+                  <Text
+                    style={[
+                      styles.gradeLabel,
+                      {
+                        color:
+                          assignment.submission.score >= 70
+                            ? "#4CAF50"
+                            : assignment.submission.score >= 50
+                              ? "#FF9800"
+                              : "#F44336",
+                      },
+                    ]}
+                  >
+                    {assignment.submission.score >= 70
+                      ? "Excelente"
+                      : assignment.submission.score >= 50
+                        ? "Bueno"
+                        : "Necesita mejorar"}
+                  </Text>
+                </View>
+                <Text style={styles.gradePercentage}>{Math.round(assignment.submission.score)}%</Text>
+              </View>
+
+              {/* Barra de progreso */}
+              <View style={styles.progressBarContainer}>
+                <View
+                  style={[
+                    styles.progressBar,
+                    {
+                      width: `${Math.min(assignment.submission.score, 100)}%`,
+                      backgroundColor:
+                        assignment.submission.score >= 70
+                          ? "#4CAF50"
+                          : assignment.submission.score >= 50
+                            ? "#FF9800"
+                            : "#F44336",
+                    },
+                  ]}
+                />
+              </View>
+
+              {/* Fecha de calificación */}
+              {assignment.submission.graded_at && (
+                <Text style={styles.gradedDate}>Calificado el {formatDate(assignment.submission.graded_at)}</Text>
+              )}
+            </View>
+
+            {/* Retroalimentación del docente */}
+            {assignment.submission.feedback && (
+              <View style={styles.feedbackContainer}>
+                <Text style={styles.feedbackTitle}>Comentarios del docente:</Text>
+                <Text style={styles.feedbackText}>{assignment.submission.feedback}</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Estado de entrega y respuestas */}
         {assignment.submission ? (
@@ -482,12 +562,17 @@ export const AssignmentsSection = ({
     const isLate = assignment.submission?.status === "late"
     const isExpanded = expandedAssignment === assignment.id
     const totalPoints = assignment.questions.reduce((sum, q) => sum + (q.points || 0), 0)
+    const isGraded = assignment.submission?.score !== undefined && assignment.submission?.score !== null
+    const hasGrade = isGraded && assignment.submission?.score >= 0
 
     return (
       <View key={assignment.id} style={styles.assignmentCardContainer}>
         <TouchableOpacity
           style={[styles.assignmentCard, isExpanded && styles.assignmentCardExpanded]}
-          onPress={() => setExpandedAssignment(isExpanded ? null : assignment.id)}
+          onPress={() => {
+            if (isTeacher) return
+            setExpandedAssignment(isExpanded ? null : assignment.id)
+          }}
         >
           <View style={styles.assignmentHeader}>
             <View style={styles.assignmentTitleRow}>
@@ -500,12 +585,14 @@ export const AssignmentsSection = ({
               <Text style={styles.assignmentTitle} numberOfLines={2}>
                 {assignment.title}
               </Text>
-              <FontAwesome
-                name={isExpanded ? "chevron-up" : "chevron-down"}
-                size={16}
-                color="#666"
-                style={styles.expandIcon}
-              />
+              { !isTeacher && (
+                <FontAwesome
+                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color="#666"
+                  style={styles.expandIcon}
+                />
+              )}
             </View>
 
             {onDownload && (
@@ -549,7 +636,7 @@ export const AssignmentsSection = ({
             <View style={styles.passingScoreInfo}>
               <MaterialIcons name="grade" size={16} color="#eb9b3b" />
               <Text style={styles.passingScoreText}>
-              {assignment.passing_score !== null && assignment.passing_score !== undefined
+                {assignment.passing_score !== null && assignment.passing_score !== undefined
                   ? `Puntuación mínima: ${assignment.passing_score} puntos`
                   : "Sin puntuación mínima"}
                 {assignment.passing_score !== null &&
@@ -588,6 +675,18 @@ export const AssignmentsSection = ({
                   <Text style={styles.addQuestionsButtonText}>Add Questions</Text>
                 </TouchableOpacity>
               )}
+
+              {/* Nuevo botón para ver entregas */}
+              <TouchableOpacity
+                style={styles.viewSubmissionsButton}
+                onPress={(e) => {
+                  e.stopPropagation()
+                  onViewSubmissions && onViewSubmissions(assignment.id)
+                }}
+              >
+                <MaterialIcons name="assignment-turned-in" size={18} color="#4CAF50" />
+                <Text style={styles.viewSubmissionsButtonText}>Ver Entregas</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.deleteAssignmentButton}
@@ -634,6 +733,38 @@ export const AssignmentsSection = ({
                   )}
                 </View>
               )}
+            </View>
+          )}
+
+          {/* Indicador de calificación para estudiantes */}
+          {!isTeacher && hasGrade && (
+            <View style={styles.gradeIndicator}>
+              <MaterialIcons
+                name="grade"
+                size={16}
+                color={
+                  assignment.submission.score >= 70
+                    ? "#4CAF50"
+                    : assignment.submission.score >= 50
+                      ? "#FF9800"
+                      : "#F44336"
+                }
+              />
+              <Text
+                style={[
+                  styles.gradeText,
+                  {
+                    color:
+                      assignment.submission.score >= 70
+                        ? "#4CAF50"
+                        : assignment.submission.score >= 50
+                          ? "#FF9800"
+                          : "#F44336",
+                  },
+                ]}
+              >
+                {assignment.submission.score}/100
+              </Text>
             </View>
           )}
         </TouchableOpacity>
@@ -953,7 +1084,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: "#fff3e6",
     borderRadius: 10,
-    textAlignVertical: "center"
+    textAlignVertical: "center",
   },
   passingScoreText: {
     fontSize: 12,
@@ -993,18 +1124,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   deleteAssignmentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-end',
-    backgroundColor:"rgb(255, 231, 231)",
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    backgroundColor: "rgb(255, 231, 231)",
     paddingVertical: 8,
     paddingHorizontal: 12,
     height: 44,
     borderRadius: 10,
   },
   deleteButtonText: {
-    color: 'rgb(238, 69, 69)',
-    fontWeight: '500',
+    color: "rgb(238, 69, 69)",
+    fontWeight: "500",
     marginLeft: 6,
   },
   studentActions: {
@@ -1280,5 +1411,105 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     fontSize: 12,
     marginLeft: 4,
+  },
+  viewSubmissionsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e8f5e8",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    height: 44,
+    borderRadius: 10,
+  },
+  viewSubmissionsButtonText: {
+    color: "#4CAF50",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+    gradeIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  gradeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  gradeCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  gradeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  gradeInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  gradeScore: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  gradeLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  gradePercentage: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#666",
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: "#e9ecef",
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  gradedDate: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "center",
+  },
+  feedbackContainer: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: "#007AFF",
+  },
+  feedbackTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  feedbackText: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 20,
   },
 })

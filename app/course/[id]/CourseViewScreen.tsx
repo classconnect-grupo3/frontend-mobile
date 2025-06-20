@@ -21,6 +21,9 @@ import { ViewQuestionsModal } from "@/components/courses/course/ViewQuestionsMod
 import { FeedbackSection } from "@/components/courses/course/FeedbackSection"
 import { StudentFeedbackForm } from "@/components/courses/feedback/StudentFeedbackForm"
 import type { JSX } from "react"
+import { SubmissionsListModal } from "@/components/courses/course/SubmissionsListModal"
+import { GradeSubmissionModal } from "@/components/courses/course/GradeSubmissionModal"
+import { GradesSummary } from "@/components/courses/course/GradesSummary"
 import React from "react"
 
 interface Question {
@@ -36,9 +39,13 @@ interface Question {
 export interface StudentSubmission {
   assignment_id: string
   id: string
+  student_uuid: string
   status: "draft" | "submitted" | "late"
   submitted_at?: string
   content: string
+  score?: number
+  feedback?: string
+  graded_at?: string
   answers?: {
     id: string
     content: string
@@ -127,6 +134,10 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const [hasFetchedMembers, setHasFetchedMembers] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<UserData | null>(null)
   const [showStudentForm, setShowStudentForm] = useState(false)
+  const [showSubmissionsModal, setShowSubmissionsModal] = useState(false)
+  const [selectedAssignmentForSubmissions, setSelectedAssignmentForSubmissions] = useState<Assignment | null>(null)
+  const [showGradeModal, setShowGradeModal] = useState(false)
+  const [selectedSubmissionForGrading, setSelectedSubmissionForGrading] = useState<any>(null)
   const auth = useAuth()
   const authState = auth?.authState
   const course = courses.find((c) => c.id === id)
@@ -545,7 +556,13 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     </View>
   )
 
-  const mainSections = [{ type: "tasks" }, { type: "exams" }, { type: "modules" }, { type: "feedback" }]
+  const mainSections = [
+    ...(teacher ? [] : [{ type: "grades" }]), // Solo para estudiantes
+    { type: "tasks" },
+    { type: "exams" },
+    { type: "modules" },
+    { type: "feedback" },
+  ]
 
   const handleAddQuestions = (assignmentId: string) => {
     const assignment = allAssignments.find((a) => a.id === assignmentId)
@@ -571,8 +588,30 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     )
   }
 
+  const handleViewSubmissions = (assignmentId: string) => {
+    const assignment = allAssignments.find((a) => a.id === assignmentId)
+    if (assignment) {
+      setSelectedAssignmentForSubmissions(assignment)
+      setShowSubmissionsModal(true)
+    }
+  }
+
+  const handleGradeSubmission = (submission: any) => {
+    setSelectedSubmissionForGrading(submission)
+    setShowGradeModal(true)
+    setShowSubmissionsModal(false)
+  }
+
+  const handleGradeSuccess = () => {
+    setShowGradeModal(false)
+    setSelectedSubmissionForGrading(null)
+    setShowSubmissionsModal(true) // Volver a la lista de entregas
+  }
+
   const renderMainSection = ({ item }: { item: { type: string } }) => {
     switch (item.type) {
+      case "grades":
+        return <GradesSummary assignments={allAssignments} />
       case "tasks":
         return (
           <AssignmentsSection
@@ -588,6 +627,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             onRefresh={fetchAssignments}
             onAddQuestions={handleAddQuestions}
             onViewQuestions={handleViewQuestions}
+            onViewSubmissions={handleViewSubmissions}
           />
         )
       case "exams":
@@ -605,6 +645,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             onRefresh={fetchAssignments}
             onAddQuestions={handleAddQuestions}
             onViewQuestions={handleViewQuestions}
+            onViewSubmissions={handleViewSubmissions}
           />
         )
       case "modules":
@@ -777,6 +818,26 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             onSuccess={handleFeedbackSuccess}
           />
         )}
+        <SubmissionsListModal
+          visible={showSubmissionsModal}
+          assignment={selectedAssignmentForSubmissions}
+          onClose={() => {
+            setShowSubmissionsModal(false)
+            setSelectedAssignmentForSubmissions(null)
+          }}
+          onGradeSubmission={handleGradeSubmission}
+        />
+
+        <GradeSubmissionModal
+          visible={showGradeModal}
+          assignment={selectedAssignmentForSubmissions}
+          submission={selectedSubmissionForGrading}
+          onClose={() => {
+            setShowGradeModal(false)
+            setSelectedSubmissionForGrading(null)
+          }}
+          onGradeSuccess={handleGradeSuccess}
+        />
       </SafeAreaView>
     </KeyboardAvoidingView>
   )
@@ -944,4 +1005,3 @@ const memberCardStyles = StyleSheet.create({
 export const options = {
   headerShown: false,
 }
-
