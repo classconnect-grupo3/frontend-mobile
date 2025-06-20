@@ -26,6 +26,7 @@ interface Props {
   course_id: string
   onAddQuestions?: (assignmentId: string) => void
   onViewQuestions?: (assignmentId: string) => void
+  onViewSubmissions?: (assignmentId: string) => void
 }
 
 type FilterStatus = "all" | "no_submission" | "draft" | "submitted" | "late"
@@ -47,6 +48,7 @@ export const AssignmentsSection = ({
   course_id,
   onAddQuestions,
   onViewQuestions,
+  onViewSubmissions,
 }: Props) => {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false)
   const [assignmentModalType, setAssignmentModalType] = useState<"task" | "exam">("task")
@@ -181,6 +183,8 @@ export const AssignmentsSection = ({
       let passingScore: number | undefined = undefined
       if (type === "exam" && data.has_passing_score && data.passing_score) {
         passingScore = data.passing_score
+      } else {
+        passingScore = 4
       }
 
       const newAssignment: Omit<Assignment, "id"> = {
@@ -206,7 +210,7 @@ export const AssignmentsSection = ({
           questions: newAssignment.questions,
           title: newAssignment.title,
           status: "published",
-          grace_period: 30, // what is grace_period? 
+          grace_period: 30, // what is grace_period?
           total_points: 100,
           type: newAssignment.type,
         },
@@ -221,6 +225,7 @@ export const AssignmentsSection = ({
       onRefresh()
     } catch (e) {
       console.error("Error creando assignment:", e)
+      console.log("more info: ", e.response?.data || e.message)
       Toast.show({ type: "error", text1: "No se pudo crear el assignment" })
     }
   }
@@ -352,12 +357,6 @@ export const AssignmentsSection = ({
         <View style={styles.detailsSection}>
           <Text style={styles.detailsSectionTitle}>Descripción</Text>
           <Text style={styles.detailsText}>{assignment.description}</Text>
-        </View>
-
-        {/* Instrucciones */}
-        <View style={styles.detailsSection}>
-          <Text style={styles.detailsSectionTitle}>Instrucciones</Text>
-          <Text style={styles.detailsText}>{assignment.instructions}</Text>
         </View>
 
         {/* Estado de entrega y respuestas */}
@@ -549,7 +548,7 @@ export const AssignmentsSection = ({
             <View style={styles.passingScoreInfo}>
               <MaterialIcons name="grade" size={16} color="#eb9b3b" />
               <Text style={styles.passingScoreText}>
-              {assignment.passing_score !== null && assignment.passing_score !== undefined
+                {assignment.passing_score !== null && assignment.passing_score !== undefined
                   ? `Puntuación mínima: ${assignment.passing_score} puntos`
                   : "Sin puntuación mínima"}
                 {assignment.passing_score !== null &&
@@ -588,6 +587,18 @@ export const AssignmentsSection = ({
                   <Text style={styles.addQuestionsButtonText}>Add Questions</Text>
                 </TouchableOpacity>
               )}
+
+              {/* Nuevo botón para ver entregas */}
+              <TouchableOpacity
+                style={styles.viewSubmissionsButton}
+                onPress={(e) => {
+                  e.stopPropagation()
+                  onViewSubmissions && onViewSubmissions(assignment.id)
+                }}
+              >
+                <MaterialIcons name="assignment-turned-in" size={18} color="#4CAF50" />
+                <Text style={styles.viewSubmissionsButtonText}>Ver Entregas</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.deleteAssignmentButton}
@@ -953,7 +964,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: "#fff3e6",
     borderRadius: 10,
-    textAlignVertical: "center"
+    textAlignVertical: "center",
   },
   passingScoreText: {
     fontSize: 12,
@@ -993,18 +1004,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   deleteAssignmentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-end',
-    backgroundColor:"rgb(255, 231, 231)",
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    backgroundColor: "rgb(255, 231, 231)",
     paddingVertical: 8,
     paddingHorizontal: 12,
     height: 44,
     borderRadius: 10,
   },
   deleteButtonText: {
-    color: 'rgb(238, 69, 69)',
-    fontWeight: '500',
+    color: "rgb(238, 69, 69)",
+    fontWeight: "500",
     marginLeft: 6,
   },
   studentActions: {
@@ -1280,5 +1291,21 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     fontSize: 12,
     marginLeft: 4,
+  },
+  viewSubmissionsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e8f5e8",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    height: 44,
+    borderRadius: 10,
+  },
+  viewSubmissionsButtonText: {
+    color: "#4CAF50",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
   },
 })

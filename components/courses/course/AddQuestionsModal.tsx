@@ -161,7 +161,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
 
       // Prepare questions for API
       const apiQuestions = questions.map((q, index) => ({
-        id: q.id.startsWith('temp_') ? undefined : q.id, // Let backend generate ID for new questions
+        id: index.toString(), // Let backend generate ID for new questions
         text: q.text.trim(),
         type: q.type,
         options: q.type === "multiple_choice" ? q.options : undefined,
@@ -204,6 +204,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
       onClose()
     } catch (error) {
       console.error("Error updating assignment with questions:", error)
+      console.log("Error details:", error.response?.data || error.message)
       Toast.show({
         type: "error",
         text1: "Error al agregar preguntas",
@@ -497,6 +498,7 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
+    color: "#333",
   },
   optionsSection: {
     marginTop: 8,

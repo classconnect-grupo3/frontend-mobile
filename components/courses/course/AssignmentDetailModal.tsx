@@ -1,5 +1,5 @@
 "use client"
-import Toast from 'react-native-toast-message';
+import Toast from "react-native-toast-message"
 import { useState, useRef } from "react"
 import {
   Modal,
@@ -98,9 +98,12 @@ export function AssignmentDetailModal({ visible, assignment, onClose, onStartExa
       )
     }
 
+    const isGraded = assignment.submission.score !== undefined && assignment.submission.score !== null
+    const totalPoints = assignment.questions.reduce((sum, q) => sum + (q.points || 0), 0)
+
     return (
       <View style={styles.submissionAnswersSection}>
-        <Text style={styles.sectionTitle}>Mis respuestas</Text>
+        <Text style={styles.sectionTitle}>Mi entrega</Text>
 
         {/* Estado de la entrega */}
         <View
@@ -132,8 +135,41 @@ export function AssignmentDetailModal({ visible, assignment, onClose, onStartExa
           )}
         </View>
 
+        {/* Calificación y retroalimentación */}
+        {isGraded && (
+          <View style={styles.gradeSection}>
+            <View style={styles.gradeHeader}>
+              <MaterialIcons name="grade" size={20} color="#4CAF50" />
+              <Text style={styles.gradeTitle}>Calificación</Text>
+            </View>
+
+            <View style={styles.gradeContent}>
+              <View style={styles.scoreContainer}>
+                <Text style={styles.scoreText}>
+                  {assignment.submission.score}/{totalPoints} puntos
+                </Text>
+                <Text style={styles.percentageText}>
+                  ({Math.round((assignment.submission.score / totalPoints) * 100)}%)
+                </Text>
+              </View>
+
+              {assignment.submission.feedback && (
+                <View style={styles.feedbackContainer}>
+                  <Text style={styles.feedbackTitle}>Retroalimentación del docente:</Text>
+                  <Text style={styles.feedbackText}>{assignment.submission.feedback}</Text>
+                </View>
+              )}
+
+              {assignment.submission.graded_at && (
+                <Text style={styles.gradedDate}>Calificado el {formatDate(assignment.submission.graded_at)}</Text>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Respuestas */}
         <View style={styles.answersContainer}>
+          <Text style={styles.answersTitle}>Mis respuestas</Text>
           {assignment.submission.answers.map((answer, index) => {
             const question = assignment.questions.find((q) => q.id === answer.question_id)
             return (
@@ -172,7 +208,6 @@ export function AssignmentDetailModal({ visible, assignment, onClose, onStartExa
                         <TouchableOpacity
                           style={styles.fileLink}
                           onPress={() => {
-                            // Abrir el enlace en el navegador
                             Linking.openURL(answer.content).catch((err) => {
                               console.error("Error al abrir el archivo:", err)
                               Toast.show({
@@ -653,5 +688,73 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginLeft: 8,
     marginRight: "auto",
+  },
+  gradeSection: {
+    backgroundColor: "#e8f5e8",
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4CAF50",
+  },
+  gradeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  gradeTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#4CAF50",
+    marginLeft: 8,
+  },
+  gradeContent: {
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    padding: 12,
+  },
+  scoreContainer: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: 8,
+  },
+  scoreText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#4CAF50",
+    marginRight: 8,
+  },
+  percentageText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  feedbackContainer: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 6,
+    padding: 12,
+    marginTop: 12,
+  },
+  feedbackTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: 6,
+  },
+  feedbackText: {
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 20,
+  },
+  gradedDate: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 8,
+    fontStyle: "italic",
+  },
+  answersTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 12,
   },
 })
