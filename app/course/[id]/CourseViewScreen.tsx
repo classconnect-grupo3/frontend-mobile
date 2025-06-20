@@ -21,6 +21,7 @@ import { ViewQuestionsModal } from "@/components/courses/course/ViewQuestionsMod
 import { FeedbackSection } from "@/components/courses/course/FeedbackSection"
 import { StudentFeedbackForm } from "@/components/courses/feedback/StudentFeedbackForm"
 import type { JSX } from "react"
+import React from "react"
 
 interface Question {
   id: string
