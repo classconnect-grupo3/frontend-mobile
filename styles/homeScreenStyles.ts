@@ -3,9 +3,6 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 48,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
   },
   row: {
     paddingBottom: 24,
@@ -126,7 +123,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#eee',
     borderRadius: 8,
-    paddingHorizontal: 12,
   },
   input: {
     flex: 1,

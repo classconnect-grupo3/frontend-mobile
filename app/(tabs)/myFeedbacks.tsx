@@ -19,6 +19,7 @@ import Toast from "react-native-toast-message"
 import Header from "@/components/Header"
 import { styles as homeScreenStyles } from "@/styles/homeScreenStyles"
 import React from "react"
+import { ScreenLayout } from "@/components/layout/ScreenLayout"
 
 interface StudentFeedback {
   id: string
@@ -311,12 +312,13 @@ export default function MyFeedbacksScreen() {
   }
 
   return (
+    <ScreenLayout>
     <View style={homeScreenStyles.container}>
       <Header />
 
       <View style={styles.content}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>Mis Feedbacks</Text>
+          <Text style={styles.title}>Feedbacks</Text>
           <TouchableOpacity
             style={[
               styles.summaryButton,
@@ -474,19 +476,20 @@ export default function MyFeedbacksScreen() {
         </View>
       </Modal>
     </View>
+    </ScreenLayout>
   )
 }
 
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    padding: 16,
   },
   titleContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+    gap: 16,
   },
   title: {
     fontSize: 24,

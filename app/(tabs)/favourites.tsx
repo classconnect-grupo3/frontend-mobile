@@ -10,6 +10,7 @@ import Header from "@/components/Header"
 import { MaterialIcons } from "@expo/vector-icons"
 import { router } from "expo-router"
 import React from "react"
+import { ScreenLayout } from "@/components/layout/ScreenLayout"
 
 const ITEMS_PER_PAGE = 5
 
@@ -91,6 +92,7 @@ export default function FavoritesScreen() {
   )
 
   return (
+    <ScreenLayout>
     <View style={homeScreenStyles.container}>
       <Header />
 
@@ -98,16 +100,23 @@ export default function FavoritesScreen() {
         <Text style={styles.title}>Cursos Favoritos</Text>
 
         {/* Barra de búsqueda */}
-        <View style={courseStyles.filterContainer}>
-          <MaterialIcons name="search" size={24} color="#666" style={courseStyles.filterIcon} />
-          <TextInput
-            style={courseStyles.filterInput}
-            placeholder="Buscar en favoritos..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+        <View style={courseStyles.searchContainer}>
+          <View style={courseStyles.searchBar}>
+            <MaterialIcons name="search" size={20} color="#666" style={courseStyles.searchIcon} />
+            <TextInput
+              style={courseStyles.searchInput}
+              placeholderTextColor="#999"
+              placeholder="Buscar favoritos..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery("")} style={courseStyles.clearButton}>
+                <MaterialIcons name="clear" size={20} color="#666" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-
         {isLoadingCourses ? (
           <ActivityIndicator size="large" style={{ marginTop: 20 }} />
         ) : favoriteCourses.length === 0 ? (
@@ -131,13 +140,13 @@ export default function FavoritesScreen() {
         )}
       </View>
     </View>
+    </ScreenLayout>
   )
 }
 
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    padding: 16,
   },
   title: {
     fontSize: 24,

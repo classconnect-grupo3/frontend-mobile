@@ -6,8 +6,9 @@ import { useAuth } from '@/contexts/sessionAuth';
 
 export default function Header() {
     const router = useRouter();
-    const { authState } = useAuth();
-    const profileImageUrl = authState.user?.profilePicUrl;
+    const authContext = useAuth();
+    const auth = authContext?.authState;
+    const profileImageUrl = auth?.user?.profilePicUrl;
 
     return (
         <View style={homeStyles.topBar}>

@@ -80,7 +80,7 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
             Authorization: `Bearer ${authState.token}`,
           },
         }),
-        fetchFavoriteCourses(userId, authState.token),
+        fetchFavoriteCourses(userId, authState.token ? authState.token : ""),
       ]);
 
       const isFavorite = (id: string) => favoriteIds.includes(id);
@@ -161,7 +161,7 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
       await reloadCourses()
     } catch (e) {
       console.error("Error toggling favorite:", e)
-      console.error("more error details:", e.response?.data || e.message)
+      console.error("more error details:", (e as any).response?.data || (e as any).message)
       Toast.show({
         type: "error",
         text1: "Error al actualizar favoritos",

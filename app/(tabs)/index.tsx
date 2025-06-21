@@ -1,132 +1,200 @@
-import { CountryPickerModal } from '@/components/CountryPickerModal';
-import { CourseList } from '@/components/courses/CourseList';
-import { useAuth } from '@/contexts/sessionAuth';
-import { client } from '@/lib/http';
-import { styles } from '@/styles/homeScreenStyles';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
-import {
-  Button,
-  Image,
-  Modal,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import Toast from 'react-native-toast-message';
-import * as Location from 'expo-location';
-import { UpcomingTasksList } from '@/components/UpcomingTaskList';
-import React from 'react';
-import { useCourses } from '@/contexts/CoursesContext';
-import Header from '@/components/Header';
+"use client"
 
-const MOCK_TASKS = [
-  { id: '1', title: 'TP1: Prog Dinámica', course_name: 'TDA', due_date: '23/05/25', course_id: '1' },
-  { id: '2', title: 'Leer hasta 5.4', course_name: 'Redes', due_date: '24/05/25', course_id: '2' },
-  { id: '3', title: 'TP Individual', course_name: 'TDA', due_date: '25/05/25', course_id: '3' },
-];
+import { useEffect, useState } from "react"
+import { View, Text, Image, TouchableOpacity, FlatList, StyleSheet } from "react-native"
+import { router } from "expo-router"
+import { useAuth } from "@/contexts/sessionAuth"
+import { useCourses } from "@/contexts/CoursesContext"
+import { WideCourseCard } from "@/components/courses/WideCourseCard"
+import { ScreenLayout } from "@/components/layout/ScreenLayout"
+import { Colors, Typography, Spacing, LayoutStyles } from "@/styles/shared"
+import { MaterialIcons } from "@expo/vector-icons"
+import React from "react"
+
+interface Task {
+  id: string
+  title: string
+  due_date: string
+  course_name: string
+  course_id: string
+}
 
 export default function HomeScreen() {
-  const auth = useAuth();
-  const router = useRouter();
-  const [showCreateCourse, setShowCreateCourse] = useState(false);
-  const [locationLabel, setLocationLabel] = useState<string | null>(null);
-  const {courses, addCourse} = useCourses();
+  const auth = useAuth()
+  const { courses, reloadCourses, isLoadingCourses } = useCourses()
+  const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([])
+
+  const authState = auth?.authState
+  const user = authState?.user
 
   useEffect(() => {
-    const requestAndSaveLocation = async () => {
-      if (!auth?.authState.authenticated) return;
+    if (authState?.authenticated) {
+      reloadCourses()
+      // TODO: Fetch upcoming tasks from API
+      setUpcomingTasks([
+        {
+          id: "1",
+          title: "Ensayo sobre React Native",
+          due_date: "2024-01-25T23:59:00Z",
+          course_name: "Desarrollo Móvil",
+          course_id: "1",
+        },
+        {
+          id: "2",
+          title: "Examen de Matemáticas",
+          due_date: "2024-01-20T10:00:00Z",
+          course_name: "Cálculo I",
+          course_id: "2",
+        },
+      ])
+    }
+  }, [authState?.authenticated])
 
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          Toast.show({
-            type: 'error',
-            text1: 'Location permission denied',
-            // export default function App() {
-            //   const { session } = useSession();
-            //   if (!session) return <Redirect href="/(login)" />;
-            //   return <Redirect href="/(tabs)" />;
-            // }
-            text2: 'We couldn’t access your location.',
-          });
-          return;
-        }
+  const handleProfilePress = () => {
+    router.push("/profile")
+  }
 
-        const location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
-
-        const reverse = await Location.reverseGeocodeAsync({ latitude, longitude });
-        if (reverse.length > 0) {
-          const place = reverse[0];
-          const label = `📍 ${place.city ?? place.name}, ${place.country}`;
-          setLocationLabel(label);
-        }
-
-        await client.post(
-          '/users/me/location',
-          { latitude, longitude },
-          {
-            headers: {
-              Authorization: `Bearer ${auth.authState.token}`,
-            },
-          }
-        );
-
-        Toast.show({
-          type: 'success',
-          text1: 'Location saved',
-          text2: 'Your location has been registered.',
-        });
-      } catch (error) {
-        console.error('Failed to get or save location', error);
-        Toast.show({
-          type: 'error',
-          text1: 'Location error',
-          text2: 'Something went wrong while saving your location.',
-        });
-      }
-    };
-
-    requestAndSaveLocation();
-  }, [auth]);
-
-  const renderCourse = ({ item }: any) => (
-    <View style={styles.courseCard}>
-      <Text style={styles.courseTitle}>{item.title}</Text>
-      <Text style={styles.courseTeacher}>{item.teacher}</Text>
-      <Text style={styles.courseDetails}>Next: {item.due}</Text>
-    </View>
-  );
+  const recentCourses = courses?.slice(0, 5) || []
 
   return (
-    <View style={styles.container}>
-      <Modal visible={showCreateCourse} animationType="slide">
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ fontSize: 20, marginBottom: 16 }}>Create Course (WIP)</Text>
-          <Button title="Close" onPress={() => setShowCreateCourse(false)} />
+    <ScreenLayout>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Image source={require("@/assets/images/logo.png")} style={styles.logo} />
         </View>
-      </Modal>
-
-      <Header/>
-
-      <View style={styles.content}>
-        <View style={styles.row}>
-          <Text style={styles.title}>Upcoming Tasks</Text>
-          <UpcomingTasksList tasks={MOCK_TASKS} />
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.title}>Recent Courses</Text>
-          <CourseList courses={courses} />
-        </View>
+        <TouchableOpacity onPress={handleProfilePress} style={styles.profileButton}>
+          <Image
+            source={
+              user?.profilePicUrl
+                ? { uri: user.profilePicUrl }
+                : require("@/assets/images/profile_placeholder.png")
+            }
+            style={styles.profileImage}
+          />
+        </TouchableOpacity>
       </View>
 
-      {
-        locationLabel && (
-          <Text style={styles.countryText}>{locationLabel}</Text>
-        )
-      }
+      {/* Welcome Section */}
+      <View style={[LayoutStyles.section, styles.welcomeSection]}>
+        <Text style={styles.welcomeText}>¡Hola, {user?.name || "Usuario"}! 👋</Text>
+        <Text style={styles.subtitleText}>Continúa con tu aprendizaje</Text>
+      </View>
 
-    </View>
-  );
+      {/* Upcoming Tasks */}
+      {upcomingTasks.length > 0 && (
+        <View style={LayoutStyles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Próximas tareas</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllText}>Ver todas</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Recent Courses */}
+      <View style={LayoutStyles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Cursos recientes</Text>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/myCourses")}>
+            <Text style={styles.seeAllText}>Ver todos</Text>
+          </TouchableOpacity>
+        </View>
+
+        {isLoadingCourses ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Cargando cursos...</Text>
+          </View>
+        ) : recentCourses.length > 0 ? (
+          <View>
+            {recentCourses.map((course) => (
+              <WideCourseCard 
+                course={course} 
+                onPress={() => router.push(course.role === "teacher" ? `/course/${course.id}` : `/course/${course.id}/student`)}
+                showFavoriteButton={course.role === "student"}
+              />
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="school" size={48} color={Colors.textMuted} />
+            <Text style={styles.emptyText}>No tienes cursos aún</Text>
+            <Text style={styles.emptySubtext}>Explora y únete a cursos interesantes</Text>
+          </View>
+        )}
+      </View>
+    </ScreenLayout>
+  )
 }
+
+const styles = StyleSheet.create({
+  header: {
+    ...LayoutStyles.spaceBetween,
+    marginBottom: Spacing.xl,
+  },
+  logo: {
+    width: 120,
+    height: 40,
+    resizeMode: "contain",
+  },
+  profileButton: {
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.lightGray,
+  },
+  welcomeSection: {
+    marginBottom: Spacing.xl,
+  },
+  welcomeText: {
+    ...Typography.h3,
+    marginBottom: Spacing.xs,
+  },
+  subtitleText: {
+    ...Typography.body1,
+    color: Colors.textSecondary,
+  },
+  sectionHeader: {
+    ...LayoutStyles.spaceBetween,
+    marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    ...Typography.h5,
+  },
+  seeAllText: {
+    ...Typography.body2,
+    color: Colors.primary,
+    fontWeight: "600",
+  },
+  horizontalList: {
+    paddingLeft: 0,
+  },
+  loadingContainer: {
+    ...LayoutStyles.center,
+    paddingVertical: Spacing.xl,
+  },
+  loadingText: {
+    ...Typography.body2,
+    color: Colors.textSecondary,
+  },
+  emptyContainer: {
+    ...LayoutStyles.center,
+    paddingVertical: Spacing.xxxl,
+  },
+  emptyText: {
+    ...Typography.h6,
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  emptySubtext: {
+    ...Typography.body2,
+    color: Colors.textMuted,
+    textAlign: "center",
+  },
+})
