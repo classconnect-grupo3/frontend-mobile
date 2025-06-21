@@ -292,7 +292,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
   )
 
   const renderQuestion = (question: Question, index: number) => (
-    <View key={question.id} style={styles.questionCard}>
+    <View key={index} style={styles.questionCard}>
       <View style={styles.questionHeader}>
         <Text style={styles.questionNumber}>Pregunta {index + 1}</Text>
         <TouchableOpacity onPress={() => removeQuestion(index)} style={styles.removeButton}>

@@ -19,7 +19,9 @@ import { CreateCourseModal } from "@/components/courses/CreateCourseModal"
 import { WideCourseCard } from "@/components/courses/WideCourseCard"
 import type { Course } from "@/contexts/CoursesContext"
 import { styles as courseStyles } from "@/styles/courseStyles"
+import { ScreenLayout } from "@/components/layout/ScreenLayout"
 import React from "react"
+import { Colors } from "@/styles/shared"
 
 const ITEMS_PER_PAGE = 5
 const { width } = Dimensions.get("window")
@@ -130,6 +132,7 @@ export default function MyCoursesScreen() {
   )
 
   return (
+    <ScreenLayout>
     <View style={styles.container}>
       <Header />
 
@@ -137,14 +140,22 @@ export default function MyCoursesScreen() {
         <Text style={localStyles.title}>Mis Cursos</Text>
 
         {/* Barra de búsqueda */}
-        <View style={courseStyles.filterContainer}>
-          <MaterialIcons name="search" size={24} color="#666" style={courseStyles.filterIcon} />
-          <TextInput
-            style={courseStyles.filterInput}
-            placeholder="Buscar cursos..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+        <View style={courseStyles.searchContainer}>
+          <View style={courseStyles.searchBar}>
+            <MaterialIcons name="search" size={20} color="#666" style={courseStyles.searchIcon} />
+            <TextInput
+              style={courseStyles.searchInput}
+              placeholderTextColor="#999"
+              placeholder="Buscar cursos..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery("")} style={courseStyles.clearButton}>
+                <MaterialIcons name="clear" size={20} color="#666" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Pestañas de navegación */}
@@ -226,18 +237,19 @@ export default function MyCoursesScreen() {
 
       <CreateCourseModal visible={showCreateCourseModal} onClose={() => setShowCreateCourseModal(false)} />
     </View>
+    </ScreenLayout>
   )
 }
 
 const localStyles = StyleSheet.create({
   content: {
     flex: 1,
-    padding: 16,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16,
+    color: "black",
   },
   subtitle: {
     fontSize: 14,
@@ -246,9 +258,9 @@ const localStyles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: "row",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: Colors.lightGray,
     borderRadius: 12,
-    marginVertical: 16,
+    marginBottom: 16,
     padding: 4,
   },
   tab: {
@@ -256,7 +268,7 @@ const localStyles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
+    borderRadius: 10,
     flexDirection: "row",
   },
   activeTab: {
@@ -316,5 +328,26 @@ const localStyles = StyleSheet.create({
   },
   emptyIcon: {
     marginBottom: 10,
+  },
+  searchContainer: {
+    paddingBottom: 16,
+  },
+  searchBar: {
+    height: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#333",
   },
 })

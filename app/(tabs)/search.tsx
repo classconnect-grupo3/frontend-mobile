@@ -13,6 +13,8 @@ import { EnrollModal } from "@/components/courses/EnrollModal"
 import { useCourses } from "@/contexts/CoursesContext"
 import Toast from "react-native-toast-message"
 import React from "react"
+import { ScreenLayout } from "@/components/layout/ScreenLayout"
+import { Colors } from "@/styles/shared"
 
 interface User {
   uid: string
@@ -257,8 +259,12 @@ export default function SearchScreen() {
   )
 
   return (
+    <ScreenLayout>
     <View style={homeStyles.container}>
       <Header />
+      <Text style={styles.title}>
+        Buscar {selectedTab === "users" ? "Usuarios" : "Cursos"} 
+      </Text>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -343,6 +349,7 @@ export default function SearchScreen() {
           />
         )}
       </View>
+      
 
       {/* Modals */}
       <UserActionsModal
@@ -365,21 +372,27 @@ export default function SearchScreen() {
         />
       )}
     </View>
+    </ScreenLayout>
   )
 }
 
 const styles = StyleSheet.create({
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 16,
+    color: "black",
+  },
   searchContainer: {
-    paddingHorizontal: 16,
     paddingBottom: 16,
   },
   searchBar: {
+    height: 64,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f8f9fa",
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
     borderWidth: 1,
     borderColor: "#e9ecef",
   },
@@ -398,7 +411,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginHorizontal: 16,
     marginBottom: 16,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: Colors.lightGray,
     borderRadius: 12,
     padding: 4,
   },
@@ -431,7 +444,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
   },
   emptyState: {
     flex: 1,
