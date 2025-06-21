@@ -14,17 +14,35 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: Colors.light.tabIconSelected,
+        tabBarInactiveTintColor: Colors.light.tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            // Use a transparent background on iOS to show the blur effect
+            // transparent background on iOS to show the blur effect
             position: "absolute",
+            height: 64,
+            borderTopWidth: 0,
           },
-          default: {},
+          default: {
+            backgroundColor: "#fff",
+            height: 64,
+            borderTopWidth: 0,
+            shadowOpacity: 0.1, // no se por que pero las sombras no se ven 
+            shadowColot: "#000",
+            shadowOffset: { width: 0, height: -3 },
+            shadowRadius: 6,
+            elevation: 1,
+          },
         }),
+        tabBarItemStyle: {
+          flex: 1,
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+        },
       }}
     >
       <Tabs.Screen
@@ -65,6 +83,7 @@ export default function TabLayout() {
         name="myFeedbacks"
         options={{
           title: "Mis Feedbacks",
+          headerTitleAlign: "left",
           tabBarIcon: ({ color, focused }) => (
             // <TabBarIcon name={focused ? "chatbubble" : "chatbubble-outline"} color={color} />
             <MaterialIcons size={28} name="feedback" color={color} />

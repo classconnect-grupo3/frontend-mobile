@@ -283,7 +283,7 @@ export function ViewQuestionsModal({ visible, assignment, onClose, onAddQuestion
               assignment.questions
                 .sort((a, b) => a.order - b.order)
                 .map((question, index) => (
-                  <View key={question.id} style={styles.questionCard}>
+                  <View key={index} style={styles.questionCard}>
                     <View style={styles.questionHeader}>
                       <View style={styles.questionNumber}>
                         <Text style={styles.questionNumberText}>{index + 1}</Text>
@@ -301,8 +301,8 @@ export function ViewQuestionsModal({ visible, assignment, onClose, onAddQuestion
 
                     {question.type === "multiple_choice" && question.options && (
                       <View style={styles.optionsContainer}>
-                        {question.options.map((option, optionIndex) => (
-                          <View key={optionIndex} style={styles.optionItem}>
+                        {question.options.map((option) => (
+                          <View key={`${question.id}-${option}`} style={styles.optionItem}>
                             <View
                               style={[
                                 styles.optionBullet,

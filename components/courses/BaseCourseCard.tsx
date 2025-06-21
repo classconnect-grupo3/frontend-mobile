@@ -46,7 +46,7 @@ export function BaseCourseCard({ course, cardStyle, onPress }: BaseProps) {
         </View>
         <View style={styles.row}>
           <MaterialCommunityIcons name="account-group" size={18} color={Colors.primary} />
-          <Text style={styles.text}>Capacity: {course.capacity}</Text>
+          <Text style={styles.text}>Cupos: {course.capacity}</Text>
         </View>
       </View>
     </TouchableOpacity>

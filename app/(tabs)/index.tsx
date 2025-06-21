@@ -108,8 +108,9 @@ export default function HomeScreen() {
           </View>
         ) : recentCourses.length > 0 ? (
           <View>
-            {recentCourses.map((course) => (
+            {recentCourses.map((course, idx) => (
               <WideCourseCard 
+                key={idx}
                 course={course} 
                 onPress={() => router.push(course.role === "teacher" ? `/course/${course.id}` : `/course/${course.id}/student`)}
                 showFavoriteButton={course.role === "student"}

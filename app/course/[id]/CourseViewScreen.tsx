@@ -1001,7 +1001,3 @@ const memberCardStyles = StyleSheet.create({
     fontWeight: "500",
   },
 })
-
-export const options = {
-  headerShown: false,
-}
