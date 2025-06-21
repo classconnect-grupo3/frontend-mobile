@@ -1,3 +1,5 @@
+"use client"
+
 import {
   View,
   Text,
@@ -9,62 +11,61 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
-  Button,
   Alert,
-} from 'react-native';
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/sessionAuth';
-import { fetchUserData } from '@/services/userProfile';
-import { client } from '@/lib/http';
-import Toast from 'react-native-toast-message';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, Controller } from 'react-hook-form';
-import React from 'react';
-import * as ImagePicker from 'expo-image-picker';
-import { fetchProfileImage, uploadToFirebase } from '@/firebaseConfig';
+} from "react-native"
+import { useEffect, useState } from "react"
+import { useAuth } from "@/contexts/sessionAuth"
+import { fetchUserData } from "@/services/userProfile"
+import { client } from "@/lib/http"
+import Toast from "react-native-toast-message"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm, Controller } from "react-hook-form"
+import * as ImagePicker from "expo-image-picker"
+import { fetchProfileImage, uploadToFirebase } from "@/firebaseConfig"
+import React from "react"
 
 const schema = z.object({
-  name: z.string().min(1, 'First name is required'),
-  surname: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Must be a valid email'),
-});
+  name: z.string().min(1, "First name is required"),
+  surname: z.string().min(1, "Last name is required"),
+  email: z.string().email("Must be a valid email"),
+})
 
-type FormData = z.infer<typeof schema>;
+type FormData = z.infer<typeof schema>
 
 export default function ProfileScreen() {
   const [userData, setUserData] = useState<{
-    name: string;
-    surname: string;
-    email: string;
-    location: string;
-  } | null>(null);
+    name: string
+    surname: string
+    email: string
+    location: string
+  } | null>(null)
 
-  const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false);
-  const  auth = useAuth();
-  const [permission, requestPermission] = ImagePicker.useCameraPermissions();
-  const [files, setFiles] = useState<{ name: string }[]>([]);
-  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true)
+  const [editMode, setEditMode] = useState(false)
+  const auth = useAuth()
+  const [permission, requestPermission] = ImagePicker.useCameraPermissions()
+  const [files, setFiles] = useState<{ name: string }[]>([])
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
 
   const handleChoosePhoto = () => {
     Alert.alert(
-      'Seleccionar foto de perfil',
-      '¿Cómo querés subir tu foto?',
+      "Seleccionar foto de perfil",
+      "¿Cómo querés subir tu foto?",
       [
         {
-          text: 'Desde la galería',
+          text: "Desde la galería",
           onPress: pickFromGallery,
         },
         {
-          text: 'Tomar foto',
+          text: "Tomar foto",
           onPress: takePhoto,
         },
-        { text: 'Cancelar', style: 'cancel' },
+        { text: "Cancelar", style: "cancel" },
       ],
-      { cancelable: true }
-    );
-  };
+      { cancelable: true },
+    )
+  }
 
   const takePhoto = async () => {
     try {
@@ -72,23 +73,23 @@ export default function ProfileScreen() {
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
-      });
+      })
 
       if (!cameraResp.canceled) {
-        const { uri } = cameraResp.assets[0];
-        const userId = auth?.authState?.user?.id;
-        if (!userId) throw new Error("No user ID");
+        const { uri } = cameraResp.assets[0]
+        const userId = auth?.authState?.user?.id
+        if (!userId) throw new Error("No user ID")
 
-        const uploadResp = await uploadToFirebase(uri, `${userId}.jpg`);
-        console.log('Foto subida desde cámara:', uploadResp);
-        const url = await fetchProfileImage(userId);
-        setProfileImageUrl(url);
-        auth.setProfilePicUrl(url);
+        const uploadResp = await uploadToFirebase(uri, `${userId}.jpg`)
+        console.log("Foto subida desde cámara:", uploadResp)
+        const url = await fetchProfileImage(userId)
+        setProfileImageUrl(url)
+        auth.setProfilePicUrl(url)
       }
     } catch (e) {
-      Alert.alert('Error tomando foto: ' + e.message);
+      Alert.alert("Error tomando foto: " + e.message)
     }
-  };
+  }
 
   const pickFromGallery = async () => {
     try {
@@ -96,23 +97,23 @@ export default function ProfileScreen() {
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
-      });
+      })
 
       if (!pickerResp.canceled) {
-        const { uri } = pickerResp.assets[0];
-        const userId = auth?.authState?.user?.id;
-        if (!userId) throw new Error("No user ID");
+        const { uri } = pickerResp.assets[0]
+        const userId = auth?.authState?.user?.id
+        if (!userId) throw new Error("No user ID")
 
-        const uploadResp = await uploadToFirebase(uri, `${userId}.jpg`);
-        console.log('Foto subida desde galería:', uploadResp);
-        const url = await fetchProfileImage(userId);
-        setProfileImageUrl(url);
-        auth.setProfilePicUrl(url);
+        const uploadResp = await uploadToFirebase(uri, `${userId}.jpg`)
+        console.log("Foto subida desde galería:", uploadResp)
+        const url = await fetchProfileImage(userId)
+        setProfileImageUrl(url)
+        auth.setProfilePicUrl(url)
       }
     } catch (e) {
-      Alert.alert('Error subiendo imagen: ' + e.message);
+      Alert.alert("Error subiendo imagen: " + e.message)
     }
-  };
+  }
 
   const {
     control,
@@ -121,45 +122,45 @@ export default function ProfileScreen() {
     formState: { errors, isSubmitting, isValid },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    mode: 'onChange',
+    mode: "onChange",
     defaultValues: {
-      name: '',
-      surname: '',
-      email: '',
+      name: "",
+      surname: "",
+      email: "",
     },
-  });
+  })
 
   useEffect(() => {
     const loadUser = async () => {
       try {
-        if (!auth?.authState.token) return;
-        const data = await fetchUserData(auth.authState.token);
-        setUserData(data);
+        if (!auth?.authState.token) return
+        const data = await fetchUserData(auth.authState.token)
+        setUserData(data)
         reset({
           name: data.name,
           surname: data.surname,
           email: data.email,
-        });
+        })
         if (auth?.authState?.user?.id) {
-          const url = await fetchProfileImage(auth.authState.user.id);
-          setProfileImageUrl(url);
+          const url = await fetchProfileImage(auth.authState.user.id)
+          setProfileImageUrl(url)
         }
       } catch (err) {
-        console.error('Failed to load user:', err);
+        console.error("Failed to load user:", err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-    
-    loadUser();
-  }, []);
+    }
+
+    loadUser()
+  }, [])
 
   const handleSave = async (data: FormData) => {
-    if (!auth) return;
+    if (!auth) return
 
     try {
       await client.patch(
-        '/users/me',
+        "/users/me",
         {
           ...data,
         },
@@ -167,137 +168,156 @@ export default function ProfileScreen() {
           headers: {
             Authorization: `Bearer ${auth.authState.token}`,
           },
-        }
-      );
+        },
+      )
+
+      setUserData((prev) => (prev ? { ...prev, ...data } : null))
 
       Toast.show({
-        type: 'success',
-        text1: 'Profile updated',
-      });
+        type: "success",
+        text1: "Perfil actualizado",
+        text2: "Los cambios se guardaron correctamente",
+      })
 
-      setEditMode(false);
+      setEditMode(false)
     } catch (e) {
-      console.error('Error updating profile', e);
+      console.error("Error updating profile", e)
       Toast.show({
-        type: 'error',
-        text1: 'Update failed',
-        text2: 'Something went wrong while updating your profile.',
-      });
+        type: "error",
+        text1: "Error al actualizar",
+        text2: "Algo salió mal al actualizar tu perfil.",
+      })
     }
-  };
+  }
+
+  const handleCancel = () => {
+    if (userData) {
+      reset({
+        name: userData.name,
+        surname: userData.surname,
+        email: userData.email,
+      })
+    }
+    setEditMode(false)
+  }
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007BFF" />
+        <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
-    );
+    )
   }
 
   if (!userData) {
     return (
-      <View style={styles.container}>
-        <Text>Failed to load user data.</Text>
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Error al cargar los datos del usuario.</Text>
       </View>
-    );
+    )
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {!permission || permission.status !== ImagePicker.PermissionStatus.GRANTED ? (
-        <View style={styles.container}>
-          <Text>You need to allow camera access to use this feature.</Text>
-          <Text>Permission Not Granted - {permission?.status}</Text>
-          <Button
-            title="Grant Permission"
+        <View style={styles.permissionContainer}>
+          <Text style={styles.permissionTitle}>Permisos de cámara requeridos</Text>
+          <Text style={styles.permissionText}>Necesitas permitir el acceso a la cámara para usar esta función.</Text>
+          <Text style={styles.permissionStatus}>Estado: {permission?.status}</Text>
+          <TouchableOpacity
+            style={styles.permissionButton}
             onPress={async () => {
-              const { status } = await requestPermission();
+              const { status } = await requestPermission()
               if (status === ImagePicker.PermissionStatus.GRANTED) {
-                Alert.alert('Permission granted');
+                Alert.alert("Permiso concedido")
               } else {
-                Alert.alert('Permission denied');
+                Alert.alert("Permiso denegado")
               }
             }}
-          />
+          >
+            <Text style={styles.permissionButtonText}>Conceder Permiso</Text>
+          </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>Your Profile</Text>
-
-          <View style={styles.profileRow}>
-            <Image
-              source={
-                profileImageUrl
-                  ? { uri: profileImageUrl }
-                  : require('@/assets/images/profile_placeholder.png')
-              }
-              style={styles.profileImage}
-            />
-            <Text style={styles.profileName}>{userData.name}</Text>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>Mi Perfil</Text>
           </View>
 
-          <View style={styles.form}>
-            {(['name', 'surname', 'email'] as const).map((field) => (
-              <View style={styles.inputGroup} key={field}>
-                <Text style={styles.label}>
-                  {field === 'name'
-                    ? 'First Name'
-                    : field === 'surname'
-                    ? 'Last Name'
-                    : 'Email'}
-                </Text>
-                <Controller
-                  control={control}
-                  name={field}
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <>
-                      <TextInput
-                        style={[styles.input, errors[field] && styles.inputError]}
-                        placeholder={`Enter your ${field}`}
-                        value={value}
-                        onBlur={onBlur}
-                        onChangeText={onChange}
-                        editable={editMode}
-                        autoCapitalize={field === 'email' ? 'none' : 'words'}
-                        keyboardType={field === 'email' ? 'email-address' : 'default'}
-                      />
-                      {errors[field] && (
-                        <Text style={styles.errorText}>{errors[field]?.message}</Text>
-                      )}
-                    </>
-                  )}
-                />
-              </View>
-            ))}
-          </View>
-
-          <View>
-            <TouchableOpacity onPress={handleChoosePhoto} style={styles.button}>
-              <Text style={styles.buttonText}>Actualizar foto de perfil</Text>
-            </TouchableOpacity>
-
-          </View>
-
-          <View style={styles.buttonRow}>
-            {editMode ? (
-              <TouchableOpacity
-                style={styles.button}
-                onPress={handleSubmit(handleSave)}
-                disabled={!isValid || isSubmitting}
-              >
-                <Text style={styles.buttonText}>
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
-                </Text>
+          <View style={styles.profileSection}>
+            <View style={styles.profileImageContainer}>
+              <Image
+                source={profileImageUrl ? { uri: profileImageUrl } : require("@/assets/images/profile_placeholder.png")}
+                style={styles.profileImage}
+              />
+              <TouchableOpacity onPress={handleChoosePhoto} style={styles.editPhotoButton}>
+                <Text style={styles.editPhotoIcon}>📷</Text>
               </TouchableOpacity>
+            </View>
+            <Text style={styles.profileName}>
+              {userData.name} {userData.surname}
+            </Text>
+          </View>
+
+          <View style={styles.infoSection}>
+            <View style={styles.infoCard}>
+              {(["name", "surname", "email"] as const).map((field) => (
+                <View style={styles.fieldContainer} key={field}>
+                  <Text style={styles.fieldLabel}>
+                    {field === "name" ? "Nombre" : field === "surname" ? "Apellido" : "Correo electrónico"}
+                  </Text>
+
+                  {editMode ? (
+                    <Controller
+                      control={control}
+                      name={field}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <>
+                          <TextInput
+                            style={[styles.input, errors[field] && styles.inputError]}
+                            placeholder={`Ingresa tu ${field === "name" ? "nombre" : field === "surname" ? "apellido" : "correo"}`}
+                            value={value}
+                            onBlur={onBlur}
+                            onChangeText={onChange}
+                            autoCapitalize={field === "email" ? "none" : "words"}
+                            keyboardType={field === "email" ? "email-address" : "default"}
+                          />
+                          {errors[field] && <Text style={styles.errorText}>{errors[field]?.message}</Text>}
+                        </>
+                      )}
+                    />
+                  ) : (
+                    <Text style={styles.fieldValue}>
+                      {field === "name" ? userData.name : field === "surname" ? userData.surname : userData.email}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.buttonSection}>
+            {editMode ? (
+              <View style={styles.editButtonsContainer}>
+                <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.saveButton, (!isValid || isSubmitting) && styles.disabledButton]}
+                  onPress={handleSubmit(handleSave)}
+                  disabled={!isValid || isSubmitting}
+                >
+                  <Text style={styles.saveButtonText}>{isSubmitting ? "Guardando..." : "Guardar Cambios"}</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => setEditMode(true)}
-              >
-                <Text style={styles.buttonText}>Edit Profile</Text>
+              <TouchableOpacity style={styles.editButton} onPress={() => setEditMode(true)}>
+                <Text style={styles.editButtonText}>✏️ Editar Perfil</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -306,90 +326,231 @@ export default function ProfileScreen() {
         </ScrollView>
       )}
     </KeyboardAvoidingView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
+    flexGrow: 1,
+    backgroundColor: "#f8f9fa",
+  },
+  loadingContainer: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
     padding: 24,
-    backgroundColor: '#fff',
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#dc3545",
+    textAlign: "center",
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    padding: 24,
+  },
+  permissionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  permissionText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  permissionStatus: {
+    fontSize: 14,
+    color: "#999",
+    marginBottom: 24,
+  },
+  permissionButton: {
+    backgroundColor: "#007BFF",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  permissionButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  header: {
+    backgroundColor: "#fff",
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e9ecef",
   },
   title: {
-    fontSize: 30,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#333",
+    textAlign: "center",
   },
-  profileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
+  profileSection: {
+    backgroundColor: "#fff",
+    alignItems: "center",
+    paddingVertical: 32,
+    marginBottom: 16,
+  },
+  profileImageContainer: {
+    position: "relative",
+    marginBottom: 16,
   },
   profileImage: {
-    width: 80,
-    height: 80,
+    width: 120,
+    height: 120,
     borderRadius: 60,
-    borderWidth: 2,
-    borderColor: '#ccc',
-    marginTop: 20,
+    borderWidth: 4,
+    borderColor: "#e9ecef",
+  },
+  editPhotoButton: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#007BFF",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#fff",
+  },
+  editPhotoIcon: {
+    fontSize: 16,
   },
   profileName: {
     fontSize: 24,
-    fontWeight: 'bold',
-    marginStart: 20,
-    marginTop: 20,
+    fontWeight: "bold",
+    color: "#333",
+    textAlign: "center",
   },
-  inputGroup: {
-    marginTop: 10,
-    marginBottom: 10,
+  infoSection: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
   },
-  label: {
+  infoCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  fieldContainer: {
+    marginBottom: 20,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#495057",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  fieldValue: {
     fontSize: 16,
-    color: '#666',
-    marginBottom: 6,
+    color: "#333",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e9ecef",
   },
   input: {
-    height: 44,
-    borderColor: '#A8A8A8',
-    color: '#000',
+    fontSize: 16,
+    color: "#333",
     borderWidth: 1,
+    borderColor: "#ced4da",
     borderRadius: 8,
     paddingHorizontal: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  form: {
-    width: "100%",
-    maxWidth: 400,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
   },
   inputError: {
-    borderColor: 'red',
-    borderWidth: 1,
+    borderColor: "#dc3545",
   },
   errorText: {
     fontSize: 12,
-    color: 'red',
-    marginBottom: 8,
+    color: "#dc3545",
+    marginTop: 4,
   },
-  button: {
-    width: "100%",
-    padding: 12,
+  buttonSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+  },
+  editButton: {
     backgroundColor: "#007BFF",
-    borderRadius: 4,
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  buttonText: {
+  editButtonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "600",
   },
-  link: {
-    fontStyle: "italic",
-    marginTop: 16,
-    color: "#007BFF",
-    textDecorationLine: "underline",
+  editButtonsContainer: {
+    flexDirection: "row",
+    gap: 12,
   },
-  buttonRow: {
-    marginTop: 24,
-    alignItems: 'center',
+  cancelButton: {
+    flex: 1,
+    backgroundColor: "#6c757d",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
   },
-});
+  cancelButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: "#28a745",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  disabledButton: {
+    backgroundColor: "#adb5bd",
+  },
+})
