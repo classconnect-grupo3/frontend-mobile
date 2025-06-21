@@ -24,6 +24,8 @@ import { useForm, Controller } from "react-hook-form"
 import * as ImagePicker from "expo-image-picker"
 import { fetchProfileImage, uploadToFirebase } from "@/firebaseConfig"
 import React from "react"
+import { ScreenLayout } from "@/components/layout/ScreenLayout"
+import { Colors } from "@/styles/shared"
 
 const schema = z.object({
   name: z.string().min(1, "First name is required"),
@@ -219,6 +221,7 @@ export default function ProfileScreen() {
   }
 
   return (
+    <ScreenLayout scrollable={false}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {!permission || permission.status !== ImagePicker.PermissionStatus.GRANTED ? (
         <View style={styles.permissionContainer}>
@@ -317,7 +320,7 @@ export default function ProfileScreen() {
               </View>
             ) : (
               <TouchableOpacity style={styles.editButton} onPress={() => setEditMode(true)}>
-                <Text style={styles.editButtonText}>✏️ Editar Perfil</Text>
+                <Text style={styles.editButtonText}>Editar</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -326,6 +329,7 @@ export default function ProfileScreen() {
         </ScrollView>
       )}
     </KeyboardAvoidingView>
+    </ScreenLayout>
   )
 }
 
@@ -351,11 +355,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#f8f9fa",
     padding: 24,
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#dc3545",
-    textAlign: "center",
   },
   permissionContainer: {
     flex: 1,
@@ -395,9 +394,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#fff",
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 24,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#e9ecef",
   },
@@ -405,7 +402,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     color: "#333",
-    textAlign: "center",
   },
   profileSection: {
     backgroundColor: "#fff",
@@ -418,8 +414,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   profileImage: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     borderRadius: 60,
     borderWidth: 4,
     borderColor: "#e9ecef",
@@ -428,14 +424,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: "#007BFF",
+    backgroundColor: Colors.secondaryButtonBackground,
     width: 36,
     height: 36,
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 3,
-    borderColor: "#fff",
+    borderWidth: 2,
+    borderColor: Colors.secondaryButtonBorder,
   },
   editPhotoIcon: {
     fontSize: 16,
@@ -448,20 +444,17 @@ const styles = StyleSheet.create({
   },
   infoSection: {
     paddingHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   infoCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 20,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   fieldContainer: {
     marginBottom: 20,
@@ -477,7 +470,7 @@ const styles = StyleSheet.create({
   fieldValue: {
     fontSize: 16,
     color: "#333",
-    paddingVertical: 8,
+    paddingVertical: 4,
     borderBottomWidth: 1,
     borderBottomColor: "#e9ecef",
   },
@@ -505,17 +498,16 @@ const styles = StyleSheet.create({
   },
   editButton: {
     backgroundColor: "#007BFF",
-    paddingVertical: 16,
+    height: 48,
     borderRadius: 12,
     alignItems: "center",
+    textAlignVertical: "center",
+    justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   editButtonText: {
     color: "#fff",

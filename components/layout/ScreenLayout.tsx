@@ -7,6 +7,7 @@ interface ScreenLayoutProps {
   children: React.ReactNode
   scrollable?: boolean
   backgroundColor?: string
+  padded?: boolean
   contentStyle?: ViewStyle
   showsVerticalScrollIndicator?: boolean
 }
@@ -16,6 +17,7 @@ export function ScreenLayout({
   scrollable = true,
   backgroundColor = Colors.light,
   contentStyle,
+  padded = true,
   showsVerticalScrollIndicator = false,
 }: ScreenLayoutProps) {
   const containerStyle = [styles.container, { backgroundColor }]
@@ -27,7 +29,7 @@ export function ScreenLayout({
       <SafeAreaView style={containerStyle}>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={contentContainerStyle}
+          contentContainerStyle={[contentContainerStyle, padded && { paddingHorizontal: Spacing.lg }]}
           showsVerticalScrollIndicator={showsVerticalScrollIndicator}
         >
           {children}
@@ -52,7 +54,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xl,
   },

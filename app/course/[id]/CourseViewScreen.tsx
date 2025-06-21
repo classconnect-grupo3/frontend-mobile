@@ -25,6 +25,7 @@ import { SubmissionsListModal } from "@/components/courses/course/SubmissionsLis
 import { GradeSubmissionModal } from "@/components/courses/course/GradeSubmissionModal"
 import { GradesSummary } from "@/components/courses/course/GradesSummary"
 import React from "react"
+import { ScreenLayout } from "@/components/layout/ScreenLayout"
 
 interface Question {
   id: string
@@ -670,7 +671,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   )
 
   const renderFooter = () => (
-    <View>
+    <View style={{ padding: 16 }}>
       {/* Sección de alumnos */}
       <TouchableOpacity style={courseStyles.materialToggle} onPress={() => setShowAlumnos(!showAlumnos)}>
         <View style={courseStyles.materialToggleRow}>
@@ -744,10 +745,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   )
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#fff" }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <ScreenLayout padded={false}>
       <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
         <FlatList
           data={mainSections}
@@ -839,7 +837,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           onGradeSuccess={handleGradeSuccess}
         />
       </SafeAreaView>
-    </KeyboardAvoidingView>
+    </ScreenLayout>
   )
 }
 
@@ -1001,3 +999,4 @@ const memberCardStyles = StyleSheet.create({
     fontWeight: "500",
   },
 })
+

@@ -6,12 +6,14 @@ import { EditCourseModal } from "@/components/courses/EditCourseModal"
 import { useState } from "react"
 import { useAuth } from "@/contexts/sessionAuth"
 import React from "react"
+import { Colors } from "@/styles/shared"
+import { Course } from "@/contexts/CoursesContext"
 
 interface Props {
   role: "Docente" | "Alumno"
   onBack: () => void
   canEdit?: boolean
-  course?: any
+  course?: Course
   onEditSuccess?: () => void
 }
 
@@ -71,13 +73,13 @@ export function CourseTopBar({ role, onBack, canEdit = false, course, onEditSucc
           <View style={styles.infoItem}>
             <MaterialIcons name="event" size={16} color="#666" />
             <Text style={styles.infoItemLabel}>Inicio</Text>
-            <Text style={styles.infoItemValue}>{formatDate(course?.start_date)}</Text>
+            <Text style={styles.infoItemValue}>{formatDate(course?.start_date ?? "")}</Text>
           </View>
 
           <View style={styles.infoItem}>
             <MaterialIcons name="event-available" size={16} color="#666" />
             <Text style={styles.infoItemLabel}>Fin</Text>
-            <Text style={styles.infoItemValue}>{formatDate(course?.end_date)}</Text>
+            <Text style={styles.infoItemValue}>{formatDate(course?.end_date ?? "")}</Text>
           </View>
 
           <View style={styles.infoItem}>
@@ -95,7 +97,7 @@ export function CourseTopBar({ role, onBack, canEdit = false, course, onEditSucc
 
         {canEdit && course && (
           <TouchableOpacity style={styles.editButton} onPress={() => setShowEditModal(true)}>
-            <MaterialIcons name="edit" size={18} color="#007AFF" />
+            <MaterialIcons name="edit" size={18} color={Colors.secondaryButtonText} />
             <Text style={styles.editButtonText}>Editar curso</Text>
           </TouchableOpacity>
         )}
@@ -122,6 +124,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 16,
+    paddingHorizontal: 16,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e9ecef",
@@ -220,15 +223,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: Colors.secondaryButtonBackground,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#007AFF",
+    borderWidth: 2,
+    borderColor: Colors.secondaryButtonBorder,
   },
   editButtonText: {
-    color: "#007AFF",
+    color: Colors.secondaryButtonText,
     fontWeight: "500",
     marginLeft: 6,
   },

@@ -11,6 +11,7 @@ import { courseClient } from "@/lib/courseClient"
 import { useAuth } from "@/contexts/sessionAuth"
 import Toast from "react-native-toast-message"
 import React from "react"
+import { Colors } from "@/styles/shared"
 
 export interface Student {
   uid: string
@@ -119,14 +120,11 @@ export function FeedbackSection({ courseId, isTeacher }: FeedbackSectionProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <MaterialIcons name="feedback" size={24} color="#333" />
-          <Text style={styles.title}>Feedback del curso</Text>
-        </View>
+        <Text style={styles.title}>Feedback</Text>
 
         <View style={styles.actions}>
           <TouchableOpacity style={styles.summaryButton} onPress={() => setShowFeedbackSummary(true)}>
-            <MaterialIcons name="auto-awesome" size={20} color="#fff" />
+            <MaterialIcons name="auto-awesome" size={20} color={Colors.secondaryButtonText} />
             <Text style={styles.summaryButtonText}>Ver resumen IA</Text>
           </TouchableOpacity>
 
@@ -191,6 +189,8 @@ export function FeedbackSection({ courseId, isTeacher }: FeedbackSectionProps) {
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: "#f8f9fa",
+    padding: 16,
     marginBottom: 16,
   },
   header: {
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#333",
     marginLeft: 8,
@@ -229,13 +229,15 @@ const styles = StyleSheet.create({
   summaryButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4CAF50",
+    backgroundColor: Colors.secondaryButtonBackground,
+    borderWidth: 2,
+    borderColor: Colors.secondaryButtonBorder,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
   summaryButtonText: {
-    color: "#fff",
+    color: Colors.secondaryButtonText,
     fontWeight: "500",
     marginLeft: 4,
   },

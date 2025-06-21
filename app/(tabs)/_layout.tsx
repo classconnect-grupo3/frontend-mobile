@@ -31,7 +31,7 @@ export default function TabLayout() {
             height: 64,
             borderTopWidth: 0,
             shadowOpacity: 0.1, // no se por que pero las sombras no se ven 
-            shadowColot: "#000",
+            shadowColor: "#000",
             shadowOffset: { width: 0, height: -3 },
             shadowRadius: 6,
             elevation: 1,

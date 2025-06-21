@@ -12,6 +12,10 @@ export const Colors = {
   secondaryLight: "#F8F9FA",
   secondaryDark: "#495057",
 
+  secondaryButtonBackground: "#E8F4FD",
+  secondaryButtonText: "#1976D2",
+    secondaryButtonBorder: "#1976D2",
+
   // Accent colors
   success: "#4CAF50",
   successLight: "#E8F5E8",
