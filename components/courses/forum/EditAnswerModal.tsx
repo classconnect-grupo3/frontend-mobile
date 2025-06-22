@@ -1,133 +1,126 @@
 "use client"
 
-import { useState } from "react"
-import {
-  View,
-  Text,
-  Modal,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from "react-native"
+import { useState, useEffect } from "react"
+import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet, Alert } from "react-native"
 import { AntDesign } from "@expo/vector-icons"
-import { Colors, Spacing, BorderRadius } from "@/styles/shared"
-import { forumClient } from "@/lib/forumClient"
+import { courseClient } from "@/lib/courseClient"
 import { useAuth } from "@/contexts/sessionAuth"
 import Toast from "react-native-toast-message"
-import type { Answer } from "@/types/forum"
+import type { ForumAnswer } from "@/types/forum"
 import React from "react"
 
 interface Props {
   visible: boolean
-  onClose: () => void
-  answer: Answer
+  answer: ForumAnswer
   questionId: string
-  onAnswerUpdated: (answer: Answer) => void
+  onClose: () => void
+  onSuccess: (updatedAnswer: ForumAnswer) => void
 }
 
-export function EditAnswerModal({ visible, onClose, answer, questionId, onAnswerUpdated }: Props) {
-  const [content, setContent] = useState(answer.content)
+export const EditAnswerModal = ({ visible, answer, questionId, onClose, onSuccess }: Props) => {
+  const [content, setContent] = useState("")
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
 
   const auth = useAuth()
   const authState = auth?.authState
 
-  const handleClose = () => {
-    if (!loading) {
+  useEffect(() => {
+    if (visible && answer) {
       setContent(answer.content)
-      setError("")
-      onClose()
     }
-  }
-
-  const validateForm = () => {
-    if (!content.trim()) {
-      setError("La respuesta no puede estar vacía")
-      return false
-    }
-
-    if (content.trim().length < 10) {
-      setError("La respuesta debe tener al menos 10 caracteres")
-      return false
-    }
-
-    setError("")
-    return true
-  }
+  }, [visible, answer])
 
   const handleSubmit = async () => {
-    if (!validateForm() || !authState?.token) return
+    if (!content.trim()) {
+      Alert.alert("Error", "El contenido de la respuesta es obligatorio")
+      return
+    }
 
     try {
       setLoading(true)
 
-      const updatedAnswer = await forumClient.updateAnswer(questionId, answer.id, content.trim(), authState.token)
+      const body = {
+        content: content.trim(),
+      }
+      
+      const { data } = await courseClient.put(`/forum/questions/${questionId}/answers/${answer.id}?authorId=${authState?.user?.id}`, body, {
+        headers: {
+          Authorization: `Bearer ${authState?.token}`,
+        },
+      })
 
-      onAnswerUpdated(updatedAnswer)
+      onSuccess(data)
       Toast.show({
         type: "success",
         text1: "Respuesta actualizada",
+        text2: "Los cambios se han guardado exitosamente",
       })
     } catch (error) {
       console.error("Error updating answer:", error)
+      console.log("Error details:", error.response?.data || error.message)
       Toast.show({
         type: "error",
-        text1: "Error al actualizar respuesta",
-        text2: "Intenta nuevamente",
+        text1: "Error",
+        text2: "No se pudo actualizar la respuesta",
       })
     } finally {
       setLoading(false)
     }
   }
 
+  const handleClose = () => {
+    // Reset to original value
+    setContent(answer.content)
+    onClose()
+  }
+
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        {/* Header */}
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose} disabled={loading}>
-            <AntDesign name="close" size={24} color={Colors.textPrimary} />
+          <TouchableOpacity onPress={handleClose}>
+            <AntDesign name="close" size={24} color="#333" />
           </TouchableOpacity>
-
-          <Text style={styles.title}>Editar Respuesta</Text>
-
+          <Text style={styles.headerTitle}>Editar Respuesta</Text>
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled]}
             onPress={handleSubmit}
             disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator size="small" color={Colors.white} />
-            ) : (
-              <Text style={styles.submitButtonText}>Guardar</Text>
-            )}
+            <Text style={styles.submitButtonText}>{loading ? "Guardando..." : "Guardar"}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Content */}
         <View style={styles.content}>
-          <Text style={styles.label}>
-            Tu respuesta <Text style={styles.required}>*</Text>
-          </Text>
+          <Text style={styles.label}>Tu respuesta *</Text>
           <TextInput
-            style={[styles.textArea, error && styles.inputError]}
-            placeholder="Escribe tu respuesta aquí..."
+            style={styles.textInput}
             value={content}
             onChangeText={setContent}
-            maxLength={2000}
+            placeholder="Escribe tu respuesta aquí..."
             multiline
-            numberOfLines={8}
             textAlignVertical="top"
-            editable={!loading}
+            maxLength={2000}
+            autoFocus
           />
-          {error && <Text style={styles.errorText}>{error}</Text>}
-          <Text style={styles.helperText}>{content.length}/2000 caracteres</Text>
+          <Text style={styles.charCount}>{content.length}/2000</Text>
+
+          {answer !== null && (
+            <View style={styles.lastEditedInfo}>
+            <Text style={styles.lastEditedText}>
+              Última edición:{" "}
+              {new Date(answer.updated_at).toLocaleDateString("es-ES", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+          </View>
+          )}
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   )
 }
@@ -135,76 +128,90 @@ export function EditAnswerModal({ visible, onClose, answer, questionId, onAnswer
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    alignItems: "center",
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
+    borderBottomColor: "#e0e0e0",
+    backgroundColor: "#fff",
   },
-  closeButton: {
-    padding: Spacing.sm,
-  },
-  title: {
+  headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: Colors.textPrimary,
+    color: "#333",
   },
   submitButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    minWidth: 80,
-    alignItems: "center",
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
   },
   submitButtonDisabled: {
-    opacity: 0.6,
+    backgroundColor: "#ccc",
   },
   submitButtonText: {
-    color: Colors.white,
+    color: "#fff",
+    fontSize: 14,
     fontWeight: "600",
   },
   content: {
     flex: 1,
-    padding: Spacing.lg,
+    padding: 16,
   },
   label: {
     fontSize: 16,
     fontWeight: "600",
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
+    color: "#333",
+    marginBottom: 8,
   },
-  required: {
-    color: Colors.danger,
-  },
-  textArea: {
+  textInput: {
     borderWidth: 1,
-    borderColor: Colors.lightGray,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    fontSize: 16,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.white,
-    minHeight: 150,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 15,
+    minHeight: 200,
+    textAlignVertical: "top",
+    lineHeight: 20,
+    color: "#333",
   },
-  inputError: {
-    borderColor: Colors.danger,
-    borderWidth: 2,
-  },
-  errorText: {
-    color: Colors.danger,
-    fontSize: 14,
-    marginTop: Spacing.xs,
-  },
-  helperText: {
+  charCount: {
     fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: Spacing.xs,
+    color: "#999",
+    textAlign: "right",
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  lastEditedInfo: {
+    backgroundColor: "#f8f9fa",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  lastEditedText: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  tips: {
+    backgroundColor: "#f8f9fa",
+    padding: 16,
+    borderRadius: 8,
+  },
+  tipsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  tip: {
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 4,
+    lineHeight: 18,
   },
 })

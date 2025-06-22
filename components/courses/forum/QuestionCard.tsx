@@ -8,10 +8,11 @@ interface Props {
   userRole?: UserRole
   onPress: () => void
   onVote: (voteType: 1 | -1) => void
+  onEdit?: () => void
   currentUserId?: string
 }
 
-export const QuestionCard = ({ question, userRole, onPress, onVote, currentUserId }: Props) => {
+export const QuestionCard = ({ question, userRole, onPress, onVote, onEdit, currentUserId }: Props) => {
   const getRoleBadge = (role: "teacher" | "aux_teacher" | "student") => {
     switch (role) {
       case "teacher":
@@ -91,6 +92,18 @@ export const QuestionCard = ({ question, userRole, onPress, onVote, currentUserI
             </Text>
           </View>
         </View>
+
+        {isOwnQuestion && (
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={(e) => {
+              e.stopPropagation()
+              onEdit?.()
+            }}
+          >
+            <AntDesign name="edit" size={16} color="#666" />
+          </TouchableOpacity>
+        )}
 
         <View style={styles.voteContainer}>
           <TouchableOpacity
@@ -283,5 +296,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     minWidth: 20,
     textAlign: "center",
+  },
+  editButton: {
+    padding: 6,
+    borderRadius: 4,
+    backgroundColor: "#f5f5f5",
+    marginRight: 8,
   },
 })

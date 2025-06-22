@@ -9,6 +9,7 @@ interface Props {
   onVote: (voteType: 1 | -1) => void
   onAccept: () => void
   onDelete: () => void
+  onEdit: () => void
   canAccept: boolean
   canDelete: boolean
   currentUserId?: string
@@ -21,6 +22,7 @@ export const AnswerCard = ({
   onVote,
   onAccept,
   onDelete,
+  onEdit,
   canAccept,
   canDelete,
   currentUserId,
@@ -83,6 +85,11 @@ export const AnswerCard = ({
               minute: "2-digit",
             })}
           </Text>
+          {isOwnAnswer && (
+            <TouchableOpacity onPress={onEdit} style={styles.editButton}>
+              <MaterialIcons name="edit" size={16} color="#666" />
+            </TouchableOpacity>
+          )}
           {canDelete && (
             <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
               <MaterialIcons name="delete" size={16} color="#f44336" />
@@ -107,7 +114,7 @@ export const AnswerCard = ({
         {canAccept && !isAccepted && (
           <TouchableOpacity style={styles.acceptButton} onPress={onAccept}>
             <AntDesign name="checkcircle" size={16} color="#4CAF50" />
-            <Text style={styles.acceptButtonText}>Marcar como solución</Text>
+            <Text style={styles.acceptButtonText}>Aceptar como solución</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -250,5 +257,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     marginLeft: 6,
+  },
+  editButton: {
+    padding: 4,
+    marginRight: 4,
   },
 })

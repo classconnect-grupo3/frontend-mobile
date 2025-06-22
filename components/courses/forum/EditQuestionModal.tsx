@@ -1,99 +1,84 @@
 "use client"
 
-import { useState } from "react"
-import {
-  View,
-  Text,
-  Modal,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from "react-native"
+import { useState, useEffect } from "react"
+import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet, ScrollView, Alert } from "react-native"
 import { AntDesign } from "@expo/vector-icons"
-import { Colors, Spacing, BorderRadius } from "@/styles/shared"
-import { forumClient } from "@/lib/forumClient"
+import { courseClient } from "@/lib/courseClient"
 import { useAuth } from "@/contexts/sessionAuth"
 import Toast from "react-native-toast-message"
-import type { Question } from "@/types/forum"
+import type { ForumQuestion } from "@/types/forum"
 import React from "react"
 
 interface Props {
   visible: boolean
+  question: ForumQuestion
   onClose: () => void
-  question: Question
-  onQuestionUpdated: (question: Question) => void
+  onSuccess: (updatedQuestion: ForumQuestion) => void
 }
 
-const AVAILABLE_TAGS = ["general", "tarea", "examen", "material", "duda", "proyecto", "otro"]
+const AVAILABLE_TAGS = ["general", "teoria", "practica", "necesito-ayuda", "informacion", "ejercitacion", "otro"]
 
-export function EditQuestionModal({ visible, onClose, question, onQuestionUpdated }: Props) {
-  const [title, setTitle] = useState(question.title)
-  const [description, setDescription] = useState(question.description)
-  const [selectedTags, setSelectedTags] = useState<string[]>(question.tags)
+export const EditQuestionModal = ({ visible, question, onClose, onSuccess }: Props) => {
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState<{ title?: string; description?: string }>({})
 
   const auth = useAuth()
   const authState = auth?.authState
 
-  const handleClose = () => {
-    if (!loading) {
-      // Reset to original values
+  useEffect(() => {
+    if (visible && question) {
       setTitle(question.title)
       setDescription(question.description)
-      setSelectedTags(question.tags)
-      setErrors({})
-      onClose()
+      setSelectedTags(question.tags || [])
     }
-  }
+  }, [visible, question])
 
-  const validateForm = () => {
-    const newErrors: { title?: string; description?: string } = {}
-
+  const handleSubmit = async () => {
     if (!title.trim()) {
-      newErrors.title = "El título es obligatorio"
-    } else if (title.trim().length < 10) {
-      newErrors.title = "El título debe tener al menos 10 caracteres"
+      Alert.alert("Error", "El título es obligatorio")
+      return
     }
 
     if (!description.trim()) {
-      newErrors.description = "La descripción es obligatoria"
-    } else if (description.trim().length < 20) {
-      newErrors.description = "La descripción debe tener al menos 20 caracteres"
+      Alert.alert("Error", "La descripción es obligatoria")
+      return
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async () => {
-    if (!validateForm() || !authState?.token) return
+    if (selectedTags.length === 0) {
+      Alert.alert("Error", "Selecciona al menos una etiqueta")
+      return
+    }
 
     try {
       setLoading(true)
 
-      const updates = {
+      const body = {
         title: title.trim(),
         description: description.trim(),
-        tags: selectedTags.length > 0 ? selectedTags : ["general"],
+        tags: selectedTags,
       }
 
-      const updatedQuestion = await forumClient.updateQuestion(question.id, updates, authState.token)
-      onQuestionUpdated(updatedQuestion)
+      const { data } = await courseClient.put(`/forum/questions/${question.id}?authorId=${authState?.user?.id}`, body, {
+        headers: {
+          Authorization: `Bearer ${authState?.token}`,
+        },
+      })
+
+      onSuccess(data)
       Toast.show({
         type: "success",
         text1: "Pregunta actualizada",
+        text2: "Los cambios se han guardado exitosamente",
       })
     } catch (error) {
       console.error("Error updating question:", error)
+      console.log("Error details:", error.response?.data || error.message)
       Toast.show({
         type: "error",
-        text1: "Error al actualizar pregunta",
-        text2: "Intenta nuevamente",
+        text1: "Error",
+        text2: "No se pudo actualizar la pregunta",
       })
     } finally {
       setLoading(false)
@@ -104,87 +89,91 @@ export function EditQuestionModal({ visible, onClose, question, onQuestionUpdate
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
   }
 
+  const handleClose = () => {
+    // Reset to original values
+    setTitle(question.title)
+    setDescription(question.description)
+    setSelectedTags(question.tags || [])
+    onClose()
+  }
+
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        {/* Header */}
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose} disabled={loading}>
-            <AntDesign name="close" size={24} color={Colors.textPrimary} />
+          <TouchableOpacity onPress={handleClose}>
+            <AntDesign name="close" size={24} color="#333" />
           </TouchableOpacity>
-
-          <Text style={styles.title}>Editar Pregunta</Text>
-
+          <Text style={styles.headerTitle}>Editar Pregunta</Text>
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled]}
             onPress={handleSubmit}
             disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator size="small" color={Colors.white} />
-            ) : (
-              <Text style={styles.submitButtonText}>Guardar</Text>
-            )}
+            <Text style={styles.submitButtonText}>{loading ? "Guardando..." : "Guardar"}</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Title Input */}
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>
-              Título <Text style={styles.required}>*</Text>
-            </Text>
+          <View style={styles.section}>
+            <Text style={styles.label}>Título *</Text>
             <TextInput
-              style={[styles.input, errors.title && styles.inputError]}
-              placeholder="¿Cuál es tu pregunta? Sé específico..."
+              style={styles.titleInput}
               value={title}
               onChangeText={setTitle}
-              maxLength={200}
+              placeholder="Escribe un título claro y descriptivo"
               multiline
-              editable={!loading}
+              maxLength={200}
             />
-            {errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
-            <Text style={styles.helperText}>{title.length}/200 caracteres</Text>
+            <Text style={styles.charCount}>{title.length}/200</Text>
           </View>
 
-          {/* Description Input */}
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>
-              Descripción <Text style={styles.required}>*</Text>
-            </Text>
+          <View style={styles.section}>
+            <Text style={styles.label}>Descripción *</Text>
             <TextInput
-              style={[styles.textArea, errors.description && styles.inputError]}
-              placeholder="Proporciona más detalles sobre tu pregunta..."
+              style={styles.descriptionInput}
               value={description}
               onChangeText={setDescription}
-              maxLength={1000}
+              placeholder="Describe tu pregunta con el mayor detalle posible..."
               multiline
-              numberOfLines={6}
               textAlignVertical="top"
-              editable={!loading}
+              maxLength={1000}
             />
-            {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
-            <Text style={styles.helperText}>{description.length}/1000 caracteres</Text>
+            <Text style={styles.charCount}>{description.length}/1000</Text>
           </View>
 
-          {/* Tags Selection */}
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>Etiquetas</Text>
+          <View style={styles.section}>
+            <Text style={styles.label}>Etiquetas *</Text>
+            <Text style={styles.subtitle}>Selecciona las etiquetas que mejor describan tu pregunta</Text>
             <View style={styles.tagsContainer}>
               {AVAILABLE_TAGS.map((tag) => (
                 <TouchableOpacity
                   key={tag}
-                  style={[styles.tag, selectedTags.includes(tag) && styles.tagSelected]}
+                  style={[styles.tag, selectedTags.includes(tag) && styles.selectedTag]}
                   onPress={() => toggleTag(tag)}
-                  disabled={loading}
                 >
-                  <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextSelected]}>{tag}</Text>
+                  <Text style={[styles.tagText, selectedTags.includes(tag) && styles.selectedTagText]}>{tag}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
+
+          { question !== null && (
+            <View style={styles.lastEditedInfo}>
+              <Text style={styles.lastEditedText}>
+                Última edición:{" "}
+                {new Date(question.updated_at).toLocaleDateString("es-ES", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </Text>
+            </View>
+          )}
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   )
 }
@@ -192,116 +181,114 @@ export function EditQuestionModal({ visible, onClose, question, onQuestionUpdate
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    alignItems: "center",
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
+    borderBottomColor: "#e0e0e0",
+    backgroundColor: "#fff",
   },
-  closeButton: {
-    padding: Spacing.sm,
-  },
-  title: {
+  headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: Colors.textPrimary,
+    color: "#333",
   },
   submitButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    minWidth: 80,
-    alignItems: "center",
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
   },
   submitButtonDisabled: {
-    opacity: 0.6,
+    backgroundColor: "#ccc",
   },
   submitButtonText: {
-    color: Colors.white,
+    color: "#fff",
+    fontSize: 14,
     fontWeight: "600",
   },
   content: {
     flex: 1,
-    padding: Spacing.lg,
+    padding: 16,
   },
-  inputSection: {
-    marginBottom: Spacing.xl,
+  section: {
+    marginBottom: 24,
   },
   label: {
     fontSize: 16,
     fontWeight: "600",
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
+    color: "#333",
+    marginBottom: 8,
   },
-  required: {
-    color: Colors.danger,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    fontSize: 16,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.white,
-    minHeight: 50,
-  },
-  textArea: {
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    fontSize: 16,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.white,
-    minHeight: 120,
-  },
-  inputError: {
-    borderColor: Colors.danger,
-    borderWidth: 2,
-  },
-  errorText: {
-    color: Colors.danger,
+  subtitle: {
     fontSize: 14,
-    marginTop: Spacing.xs,
+    color: "#666",
+    marginBottom: 12,
   },
-  helperText: {
+  titleInput: {
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 60,
+    textAlignVertical: "top",
+    color: "#333",
+  },
+  descriptionInput: {
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 120,
+    textAlignVertical: "top",
+    color: "#333",
+  },
+  charCount: {
     fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: Spacing.xs,
+    color: "#999",
+    textAlign: "right",
+    marginTop: 4,
   },
   tagsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
+    gap: 8,
   },
   tag: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.light,
+    backgroundColor: "#f0f0f0",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderColor: "#e0e0e0",
   },
-  tagSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+  selectedTag: {
+    backgroundColor: "#007AFF",
+    borderColor: "#007AFF",
   },
   tagText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: "#666",
+    fontWeight: "500",
   },
-  tagTextSelected: {
-    color: Colors.white,
-    fontWeight: "600",
+  selectedTagText: {
+    color: "#fff",
+  },
+  lastEditedInfo: {
+    backgroundColor: "#f8f9fa",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  lastEditedText: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
   },
 })

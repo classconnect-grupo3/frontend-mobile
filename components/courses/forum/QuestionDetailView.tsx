@@ -9,6 +9,7 @@ import Toast from "react-native-toast-message"
 import type { ForumQuestion, ForumAnswer, UserRole } from "@/types/forum"
 import { AnswerCard } from "./AnswerCard"
 import { CreateAnswerModal } from "./CreateAnswerModal"
+import { EditAnswerModal } from "./EditAnswerModal"
 import React from "react"
 
 interface Props {
@@ -24,6 +25,8 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
   const [answers, setAnswers] = useState<ForumAnswer[]>([])
   const [loading, setLoading] = useState(false)
   const [showCreateAnswer, setShowCreateAnswer] = useState(false)
+  const [editingAnswer, setEditingAnswer] = useState<ForumAnswer | null>(null)
+  const [showEditAnswerModal, setShowEditAnswerModal] = useState(false)
 
   const auth = useAuth()
   const authState = auth?.authState
@@ -82,7 +85,6 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
       })
     } catch (error) {
       console.error("Error voting question:", error)
-      console.log("Error details:", error.response?.data || error.message)
       Toast.show({
         type: "error",
         text1: "Error",
@@ -139,7 +141,6 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
         },
       )
 
-      // Update local state
       setQuestionData((prev) => ({
         ...prev,
         accepted_answer_id: answerId,
@@ -211,6 +212,24 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
     })
   }
 
+  const handleEditAnswer = (answer: ForumAnswer) => {
+    setEditingAnswer(answer)
+    setShowEditAnswerModal(true)
+  }
+
+  const handleAnswerUpdated = (updatedAnswer: ForumAnswer) => {
+    setShowEditAnswerModal(false)
+    setEditingAnswer(null)
+
+    setAnswers((prev) => prev.map((a) => (a.id === updatedAnswer.id ? updatedAnswer : a)))
+
+    Toast.show({
+      type: "success",
+      text1: "Respuesta actualizada",
+      text2: "Los cambios se han guardado exitosamente",
+    })
+  }
+
   const getRoleBadge = (role: "teacher" | "aux_teacher" | "student") => {
     switch (role) {
       case "teacher":
@@ -224,7 +243,7 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
 
   const questionAuthor = userRoles.get(questionData.author_id)
   const isQuestionAuthor = currentUserId === questionData.author_id
-  const canAcceptAnswers = isQuestionAuthor
+  const canAcceptAnswers = isQuestionAuthor || isTeacher
 
   const renderQuestionHeader = () => {
     const roleBadge = questionAuthor ? getRoleBadge(questionAuthor.role) : null
@@ -333,6 +352,7 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
       onVote={(voteType) => handleVoteAnswer(item.id, voteType)}
       onAccept={() => handleAcceptAnswer(item.id)}
       onDelete={() => handleDeleteAnswer(item.id)}
+      onEdit={() => handleEditAnswer(item)}
       canAccept={canAcceptAnswers && !questionData.accepted_answer_id}
       canDelete={currentUserId === item.author_id || isTeacher}
       currentUserId={currentUserId}
@@ -382,6 +402,16 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
         questionId={questionData.id}
         onClose={() => setShowCreateAnswer(false)}
         onSuccess={handleAnswerCreated}
+      />
+      <EditAnswerModal
+        visible={showEditAnswerModal}
+        answer={editingAnswer!}
+        questionId={questionData.id}
+        onClose={() => {
+          setShowEditAnswerModal(false)
+          setEditingAnswer(null)
+        }}
+        onSuccess={handleAnswerUpdated}
       />
     </View>
   )

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, RefreshControl } from "react-native"
 import { courseClient } from "@/lib/courseClient"
-import { swaggerCourseClient } from "@/lib/swaggerCourseClient"
 import { useAuth } from "@/contexts/sessionAuth"
 import Toast from "react-native-toast-message"
 import { AntDesign } from "@expo/vector-icons"
@@ -12,6 +11,7 @@ import { CreateQuestionModal } from "./CreateQuestionModal"
 import { ForumSearchBar } from "./ForumSearchBar"
 import { QuestionDetailView } from "./QuestionDetailView"
 import type { ForumQuestion, UserRole } from "@/types/forum"
+import { EditQuestionModal } from "./EditQuestionModal"
 import React from "react"
 
 interface Props {
@@ -36,6 +36,8 @@ export const ForumSection = ({ courseId, isTeacher, membersData }: Props) => {
   const [userRoles, setUserRoles] = useState<Map<string, UserRole>>(new Map())
   const [selectedQuestion, setSelectedQuestion] = useState<ForumQuestion | null>(null)
   const [showQuestionDetail, setShowQuestionDetail] = useState(false)
+  const [editingQuestion, setEditingQuestion] = useState<ForumQuestion | null>(null)
+  const [showEditQuestionModal, setShowEditQuestionModal] = useState(false)
 
   const auth = useAuth()
   const authState = auth?.authState
@@ -105,8 +107,6 @@ export const ForumSection = ({ courseId, isTeacher, membersData }: Props) => {
         endpoint = `/forum/courses/${courseId}/search?${params.toString()}`
       }
 
-      console.log("Fetching questions from:", endpoint)
-
       const { data } = await courseClient.get(endpoint, {
         headers: {
           Authorization: `Bearer ${authState?.token}`,
@@ -123,7 +123,6 @@ export const ForumSection = ({ courseId, isTeacher, membersData }: Props) => {
       }
     } catch (error) {
       console.error("Error fetching questions:", error)
-      console.log("Error details:", error.response?.data || error.message)
       Toast.show({
         type: "error",
         text1: "Error",
@@ -150,6 +149,25 @@ export const ForumSection = ({ courseId, isTeacher, membersData }: Props) => {
       type: "success",
       text1: "Pregunta creada",
       text2: "Tu pregunta ha sido publicada exitosamente",
+    })
+  }
+
+  const handleEditQuestion = (question: ForumQuestion) => {
+    setEditingQuestion(question)
+    setShowEditQuestionModal(true)
+  }
+
+  const handleQuestionUpdated = (updatedQuestion: ForumQuestion) => {
+    setShowEditQuestionModal(false)
+    setEditingQuestion(null)
+
+    // Update the question in the list
+    setQuestions((prev) => prev.map((q) => (q.id === updatedQuestion.id ? updatedQuestion : q)))
+
+    Toast.show({
+      type: "success",
+      text1: "Pregunta actualizada",
+      text2: "Los cambios se han guardado exitosamente",
     })
   }
 
@@ -203,6 +221,7 @@ export const ForumSection = ({ courseId, isTeacher, membersData }: Props) => {
       userRole={userRoles.get(item.author_id)}
       onPress={() => handleQuestionPress(item)}
       onVote={(voteType) => handleVote(item.id, voteType)}
+      onEdit={() => handleEditQuestion(item)}
       currentUserId={authState?.user?.id}
     />
   )
@@ -295,6 +314,15 @@ export const ForumSection = ({ courseId, isTeacher, membersData }: Props) => {
         courseId={courseId}
         onClose={() => setShowCreateModal(false)}
         onSuccess={handleQuestionCreated}
+      />
+      <EditQuestionModal
+        visible={showEditQuestionModal}
+        question={editingQuestion!}
+        onClose={() => {
+          setShowEditQuestionModal(false)
+          setEditingQuestion(null)
+        }}
+        onSuccess={handleQuestionUpdated}
       />
     </View>
   )
