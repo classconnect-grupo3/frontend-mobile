@@ -34,12 +34,12 @@ export const QuestionCard = ({ question, userRole, onPress, onVote, onEdit, onDe
         <View style={styles.authorInfo}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              {userRole ? `${userRole.name.charAt(0)}${userRole.surname.charAt(0)}` : "?"}
+              {userRole ? `${userRole.name.charAt(0)}` : "?"}
             </Text>
           </View>
           <View style={styles.authorDetails}>
             <Text style={styles.authorName}>
-              {userRole ? `${userRole.name} ${userRole.surname}` : "Usuario desconocido"}
+              {userRole ? `${userRole.name} ` : "Usuario desconocido"}
             </Text>
             {roleBadge && (
               <View style={[styles.roleBadge, { backgroundColor: roleBadge.bgColor }]}>

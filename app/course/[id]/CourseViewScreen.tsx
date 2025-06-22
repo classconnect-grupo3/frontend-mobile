@@ -93,6 +93,12 @@ interface UserData {
   is_admin: boolean
 }
 
+interface UserDataGet {
+  uid: string
+  name: string
+  email: string
+}
+
 interface Student {
   uid: string
   name: string
@@ -107,9 +113,9 @@ interface Student {
 }
 
 interface CourseMembersData {
-  teacher: UserData | null
-  auxTeachers: UserData[]
-  students: UserData[]
+  teacher: UserDataGet | null
+  auxTeachers: UserDataGet[]
+  students: UserDataGet[]
 }
 
 interface Props {
@@ -295,40 +301,13 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const fetchCourseMembers = async () => {
     try {
       setLoadingMembers(true)
+
       if (!authState?.token) {
         throw new Error("No auth token available")
       }
 
-      const { data: membersIds } = await courseClient.get(`/courses/${course.id}/members`, {
-        headers: {
-          Authorization: `Bearer ${authState.token}`,
-        },
-      })
-
-      console.log("Course members IDs:", membersIds)
-
-      if (membersIds.students_ids === null) {
-        membersIds.students_ids = []
-      }
-      if (membersIds.aux_teachers_ids === null) {
-        membersIds.aux_teachers_ids = []
-      }
-
-      const allUserIds = [membersIds.teacher_id, ...membersIds.aux_teachers_ids, ...membersIds.students_ids].filter(
-        Boolean,
-      )
-
-      if (allUserIds.length === 0) {
-        console.log("No members found for this course")
-        return
-      }
-      console.log("All user IDs to fetch:", allUserIds)
-
-      const { data: usersResponse } = await courseClient.post(
-        "/users/batch",
-        {
-          user_ids: allUserIds,
-        },
+      const { data: members } = await courseClient.get(
+        `/courses/${course.id}/members`,
         {
           headers: {
             Authorization: `Bearer ${authState.token}`,
@@ -336,17 +315,30 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         },
       )
 
-      console.log("Users data:", usersResponse)
+      console.log("Course members:", members)
 
-      const usersData = usersResponse.data || []
+      const { teacher_id, aux_teachers_ids = [], students_ids = [], user_info = [] } = members
 
-      const teacher = usersData.find((user: UserData) => user.uid === membersIds.teacher_id) || null
-      const auxTeachers = membersIds.aux_teachers_ids
-        .map((id) => usersData.find((user: UserData) => user.uid === id))
-        .filter(Boolean) as UserData[]
-      const students = membersIds.students_ids
-        .map((id) => usersData.find((user: UserData) => user.uid === id))
-        .filter(Boolean) as UserData[]
+      // Creamos un mapa rápido para acceder por uid
+      const userMap: Record<string, UserDataGet> = {}
+      for (const user of user_info) {
+        userMap[user.uid] = {
+          uid: user.uid,
+          name: user.name,
+          email: user.email,
+          // ...agregá otras propiedades si las necesitas
+        }
+      }
+
+      const teacher = teacher_id ? userMap[teacher_id] ?? null : null
+
+      const auxTeachers = aux_teachers_ids
+        .map((id: string) => userMap[id])
+        .filter(Boolean) as UserDataGet[]
+
+      const students = students_ids
+        .map((id: string) => userMap[id])
+        .filter(Boolean) as UserDataGet[]
 
       setMembersData({
         teacher,
@@ -364,6 +356,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
       setLoadingMembers(false)
     }
   }
+
 
   const handleApproveStudent = async (studentId: string, name: string, surname: string) => {
     try {
@@ -537,14 +530,13 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
       <View style={memberCardStyles.userInfo}>
         <View style={[memberCardStyles.avatar, { backgroundColor: isMain ? "#e3f2fd" : "#f3e5f5" }]}>
           <Text style={[memberCardStyles.avatarText, { color: isMain ? "#1976d2" : "#7b1fa2" }]}>
-            {teacher.name.charAt(0)}
-            {teacher.surname.charAt(0)}
+            {teacher.name.charAt(0)} 
           </Text>
         </View>
         <View style={memberCardStyles.userDetails}>
           <View style={memberCardStyles.teacherHeader}>
             <Text style={memberCardStyles.userName}>
-              {teacher.name} {teacher.surname}
+              {teacher.name}
             </Text>
             {isMain && (
               <View style={memberCardStyles.mainTeacherBadge}>
