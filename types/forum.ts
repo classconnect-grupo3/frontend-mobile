@@ -4,29 +4,23 @@ export interface ForumQuestion {
   description: string
   author_id: string
   course_id: string
-  created_at: string
-  updated_at: string
-  status: "open" | "closed"
   tags: string[]
+  status: "open" | "resolved"
   vote_count: number
   answer_count: number
   accepted_answer_id?: string
-  answers?: ForumAnswer[]
+  created_at: string
+  updated_at: string
 }
 
 export interface ForumAnswer {
   id: string
   content: string
   author_id: string
-  created_at: string
-  updated_at: string
   vote_count: number
   is_accepted: boolean
-}
-
-export interface ForumSearchResponse {
-  questions: ForumQuestion[]
-  total: number
+  created_at: string
+  updated_at: string
 }
 
 export interface UserRole {
@@ -36,7 +30,12 @@ export interface UserRole {
   role: "teacher" | "aux_teacher" | "student"
 }
 
-export type VoteType = 1 | -1 // 1 for upvote, -1 for downvote
+export interface ForumSearchResponse {
+  questions: ForumQuestion[]
+  total: number
+}
+
+export type VoteType = 1 | -1
 
 export interface CreateQuestionRequest {
   title: string
