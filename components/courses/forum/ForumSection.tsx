@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, RefreshControl } from "react-native"
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, RefreshControl, Alert } from "react-native"
 import { courseClient } from "@/lib/courseClient"
 import { useAuth } from "@/contexts/sessionAuth"
 import Toast from "react-native-toast-message"
@@ -41,6 +41,7 @@ export const ForumSection = ({ courseId, isTeacher, membersData }: Props) => {
 
   const auth = useAuth()
   const authState = auth?.authState
+  const currentUserId = authState?.user?.id
 
   const QUESTIONS_PER_PAGE = 10
 
@@ -171,6 +172,45 @@ export const ForumSection = ({ courseId, isTeacher, membersData }: Props) => {
     })
   }
 
+  const handleDeleteQuestion = async (question: ForumQuestion) => {
+    Alert.alert(
+      "Eliminar pregunta",
+      "¿Estás seguro de que quieres eliminar esta pregunta? Esta acción no se puede deshacer.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await courseClient.delete(`/forum/questions/${question.id}?authorId=${currentUserId}`, {
+                headers: {
+                  Authorization: `Bearer ${authState?.token}`,
+                },
+              })
+
+              setQuestions((prev) => prev.filter((q) => q.id !== question.id))
+              setTotalQuestions((prev) => prev - 1)
+
+              Toast.show({
+                type: "success",
+                text1: "Pregunta eliminada",
+                text2: "La pregunta ha sido eliminada exitosamente",
+              })
+            } catch (error) {
+              console.error("Error deleting question:", error)
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "No se pudo eliminar la pregunta",
+              })
+            }
+          },
+        },
+      ],
+    )
+  }
+
   const handleQuestionPress = (question: ForumQuestion) => {
     setSelectedQuestion(question)
     setShowQuestionDetail(true)
@@ -222,6 +262,7 @@ export const ForumSection = ({ courseId, isTeacher, membersData }: Props) => {
       onPress={() => handleQuestionPress(item)}
       onVote={(voteType) => handleVote(item.id, voteType)}
       onEdit={() => handleEditQuestion(item)}
+      onDelete={() => handleDeleteQuestion(item)}
       currentUserId={authState?.user?.id}
     />
   )

@@ -9,10 +9,11 @@ interface Props {
   onPress: () => void
   onVote: (voteType: 1 | -1) => void
   onEdit?: () => void
+  onDelete?: () => void
   currentUserId?: string
 }
 
-export const QuestionCard = ({ question, userRole, onPress, onVote, onEdit, currentUserId }: Props) => {
+export const QuestionCard = ({ question, userRole, onPress, onVote, onEdit, onDelete, currentUserId }: Props) => {
   const getRoleBadge = (role: "teacher" | "aux_teacher" | "student") => {
     switch (role) {
       case "teacher":
@@ -94,15 +95,26 @@ export const QuestionCard = ({ question, userRole, onPress, onVote, onEdit, curr
         </View>
 
         {isOwnQuestion && (
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={(e) => {
-              e.stopPropagation()
-              onEdit?.()
-            }}
-          >
-            <AntDesign name="edit" size={16} color="#666" />
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={(e) => {
+                e.stopPropagation()
+                onEdit?.()
+              }}
+            >
+              <AntDesign name="edit" size={16} color="#666" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={(e) => {
+                e.stopPropagation()
+                onDelete?.()
+              }}
+            >
+              <AntDesign name="delete" size={16} color="#f44336" />
+            </TouchableOpacity>
+          </>
         )}
 
         <View style={styles.voteContainer}>
@@ -301,6 +313,12 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 4,
     backgroundColor: "#f5f5f5",
+    marginRight: 8,
+  },
+  deleteButton: {
+    padding: 6,
+    borderRadius: 4,
+    backgroundColor: "#ffeaea",
     marginRight: 8,
   },
 })

@@ -141,6 +141,7 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
         },
       )
 
+      // Update local state
       setQuestionData((prev) => ({
         ...prev,
         accepted_answer_id: answerId,
@@ -221,6 +222,7 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
     setShowEditAnswerModal(false)
     setEditingAnswer(null)
 
+    // Update the answer in the list
     setAnswers((prev) => prev.map((a) => (a.id === updatedAnswer.id ? updatedAnswer : a)))
 
     Toast.show({
@@ -228,6 +230,45 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
       text1: "Respuesta actualizada",
       text2: "Los cambios se han guardado exitosamente",
     })
+  }
+
+  const handleDeleteQuestion = async () => {
+    Alert.alert(
+      "Eliminar pregunta",
+      "¿Estás seguro de que quieres eliminar esta pregunta? Esta acción no se puede deshacer y eliminará todas las respuestas.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await courseClient.delete(`/forum/questions/${question.id}?authorId=${currentUserId}`, {
+                headers: {
+                  Authorization: `Bearer ${authState?.token}`,
+                },
+              })
+
+              Toast.show({
+                type: "success",
+                text1: "Pregunta eliminada",
+                text2: "La pregunta ha sido eliminada exitosamente",
+              })
+
+              // Go back to forum list
+              onBack()
+            } catch (error) {
+              console.error("Error deleting question:", error)
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "No se pudo eliminar la pregunta",
+              })
+            }
+          },
+        },
+      ],
+    )
   }
 
   const getRoleBadge = (role: "teacher" | "aux_teacher" | "student") => {
@@ -243,7 +284,7 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
 
   const questionAuthor = userRoles.get(questionData.author_id)
   const isQuestionAuthor = currentUserId === questionData.author_id
-  const canAcceptAnswers = isQuestionAuthor || isTeacher
+  const canAcceptAnswers = isQuestionAuthor
 
   const renderQuestionHeader = () => {
     const roleBadge = questionAuthor ? getRoleBadge(questionAuthor.role) : null
@@ -340,6 +381,13 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
               </View>
             </View>
           </View>
+          {/* Delete button for question author */}
+          {isQuestionAuthor && (
+            <TouchableOpacity style={styles.deleteQuestionButton} onPress={handleDeleteQuestion}>
+              <AntDesign name="delete" size={16} color="#f44336" />
+              <Text style={styles.deleteQuestionText}>Eliminar pregunta</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     )
@@ -617,5 +665,21 @@ const styles = StyleSheet.create({
   },
   emptyList: {
     flexGrow: 1,
+  },
+  deleteQuestionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffeaea",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginTop: 12,
+    alignSelf: "flex-start",
+  },
+  deleteQuestionText: {
+    color: "#f44336",
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 6,
   },
 })
