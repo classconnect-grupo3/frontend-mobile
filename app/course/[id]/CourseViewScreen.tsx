@@ -2,7 +2,7 @@
 
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useCourses } from "@/contexts/CoursesContext"
-import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from "react-native"
+import { View, Text, TouchableOpacity, Modal, StyleSheet } from "react-native"
 import { useEffect, useState } from "react"
 import { AntDesign, MaterialIcons } from "@expo/vector-icons"
 import { styles as modalStyles } from "@/styles/modalStyle"
@@ -15,7 +15,7 @@ import { CourseTopBar } from "@/components/courses/course/CourseTopBar"
 import { AssignmentsSection } from "@/components/courses/course/AssignmentsSection"
 import { ModulesSection } from "@/components/courses/course/ModulesSection"
 import { DownloadModal } from "@/components/courses/course/DownloadModal"
-import { KeyboardAvoidingView, SafeAreaView, Platform } from "react-native"
+import { SafeAreaView } from "react-native"
 import { AddQuestionsModal } from "@/components/courses/course/AddQuestionsModal"
 import { ViewQuestionsModal } from "@/components/courses/course/ViewQuestionsModal"
 import { FeedbackSection } from "@/components/courses/course/FeedbackSection"
@@ -24,8 +24,10 @@ import type { JSX } from "react"
 import { SubmissionsListModal } from "@/components/courses/course/SubmissionsListModal"
 import { GradeSubmissionModal } from "@/components/courses/course/GradeSubmissionModal"
 import { GradesSummary } from "@/components/courses/course/GradesSummary"
-import React from "react"
 import { ScreenLayout } from "@/components/layout/ScreenLayout"
+import { CourseTabs } from "@/components/courses/course/CourseTabs"
+import { ForumSection } from "@/components/courses/forum/ForumSection"
+import React from "react"
 
 interface Question {
   id: string
@@ -46,6 +48,8 @@ export interface StudentSubmission {
   content: string
   score?: number
   feedback?: string
+  ai_score?: number
+  ai_feedback?: string
   graded_at?: string
   answers?: {
     id: string
@@ -139,6 +143,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const [selectedAssignmentForSubmissions, setSelectedAssignmentForSubmissions] = useState<Assignment | null>(null)
   const [showGradeModal, setShowGradeModal] = useState(false)
   const [selectedSubmissionForGrading, setSelectedSubmissionForGrading] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState<string>("overview")
+
   const auth = useAuth()
   const authState = auth?.authState
   const course = courses.find((c) => c.id === id)
@@ -243,6 +249,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           "X-Student-UUID": authState.user?.id,
         },
       })
+      console.log("Submissions data:", data)
       return data
     } catch (e) {
       console.error("Error fetching submissions:", e)
@@ -260,6 +267,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           Authorization: `Bearer ${authState.token}`,
         },
       })
+      console.log("Assignments data:", data)
       if (data !== null) {
         const enrichedAssignments = data.map((assignment: any) => ({
           ...assignment,
@@ -291,7 +299,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         throw new Error("No auth token available")
       }
 
-      const { data: membersIds } = await courseClient.get<CourseMembers>(`/courses/${course.id}/members`, {
+      const { data: membersIds } = await courseClient.get(`/courses/${course.id}/members`, {
         headers: {
           Authorization: `Bearer ${authState.token}`,
         },
@@ -557,12 +565,14 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     </View>
   )
 
-  const mainSections = [
-    ...(teacher ? [] : [{ type: "grades" }]), // Solo para estudiantes
-    { type: "tasks" },
-    { type: "exams" },
-    { type: "modules" },
-    { type: "feedback" },
+  const tabs = [
+    { id: "overview", label: "General", icon: "home" },
+    ...(teacher ? [] : [{ id: "grades", label: "Notas", icon: "barschart" }]),
+    { id: "tasks", label: "Tareas", icon: "filetext1" },
+    { id: "exams", label: "Exámenes", icon: "solution1" },
+    { id: "modules", label: "Módulos", icon: "book" },
+    { id: "forum", label: "Foro", icon: "message1" },
+    { id: "feedback", label: "Feedback", icon: "star" },
   ]
 
   const handleAddQuestions = (assignmentId: string) => {
@@ -606,11 +616,82 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const handleGradeSuccess = () => {
     setShowGradeModal(false)
     setSelectedSubmissionForGrading(null)
-    setShowSubmissionsModal(true) // Volver a la lista de entregas
+    setShowSubmissionsModal(true)
   }
 
-  const renderMainSection = ({ item }: { item: { type: string } }) => {
-    switch (item.type) {
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "overview":
+        return (
+          <View style={styles.overviewContainer}>
+            {/* Sección de alumnos */}
+            <TouchableOpacity style={courseStyles.materialToggle} onPress={() => setShowAlumnos(!showAlumnos)}>
+              <View style={courseStyles.materialToggleRow}>
+                <AntDesign name={showAlumnos ? "up" : "down"} size={16} color="#333" style={courseStyles.arrowIcon} />
+                <Text style={courseStyles.materialToggleText}>Ver alumnos ({membersData.students.length})</Text>
+              </View>
+            </TouchableOpacity>
+
+            {showAlumnos && (
+              <View style={courseStyles.listContainer}>
+                {loadingMembers ? (
+                  <Text style={courseStyles.listItem}>Cargando alumnos...</Text>
+                ) : membersData.students.length === 0 ? (
+                  <Text style={courseStyles.listItem}>No hay alumnos inscritos</Text>
+                ) : (
+                  membersData.students.map((student, i) => (
+                    <StudentCard
+                      key={student.uid}
+                      student={student}
+                      isTeacher={teacher}
+                      onApprove={() => handleApproveStudent(student.uid, student.name, student.surname)}
+                      onReject={() => handleRejectStudent(student.uid, student.name, student.surname)}
+                    />
+                  ))
+                )}
+              </View>
+            )}
+
+            {/* Docente Titular */}
+            <Text style={courseStyles.sectionHeader}>Docente Titular</Text>
+            <View style={courseStyles.listContainer}>
+              {loadingMembers ? (
+                <Text style={courseStyles.listItem}>Cargando...</Text>
+              ) : membersData.teacher ? (
+                <TeacherCard teacher={membersData.teacher} isMain={true} />
+              ) : (
+                <Text style={courseStyles.listItem}>No se encontró información del docente</Text>
+              )}
+            </View>
+
+            {/* Docentes auxiliares */}
+            <Text style={courseStyles.sectionHeader}>Docentes auxiliares ({membersData.auxTeachers.length})</Text>
+            <View style={courseStyles.listContainer}>
+              {loadingMembers ? (
+                <Text style={courseStyles.listItem}>Cargando...</Text>
+              ) : membersData.auxTeachers.length === 0 ? (
+                <Text style={courseStyles.listItem}>No hay docentes auxiliares asignados</Text>
+              ) : (
+                membersData.auxTeachers.map((auxTeacher, i) => (
+                  <TeacherCard
+                    key={auxTeacher.uid}
+                    teacher={auxTeacher}
+                    isMain={false}
+                    isTeacher={teacher}
+                    onRemove={() => handleRemoveAuxTeacher(auxTeacher.uid, auxTeacher.name, auxTeacher.surname)}
+                  />
+                ))
+              )}
+            </View>
+
+            {/* Botón eliminar curso */}
+            {teacher && (
+              <TouchableOpacity style={courseStyles.deleteButton} onPress={() => setShowConfirmModal(true)}>
+                <Text style={courseStyles.buttonText}>Eliminar curso</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )
       case "grades":
         return <GradesSummary assignments={allAssignments} />
       case "tasks":
@@ -651,6 +732,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         )
       case "modules":
         return <ModulesSection courseId={course.id} isTeacher={teacher} />
+      case "forum":
+        return <ForumSection courseId={course.id} isTeacher={teacher} membersData={membersData} />
       case "feedback":
         return <FeedbackSection courseId={course.id} isTeacher={teacher} />
       default:
@@ -658,106 +741,22 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
-  const renderHeader = () => (
-    <View>
-      <CourseTopBar
-        role={teacher ? "Docente" : "Alumno"}
-        onBack={() => router.back()}
-        canEdit={teacher}
-        course={course}
-        onEditSuccess={reloadCourses}
-      />
-    </View>
-  )
-
-  const renderFooter = () => (
-    <View style={{ padding: 16 }}>
-      {/* Sección de alumnos */}
-      <TouchableOpacity style={courseStyles.materialToggle} onPress={() => setShowAlumnos(!showAlumnos)}>
-        <View style={courseStyles.materialToggleRow}>
-          <AntDesign name={showAlumnos ? "up" : "down"} size={16} color="#333" style={courseStyles.arrowIcon} />
-          <Text style={courseStyles.materialToggleText}>Ver alumnos ({membersData.students.length})</Text>
-        </View>
-      </TouchableOpacity>
-
-      {showAlumnos && (
-        <View style={courseStyles.listContainer}>
-          {loadingMembers ? (
-            <Text style={courseStyles.listItem}>Cargando alumnos...</Text>
-          ) : membersData.students.length === 0 ? (
-            <Text style={courseStyles.listItem}>No hay alumnos inscritos</Text>
-          ) : (
-            membersData.students.map((student, i) => (
-              <StudentCard
-                key={student.uid}
-                student={student}
-                isTeacher={teacher}
-                onApprove={() => handleApproveStudent(student.uid, student.name, student.surname)}
-                onReject={() => handleRejectStudent(student.uid, student.name, student.surname)}
-              />
-            ))
-          )}
-        </View>
-      )}
-
-      {/* Docente Titular */}
-      <Text style={courseStyles.sectionHeader}>Docente Titular</Text>
-      <View style={courseStyles.listContainer}>
-        {loadingMembers ? (
-          <Text style={courseStyles.listItem}>Cargando...</Text>
-        ) : membersData.teacher ? (
-          <TeacherCard teacher={membersData.teacher} isMain={true} />
-        ) : (
-          <Text style={courseStyles.listItem}>No se encontró información del docente</Text>
-        )}
-      </View>
-
-      {/* Docentes auxiliares */}
-      <Text style={courseStyles.sectionHeader}>Docentes auxiliares ({membersData.auxTeachers.length})</Text>
-      <View style={courseStyles.listContainer}>
-        {loadingMembers ? (
-          <Text style={courseStyles.listItem}>Cargando...</Text>
-        ) : membersData.auxTeachers.length === 0 ? (
-          <Text style={courseStyles.listItem}>No hay docentes auxiliares asignados</Text>
-        ) : (
-          membersData.auxTeachers.map((auxTeacher, i) => (
-            <TeacherCard
-              key={auxTeacher.uid}
-              teacher={auxTeacher}
-              isMain={false}
-              isTeacher={teacher}
-              onRemove={() => handleRemoveAuxTeacher(auxTeacher.uid, auxTeacher.name, auxTeacher.surname)}
-            />
-          ))
-        )}
-      </View>
-
-      {/* Botón eliminar curso */}
-      {teacher && (
-        <TouchableOpacity style={courseStyles.deleteButton} onPress={() => setShowConfirmModal(true)}>
-          <Text style={courseStyles.buttonText}>Eliminar curso</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Espacio final */}
-      <View style={{ height: 40 }} />
-    </View>
-  )
-
   return (
     <ScreenLayout padded={false}>
       <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-        <FlatList
-          data={mainSections}
-          keyExtractor={(item) => item.type}
-          renderItem={renderMainSection}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={renderFooter}
-          contentContainerStyle={{ paddingBottom: 60 }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        {/* Header fijo */}
+        <CourseTopBar
+          role={teacher ? "Docente" : "Alumno"}
+          onBack={() => router.back()}
+          canEdit={teacher}
+          course={course}
+          onEditSuccess={reloadCourses}
         />
 
+        {/* Tabs y contenido */}
+        <CourseTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} renderContent={renderTabContent} />
+
+        {/* Modales */}
         <Modal visible={showConfirmModal} transparent animationType="fade">
           <View style={modalStyles.overlay}>
             <View style={modalStyles.modal}>
@@ -840,6 +839,12 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     </ScreenLayout>
   )
 }
+
+const styles = StyleSheet.create({
+  overviewContainer: {
+    padding: 16,
+  },
+})
 
 const memberCardStyles = StyleSheet.create({
   studentCard: {
@@ -999,4 +1004,3 @@ const memberCardStyles = StyleSheet.create({
     fontWeight: "500",
   },
 })
-
