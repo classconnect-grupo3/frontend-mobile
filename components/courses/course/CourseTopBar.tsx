@@ -161,7 +161,6 @@ const styles = StyleSheet.create({
   courseInfo: {
     backgroundColor: "#f8f9fa",
     padding: 16,
-    marginBottom: 16,
   },
   infoCard: {
     backgroundColor: "#fff",
@@ -194,7 +193,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 16,
   },
   infoItem: {
     backgroundColor: "#fff",

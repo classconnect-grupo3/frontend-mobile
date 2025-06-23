@@ -52,18 +52,18 @@ export const CourseTabs = ({ tabs, activeTab, onTabChange, renderContent }: Prop
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: "#fff",
   },
   tabsContainer: {
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    height: 80,
   },
   tabsContent: {
     paddingHorizontal: 16,

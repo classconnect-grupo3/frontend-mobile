@@ -676,7 +676,6 @@ export const AssignmentsSection = ({
                 </TouchableOpacity>
               )}
 
-              {/* Nuevo botón para ver entregas */}
               <TouchableOpacity
                 style={styles.viewSubmissionsButton}
                 onPress={(e) => {

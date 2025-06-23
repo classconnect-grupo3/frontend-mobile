@@ -127,18 +127,18 @@ export function FeedbackSection({ courseId, isTeacher }: FeedbackSectionProps) {
             <MaterialIcons name="auto-awesome" size={20} color={Colors.secondaryButtonText} />
             <Text style={styles.summaryButtonText}>Ver resumen IA</Text>
           </TouchableOpacity>
-
-          {!isTeacher && (
-            <TouchableOpacity style={styles.addButton} onPress={() => setShowFeedbackForm(true)}>
-              <MaterialIcons name="add" size={20} color="#fff" />
-              <Text style={styles.addButtonText}>Dar feedback</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
       {/* Lista de feedbacks del curso */}
       <FeedbackList courseId={courseId} />
+
+      {!isTeacher && (
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowFeedbackForm(true)}>
+          <MaterialIcons name="add" size={20} color="#fff" />
+          <Text style={styles.addButtonText}>Dar feedback</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Lista de estudiantes para feedback individual (solo para docentes) */}
       {/* {isTeacher && (
@@ -183,6 +183,7 @@ export function FeedbackSection({ courseId, isTeacher }: FeedbackSectionProps) {
         onClose={() => setShowFeedbackSummary(false)}
         courseId={courseId}
       />
+
     </View>
   )
 }
@@ -194,6 +195,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   header: {
+    gap: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -214,12 +216,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addButton: {
+    height: 44,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#007AFF",
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   addButtonText: {
     color: "#fff",
