@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native"
 import { AntDesign, MaterialIcons } from "@expo/vector-icons"
 import type { ForumAnswer, UserRole } from "@/types/forum"
+import { VoteButtons } from "./VoteButtons"
 import React from "react"
 
 interface Props {
@@ -62,13 +63,21 @@ export const AnswerCard = ({
         <View style={styles.authorInfo}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              {userRole ? `${userRole.name.charAt(0)}${userRole.surname.charAt(0)}` : "?"}
+              {userRole
+                ? (() => {
+                    const userNameInitial = userRole.name.charAt(0)
+                    const userSurnameInitial = userRole.name
+                      .split(" ")
+                      .slice(1)
+                      .map((n) => n.charAt(0))
+                      .join("")
+                    return `${userNameInitial}${userSurnameInitial}`.toUpperCase()
+                  })()
+                : "?"}
             </Text>
           </View>
           <View style={styles.authorDetails}>
-            <Text style={styles.authorName}>
-              {userRole ? `${userRole.name} ${userRole.surname}` : "Usuario desconocido"}
-            </Text>
+            <Text style={styles.authorName}>{userRole ? userRole.name : "Usuario desconocido"}</Text>
             {roleBadge && (
               <View style={[styles.roleBadge, { backgroundColor: roleBadge.bgColor }]}>
                 <Text style={[styles.roleBadgeText, { color: roleBadge.color }]}>{roleBadge.text}</Text>
@@ -101,15 +110,13 @@ export const AnswerCard = ({
       <Text style={styles.content}>{answer.content}</Text>
 
       <View style={styles.footer}>
-        <View style={styles.voteContainer}>
-          <TouchableOpacity style={styles.voteButton} onPress={() => onVote(1)} disabled={!currentUserId}>
-            <AntDesign name="up" size={18} color="#007AFF" />
-          </TouchableOpacity>
-          <Text style={styles.voteCount}>{answer.vote_count}</Text>
-          <TouchableOpacity style={styles.voteButton} onPress={() => onVote(-1)} disabled={!currentUserId}>
-            <AntDesign name="down" size={18} color="#007AFF" />
-          </TouchableOpacity>
-        </View>
+        <VoteButtons
+          votes={answer.votes || []}
+          currentUserId={currentUserId}
+          onVote={onVote}
+          disabled={isOwnAnswer}
+          size="medium"
+        />
 
         {canAccept && !isAccepted && (
           <TouchableOpacity style={styles.acceptButton} onPress={onAccept}>
@@ -226,23 +233,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-  },
-  voteContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  voteButton: {
-    padding: 6,
-    borderRadius: 4,
-    backgroundColor: "#f5f5f5",
-  },
-  voteCount: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#333",
-    marginHorizontal: 10,
-    minWidth: 20,
-    textAlign: "center",
   },
   acceptButton: {
     flexDirection: "row",

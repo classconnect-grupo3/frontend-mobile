@@ -5,12 +5,13 @@ export interface ForumQuestion {
   author_id: string
   course_id: string
   tags: string[]
-  status: "open" | "resolved"
+  status: "open" | "closed"
   vote_count: number
   answer_count: number
   accepted_answer_id?: string
   created_at: string
   updated_at: string
+  votes: Vote[]
 }
 
 export interface ForumAnswer {
@@ -21,6 +22,12 @@ export interface ForumAnswer {
   is_accepted: boolean
   created_at: string
   updated_at: string
+  votes: Vote[]
+}
+
+export interface Vote {
+  user_id: string
+  vote_type: 1 | -1
 }
 
 export interface UserRole {

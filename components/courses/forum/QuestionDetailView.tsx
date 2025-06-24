@@ -10,6 +10,7 @@ import type { ForumQuestion, ForumAnswer, UserRole } from "@/types/forum"
 import { AnswerCard } from "./AnswerCard"
 import { CreateAnswerModal } from "./CreateAnswerModal"
 import { EditAnswerModal } from "./EditAnswerModal"
+import { VoteButtons } from "./VoteButtons"
 import React from "react"
 
 interface Props {
@@ -73,10 +74,22 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
         },
       )
 
-      setQuestionData((prev) => ({
-        ...prev,
-        vote_count: prev.vote_count + voteType,
-      }))
+      setQuestionData((prev) => {
+        const newVotes = prev.votes ? [...prev.votes] : []
+        const existingVoteIndex = newVotes.findIndex((v) => v.user_id === currentUserId)
+
+        if (existingVoteIndex >= 0) {
+          newVotes[existingVoteIndex] = { user_id: currentUserId!, vote_type: voteType }
+        } else {
+          newVotes.push({ user_id: currentUserId!, vote_type: voteType })
+        }
+
+        return {
+          ...prev,
+          votes: newVotes,
+          vote_count: newVotes.reduce((sum, vote) => sum + vote.vote_type, 0),
+        }
+      })
 
       Toast.show({
         type: "success",
@@ -108,10 +121,29 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
         },
       )
 
+      // Update local state
       setAnswers((prev) =>
-        prev.map((answer) =>
-          answer.id === answerId ? { ...answer, vote_count: answer.vote_count + voteType } : answer,
-        ),
+        prev.map((answer) => {
+          if (answer.id === answerId) {
+            const newVotes = answer.votes ? [...answer.votes] : []
+            const existingVoteIndex = newVotes.findIndex((v) => v.user_id === currentUserId)
+
+            if (existingVoteIndex >= 0) {
+              // Update existing vote
+              newVotes[existingVoteIndex] = { user_id: currentUserId!, vote_type: voteType }
+            } else {
+              // Add new vote
+              newVotes.push({ user_id: currentUserId!, vote_type: voteType })
+            }
+
+            return {
+              ...answer,
+              votes: newVotes,
+              vote_count: newVotes.reduce((sum, vote) => sum + vote.vote_type, 0),
+            }
+          }
+          return answer
+        }),
       )
 
       Toast.show({
@@ -284,7 +316,7 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
 
   const questionAuthor = userRoles.get(questionData.author_id)
   const isQuestionAuthor = currentUserId === questionData.author_id
-  const canAcceptAnswers = isQuestionAuthor
+  const canAcceptAnswers = isQuestionAuthor || isTeacher
 
   const renderQuestionHeader = () => {
     const roleBadge = questionAuthor ? getRoleBadge(questionAuthor.role) : null
@@ -305,13 +337,21 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
               <View style={styles.authorInfo}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
-                    {questionAuthor ? `${questionAuthor.name.charAt(0)}${questionAuthor.surname.charAt(0)}` : "?"}
+                    {questionAuthor
+                      ? (() => {
+                          const userNameInitial = questionAuthor.name.charAt(0)
+                          const userSurnameInitial = questionAuthor.name
+                            .split(" ")
+                            .slice(1)
+                            .map((n) => n.charAt(0))
+                            .join("")
+                          return `${userNameInitial}${userSurnameInitial}`.toUpperCase()
+                        })()
+                      : "?"}
                   </Text>
                 </View>
                 <View>
-                  <Text style={styles.authorName}>
-                    {questionAuthor ? `${questionAuthor.name} ${questionAuthor.surname}` : "Usuario desconocido"}
-                  </Text>
+                  <Text style={styles.authorName}>{questionAuthor ? questionAuthor.name : "Usuario desconocido"}</Text>
                   {roleBadge && (
                     <View style={[styles.roleBadge, { backgroundColor: roleBadge.bgColor }]}>
                       <Text style={[styles.roleBadgeText, { color: roleBadge.color }]}>{roleBadge.text}</Text>
@@ -346,23 +386,13 @@ export const QuestionDetailView = ({ question, userRoles, currentUserId, isTeach
 
           {/* Question actions */}
           <View style={styles.questionActions}>
-            <View style={styles.voteContainer}>
-              <TouchableOpacity
-                style={styles.voteButton}
-                onPress={() => handleVoteQuestion(1)}
-                disabled={!currentUserId}
-              >
-                <AntDesign name="up" size={20} color="#007AFF" />
-              </TouchableOpacity>
-              <Text style={styles.voteCount}>{questionData.vote_count}</Text>
-              <TouchableOpacity
-                style={styles.voteButton}
-                onPress={() => handleVoteQuestion(-1)}
-                disabled={!currentUserId}
-              >
-                <AntDesign name="down" size={20} color="#007AFF" />
-              </TouchableOpacity>
-            </View>
+            <VoteButtons
+              votes={questionData.votes || []}
+              currentUserId={currentUserId}
+              onVote={handleVoteQuestion}
+              disabled={isQuestionAuthor}
+              size="large"
+            />
 
             <View style={styles.statsContainer}>
               <View style={styles.stat}>
@@ -576,23 +606,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: "#e0e0e0",
-  },
-  voteContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  voteButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: "#f5f5f5",
-  },
-  voteCount: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    marginHorizontal: 12,
-    minWidth: 30,
-    textAlign: "center",
   },
   statsContainer: {
     flexDirection: "row",
