@@ -336,9 +336,11 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         .map((id: string) => userMap[id])
         .filter(Boolean) as UserDataGet[]
 
-      const students = students_ids
+      const students = students_ids ? 
+        students_ids
         .map((id: string) => userMap[id])
         .filter(Boolean) as UserDataGet[]
+        : []
 
       setMembersData({
         teacher,
@@ -521,7 +523,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     isTeacher = false,
     onRemove,
   }: {
-    teacher: UserData
+    teacher: UserDataGet
     isMain: boolean
     isTeacher?: boolean
     onRemove?: () => void
@@ -634,7 +636,16 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
                   membersData.students.map((student, i) => (
                     <StudentCard
                       key={student.uid}
-                      student={student}
+                      student={{
+                        ...student,
+                        surname: "", // surname is included in name
+                        phone: "",
+                        latitude: 0,
+                        longitude: 0,
+                        is_active: true,
+                        is_blocked: false,
+                        is_admin: false,
+                      }}
                       isTeacher={teacher}
                       onApprove={() => handleApproveStudent(student.uid, student.name, student.surname)}
                       onReject={() => handleRejectStudent(student.uid, student.name, student.surname)}
@@ -742,6 +753,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           onBack={() => router.back()}
           canEdit={teacher}
           course={course}
+          teacherName={membersData.teacher?.name || ""}
           onEditSuccess={reloadCourses}
         />
 
