@@ -30,7 +30,7 @@ export default function TabLayout() {
             backgroundColor: "#fff",
             height: 64,
             borderTopWidth: 0,
-            shadowOpacity: 0.1, // no se por que pero las sombras no se ven 
+            shadowOpacity: 0.1, // no se por que pero las sombras no se ven
             shadowColor: "#000",
             shadowOffset: { width: 0, height: -3 },
             shadowRadius: 6,
@@ -71,6 +71,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="statistics"
+        options={{
+          title: "Estadísticas",
+          headerTitleAlign: "left",
+          tabBarIcon: ({ color }: { color: string }) => <MaterialIcons size={28} name="bar-chart" color={color} />,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
         name="favourites"
         options={{
           title: "Favoritos",
@@ -85,7 +94,7 @@ export default function TabLayout() {
           title: "Feedbacks",
           headerTitleAlign: "left",
           tabBarIcon: ({ color }: { color: string }) => <MaterialIcons size={28} name="feedback" color={color} />,
-            // <TabBarIcon name={focused ? "chatbubble" : "chatbubble-outline"} color={color} />
+          // <TabBarIcon name={focused ? "chatbubble" : "chatbubble-outline"} color={color} />
           headerShown: false,
         }}
       />

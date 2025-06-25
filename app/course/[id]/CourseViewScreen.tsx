@@ -27,6 +27,7 @@ import { ScreenLayout } from "@/components/layout/ScreenLayout"
 import { CourseTabs } from "@/components/courses/course/CourseTabs"
 import { ForumSection } from "@/components/courses/forum/ForumSection"
 import { CourseMembersFooter } from "@/components/courses/course/CourseMembersFooter"
+import { CourseStatisticsSection } from "@/components/statistics/CourseStatisticsSection"
 import React from "react"
 
 interface Question {
@@ -383,6 +384,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     { id: "modules", label: "Módulos", icon: "book" },
     { id: "forum", label: "Foro", icon: "message1" },
     { id: "feedback", label: "Feedback", icon: "star" },
+    { id: "statistics", label: "Estadísticas", icon: "barschart" },
   ]
 
   const handleAddQuestions = (assignmentId: string) => {
@@ -475,6 +477,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         return <ForumSection courseId={course.id} isTeacher={teacher} membersData={membersData} />
       case "feedback":
         return <FeedbackSection courseId={course.id} isTeacher={teacher} />
+      case "statistics":
+        return <CourseStatisticsSection courseId={course.id} membersData={membersData} />
       default:
         return null
     }
@@ -599,9 +603,6 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  overviewContainer: {
-    padding: 16,
-  },
   contentContainer: {
     flex: 1,
   },
