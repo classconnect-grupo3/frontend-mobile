@@ -5,12 +5,20 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "classconnect",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.classconnect.firebase"
+      "bundleIdentifier": "com.classconnect.firebase",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "classconnect-oauth",
+            "CFBundleURLSchemes": ["classconnect", "com.classconnect.firebase"]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,9 +27,19 @@
       },
       "googleServicesFile": "./google-services.json",
       "package": "com.classconnect.firebase",
-      "permissions": [
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+      "permissions": ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "classconnect.app"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {
@@ -42,7 +60,12 @@
       ],
       "expo-secure-store",
       "expo-location",
-      "@react-native-google-signin/google-signin",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1029642815370-n3jhd0ldn8omgprnq59ljvbf4so7b7iu "
+        }
+      ],
       [
         "expo-image-picker",
         {
