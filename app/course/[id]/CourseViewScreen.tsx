@@ -507,6 +507,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             isTeacher={teacher}
             onRemoveAuxTeacher={handleRemoveAuxTeacher}
             onDeleteCourse={() => setShowConfirmModal(true)}
+            courseId={course.id}
+            onMembersUpdate={fetchCourseMembers}
           />
         </View>
 

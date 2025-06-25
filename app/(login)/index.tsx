@@ -24,7 +24,6 @@ import { Link } from "expo-router"
 import { useState, useEffect, useRef } from "react"
 import { MaterialIcons } from "@expo/vector-icons"
 import Constants from "expo-constants"
-import { __DEV__ } from "react-native"
 
 import * as WebBrowser from "expo-web-browser"
 import * as Google from "expo-auth-session/providers/google"

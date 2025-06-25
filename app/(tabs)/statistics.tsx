@@ -5,6 +5,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-nati
 import { statisticsClient, type TeacherCoursesStatistics } from "@/lib/statisticsClient"
 import { useAuth } from "@/contexts/sessionAuth"
 import { CustomBarChart, CustomLineChart } from "@/components/statistics/StatisticsCharts"
+import { DateRangePicker } from "@/components/statistics/DateRangePicker"
 import { ScreenLayout } from "@/components/layout/ScreenLayout"
 import { AntDesign } from "@expo/vector-icons"
 import Toast from "react-native-toast-message"
@@ -13,6 +14,10 @@ import React from "react"
 export default function StatisticsScreen() {
   const [statistics, setStatistics] = useState<TeacherCoursesStatistics | null>(null)
   const [loading, setLoading] = useState(false)
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
+    from: new Date("2025-05-17"),
+    to: new Date("2025-12-17"),
+  })
 
   const auth = useAuth()
   const authState = auth?.authState
@@ -21,12 +26,17 @@ export default function StatisticsScreen() {
     if (authState?.token && authState?.user?.id) {
       fetchStatistics()
     }
-  }, [authState?.token, authState?.user?.id])
+  }, [authState?.token, authState?.user?.id, dateRange])
 
   const fetchStatistics = async () => {
     try {
       setLoading(true)
-      const data = await statisticsClient.getTeacherCoursesStatistics(authState!.user!.id, authState!.token!)
+      
+      const data = await statisticsClient.getTeacherCoursesStatistics(
+        authState!.user!.id,
+        authState!.token!,
+        dateRange,
+      )
       setStatistics(data)
     } catch (error) {
       console.error("Error fetching teacher statistics:", error)
@@ -38,6 +48,10 @@ export default function StatisticsScreen() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDateRangeChange = (newRange: { from: Date; to: Date }) => {
+    setDateRange(newRange)
   }
 
   if (loading) {
@@ -119,6 +133,9 @@ export default function StatisticsScreen() {
           <Text style={styles.title}>Mis Estadísticas</Text>
           <Text style={styles.subtitle}>Vista general de todos tus cursos</Text>
         </View>
+
+        {/* Date Range Picker */}
+        <DateRangePicker dateRange={dateRange} onDateRangeChange={handleDateRangeChange} />
 
         {/* Métricas generales */}
         <View style={styles.metricsGrid}>

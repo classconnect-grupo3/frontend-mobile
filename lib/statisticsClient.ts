@@ -43,6 +43,12 @@ export interface TeacherCoursesStatistics {
   courses: CourseStatistics[]
 }
 
+export interface DateRange {
+  from: Date
+  to: Date
+}
+
+// Utility function to parse CSV data
 const parseCSV = (csvString: string): any[] => {
   const lines = csvString.trim().split("\n")
   if (lines.length < 2) return []
@@ -77,17 +83,37 @@ const parseCSV = (csvString: string): any[] => {
   return data
 }
 
-export const statisticsClient = {
-  async getCourseStatistics(courseId: string, token: string, teacherId: string): Promise<CourseStatistics> {
-    const { data } = await courseClient.get(`/statistics/courses/${courseId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "X-Teacher-UUID": teacherId,
-      },
-    })
+// Helper function to format date for API
+const formatDateForAPI = (date: Date): string => {
+  return date.toISOString().split("T")[0]
+}
 
-    const parsed = parseCSV(data.csv)
-    return parsed[0] as CourseStatistics
+export const statisticsClient = {
+  async getCourseStatistics(
+    courseId: string,
+    token: string,
+    teacherId: string,
+    dateRange?: DateRange,
+  ): Promise<CourseStatistics> {
+    try {
+      const fromDate = formatDateForAPI(dateRange?.from) || "2025-05-17"
+      const toDate = formatDateForAPI(dateRange?.to) || "2025-12-17"
+
+      const { data } = await courseClient.get(`/statistics/courses/${courseId}?from=${fromDate}&to=${toDate}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "X-Teacher-UUID": teacherId,
+        },
+      })
+      console.log("Course statistics data:", data)
+
+      const parsed = parseCSV(data.csv)
+      return parsed[0] as CourseStatistics
+    } catch (error) {
+      console.error("Error fetching course statistics:", error)
+      console.log("more details:", error.response?.data || error.message)
+      throw error
+    }
   },
 
   async getStudentStatistics(
@@ -95,27 +121,56 @@ export const statisticsClient = {
     courseId: string,
     token: string,
     teacherId: string,
+    dateRange?: DateRange,
   ): Promise<StudentStatistics> {
-    const { data } = await courseClient.get(`/statistics/students/${studentId}?course_id=${courseId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "X-Teacher-UUID": teacherId,
-      },
-    })
+    try {
+      const fromDate = formatDateForAPI(dateRange?.from) || "2025-05-17"
+      const toDate = formatDateForAPI(dateRange?.to) || "2025-12-17"
 
-    const parsed = parseCSV(data.csv)
-    return parsed[0] as StudentStatistics
+      const { data } = await courseClient.get(
+        `/statistics/students/${studentId}?course_id=${courseId}&from=${fromDate}&to=${toDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "X-Teacher-UUID": teacherId,
+          },
+        },
+      )
+
+      const parsed = parseCSV(data.csv)
+      return parsed[0] as StudentStatistics
+    } catch (error) {
+      console.error("Error fetching student statistics:", error)
+      console.log("more details:", error.response?.data || error.message)
+      throw error
+    }
   },
 
-  async getTeacherCoursesStatistics(teacherId: string, token: string): Promise<TeacherCoursesStatistics> {
-    const { data } = await courseClient.get(`/statistics/teachers/${teacherId}/courses`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "X-Teacher-UUID": teacherId,
-      },
-    })
+  async getTeacherCoursesStatistics(
+    teacherId: string,
+    token: string,
+    dateRange?: DateRange,
+  ): Promise<TeacherCoursesStatistics> {
+    try {
+      const fromDate = formatDateForAPI(dateRange?.from) || "2025-05-17"
+      const toDate = formatDateForAPI(dateRange?.to) || "2025-12-17"
 
-    const parsed = parseCSV(data.csv)
-    return { courses: parsed as CourseStatistics[] }
+      const { data } = await courseClient.get(
+        `/statistics/teachers/${teacherId}/courses?from=${fromDate}&to=${toDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "X-Teacher-UUID": teacherId,
+          },
+        },
+      )
+
+      const parsed = parseCSV(data.csv)
+      return { courses: parsed as CourseStatistics[] }
+    } catch (error) {
+      console.error("Error fetching teacher statistics:", error)
+      console.log("more details:", error.response?.data || error.message)
+      throw error
+    }
   },
 }

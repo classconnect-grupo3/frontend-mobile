@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native"
-import { statisticsClient, type CourseStatistics } from "@/lib/statisticsClient"
+import { statisticsClient, type CourseStatistics, type DateRange } from "@/lib/statisticsClient"
 import { useAuth } from "@/contexts/sessionAuth"
-import { CustomBarChart, CustomPieChart, ProgressCircle, GaugeChart } from "./StatisticsCharts"
+import { CustomPieChart, GaugeChart, PercentageDisplay } from "./StatisticsCharts"
+import { DateRangePicker } from "./DateRangePicker"
 import { StudentStatisticsModal } from "./StudentStatisticsModal"
 import { AntDesign } from "@expo/vector-icons"
 import Toast from "react-native-toast-message"
@@ -24,6 +25,10 @@ export const CourseStatisticsSection = ({ courseId, membersData }: Props) => {
   const [loading, setLoading] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<any>(null)
   const [showStudentModal, setShowStudentModal] = useState(false)
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: new Date("2025-05-17"),
+    to: new Date("2025-12-17"),
+  })
 
   const auth = useAuth()
   const authState = auth?.authState
@@ -32,12 +37,21 @@ export const CourseStatisticsSection = ({ courseId, membersData }: Props) => {
     if (courseId && authState?.token && authState?.user?.id) {
       fetchStatistics()
     }
-  }, [courseId, authState?.token, authState?.user?.id])
+  }, [courseId, authState?.token, authState?.user?.id, dateRange])
 
   const fetchStatistics = async () => {
     try {
       setLoading(true)
-      const data = await statisticsClient.getCourseStatistics(courseId, authState!.token!, authState!.user!.id)
+      const apiDateRange = {
+        from: dateRange.from,
+        to: dateRange.to,
+      }
+      const data = await statisticsClient.getCourseStatistics(
+        courseId,
+        authState!.token!,
+        authState!.user!.id,
+        apiDateRange,
+      )
       setStatistics(data)
     } catch (error) {
       console.error("Error fetching course statistics:", error)
@@ -54,6 +68,10 @@ export const CourseStatisticsSection = ({ courseId, membersData }: Props) => {
   const handleStudentPress = (student: any) => {
     setSelectedStudent(student)
     setShowStudentModal(true)
+  }
+
+  const handleDateRangeChange = (newRange: { from: Date; to: Date }) => {
+    setDateRange(newRange)
   }
 
   if (loading) {
@@ -80,17 +98,13 @@ export const CourseStatisticsSection = ({ courseId, membersData }: Props) => {
   const completionData = [
     {
       name: "Tareas",
-      population: statistics.assignment_completion_rate,
+      value: statistics.assignment_completion_rate,
       color: "#4CAF50",
-      legendFontColor: "#333",
-      legendFontSize: 12,
     },
     {
       name: "Exámenes",
-      population: statistics.exam_completion_rate,
+      value: statistics.exam_completion_rate,
       color: "#2196F3",
-      legendFontColor: "#333",
-      legendFontSize: 12,
     },
   ]
 
@@ -111,27 +125,16 @@ export const CourseStatisticsSection = ({ courseId, membersData }: Props) => {
     },
   ]
 
-  const forumData = {
-    labels: ["Participación"],
-    datasets: [
-      {
-        data: [statistics.forum_participation_rate],
-        color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
-      },
-    ],
-  }
-
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header con información general */}
       <View style={styles.header}>
         <Text style={styles.title}>Estadísticas del Curso</Text>
         <Text style={styles.subtitle}>{statistics.course_name}</Text>
-        <Text style={styles.period}>
-          Período: {new Date(statistics.period_from).toLocaleDateString()} -{" "}
-          {new Date(statistics.period_to).toLocaleDateString()}
-        </Text>
       </View>
+
+      {/* Date Range Picker */}
+      <DateRangePicker dateRange={dateRange} onDateRangeChange={handleDateRangeChange} />
 
       {/* Métricas principales */}
       <View style={styles.metricsGrid}>
@@ -153,14 +156,23 @@ export const CourseStatisticsSection = ({ courseId, membersData }: Props) => {
         </View>
       </View>
 
-      {/* Gráficos */}
+      {/* Gráficos mejorados */}
       <GaugeChart title="Promedio General del Curso" value={statistics.average_score} maxValue={100} color="#4CAF50" />
 
-      <ProgressCircle title="Porcentaje de Finalización" data={completionData} />
+      <PercentageDisplay title="Porcentaje de Finalización" data={completionData} />
 
       <CustomPieChart title="Distribución de Asignaciones" data={assignmentDistribution} />
 
-      <CustomBarChart title="Participación en Foro" data={forumData} />
+      {/* Forum participation as simple metric */}
+      <View style={styles.chartContainer}>
+        <Text style={styles.chartTitle}>Participación en Foro</Text>
+        <View style={styles.forumMetric}>
+          <Text style={styles.forumPercentage}>{statistics.forum_participation_rate.toFixed(1)}%</Text>
+          <Text style={styles.forumDescription}>
+            {statistics.forum_unique_participants} de {statistics.total_students} estudiantes participan
+          </Text>
+        </View>
+      </View>
 
       {/* Lista de estudiantes */}
       <View style={styles.studentsSection}>
@@ -186,6 +198,7 @@ export const CourseStatisticsSection = ({ courseId, membersData }: Props) => {
         visible={showStudentModal}
         student={selectedStudent}
         courseId={courseId}
+        dateRange={dateRange}
         onClose={() => {
           setShowStudentModal(false)
           setSelectedStudent(null)
@@ -256,10 +269,6 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 8,
   },
-  period: {
-    fontSize: 14,
-    color: "#999",
-  },
   metricsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -287,6 +296,39 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 12,
+    color: "#666",
+    textAlign: "center",
+  },
+  chartContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  forumMetric: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  forumPercentage: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#9C27B0",
+    marginBottom: 8,
+  },
+  forumDescription: {
+    fontSize: 14,
     color: "#666",
     textAlign: "center",
   },

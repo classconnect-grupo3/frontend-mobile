@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { View, Text, Modal, TouchableOpacity, ScrollView, StyleSheet } from "react-native"
 import { statisticsClient, type StudentStatistics } from "@/lib/statisticsClient"
 import { useAuth } from "@/contexts/sessionAuth"
-import { CustomBarChart, GaugeChart } from "./StatisticsCharts"
+import { GaugeChart, NumericDisplay } from "./StatisticsCharts"
 import { AntDesign } from "@expo/vector-icons"
 import Toast from "react-native-toast-message"
 import React from "react"
@@ -13,10 +13,11 @@ interface Props {
   visible: boolean
   student: any
   courseId: string
+  dateRange: { from: Date; to: Date }
   onClose: () => void
 }
 
-export const StudentStatisticsModal = ({ visible, student, courseId, onClose }: Props) => {
+export const StudentStatisticsModal = ({ visible, student, courseId, dateRange, onClose }: Props) => {
   const [statistics, setStatistics] = useState<StudentStatistics | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -27,7 +28,7 @@ export const StudentStatisticsModal = ({ visible, student, courseId, onClose }: 
     if (visible && student && courseId && authState?.token && authState?.user?.id) {
       fetchStudentStatistics()
     }
-  }, [visible, student, courseId, authState?.token, authState?.user?.id])
+  }, [visible, student, courseId, authState?.token, authState?.user?.id, dateRange])
 
   const fetchStudentStatistics = async () => {
     try {
@@ -37,6 +38,7 @@ export const StudentStatisticsModal = ({ visible, student, courseId, onClose }: 
         courseId,
         authState!.token!,
         authState!.user!.id,
+        dateRange,
       )
       setStatistics(data)
     } catch (error) {
@@ -71,26 +73,39 @@ export const StudentStatisticsModal = ({ visible, student, courseId, onClose }: 
       )
     }
 
-    // Prepare chart data
-    const scoresData = {
-      labels: ["Exámenes", "Tareas"],
-      datasets: [
-        {
-          data: [statistics.exam_score, statistics.homework_score],
-          color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
-        },
-      ],
-    }
+    // Prepare data for numeric displays
+    const scoresData = [
+      {
+        name: "Promedio en Exámenes",
+        value: statistics.exam_completed > 0 ? (statistics.exam_score / statistics.exam_completed) : 0,
+        color: "#2196F3",
+        suffix: " pts",
+      },
+      {
+        name: "Promedio en Tareas",
+        value: statistics.homework_completed > 0 ? (statistics.homework_score / statistics.homework_completed) : 0,
+        color: "#4CAF50",
+        suffix: " pts",
+      },
+    ]
 
-    const forumData = {
-      labels: ["Posts", "Preguntas", "Respuestas"],
-      datasets: [
-        {
-          data: [statistics.forum_posts, statistics.forum_questions, statistics.forum_answers],
-          color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
-        },
-      ],
-    }
+    const forumData = [
+      {
+        name: "Posts Totales",
+        value: statistics.forum_posts,
+        color: "#9C27B0",
+      },
+      {
+        name: "Preguntas Creadas",
+        value: statistics.forum_questions,
+        color: "#FF9800",
+      },
+      {
+        name: "Respuestas Dadas",
+        value: statistics.forum_answers,
+        color: "#4CAF50",
+      },
+    ]
 
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -132,12 +147,12 @@ export const StudentStatisticsModal = ({ visible, student, courseId, onClose }: 
           </View>
         </View>
 
-        {/* Gráficos */}
+        {/* Gráficos mejorados */}
         <GaugeChart title="Progreso General" value={statistics.completion_rate} maxValue={100} color="#4CAF50" />
 
-        <CustomBarChart title="Promedios por Tipo" data={scoresData} />
+        <NumericDisplay title="Promedios por Tipo" data={scoresData} />
 
-        <CustomBarChart title="Participación en Foro" data={forumData} />
+        <NumericDisplay title="Participación en Foro" data={forumData} />
 
         {/* Detalles adicionales */}
         <View style={styles.detailsSection}>
@@ -161,8 +176,7 @@ export const StudentStatisticsModal = ({ visible, student, courseId, onClose }: 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Período:</Text>
             <Text style={styles.detailValue}>
-              {new Date(statistics.period_from).toLocaleDateString()} -{" "}
-              {new Date(statistics.period_to).toLocaleDateString()}
+              {dateRange.from.toLocaleDateString()} - {dateRange.to.toLocaleDateString()}
             </Text>
           </View>
         </View>
