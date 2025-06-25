@@ -175,7 +175,10 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         setAuthState({ token, authenticated: true, location, user });
 
         router.replace("/(tabs)");
-      } catch (error) {
+      } catch (error: any) {
+        if (error.response?.status === 401) {
+          throw new Error("Email o contraseña incorrectos");
+        }
         if (axios.isAxiosError(error)) {
           console.error("Axios error:", {
             message: error.message,

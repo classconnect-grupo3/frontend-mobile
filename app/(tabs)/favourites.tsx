@@ -92,7 +92,7 @@ export default function FavoritesScreen() {
   )
 
   return (
-    <ScreenLayout>
+    <ScreenLayout scrollable={false}>
     <View style={homeScreenStyles.container}>
       <Header />
 

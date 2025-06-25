@@ -209,9 +209,12 @@ export default function SearchScreen() {
         },
       })
       setUsers(data.data)
-    } catch (e) {
-      console.error("Error searching users:", e)
-      setUsers([])
+    } catch (e: any) {
+      if (e.response?.status === 404) {
+        setUsers([])
+      } else {
+        console.error("Error searching users:", e)
+      }
     } finally {
       setLoading(false)
     }
@@ -226,9 +229,12 @@ export default function SearchScreen() {
         },
       })
       setCourses(data)
-    } catch (e) {
-      console.error("Error searching courses:", e)
-      setCourses([])
+    } catch (e: any) {
+      if (e.response?.status === 404) {
+        setCourses([])
+      } else {
+        console.error("Error searching courses:", e)
+      }
     } finally {
       setLoading(false)
     }
@@ -259,7 +265,7 @@ export default function SearchScreen() {
   )
 
   return (
-    <ScreenLayout>
+    <ScreenLayout scrollable={false}>
     <View style={homeStyles.container}>
       <Header />
       <Text style={styles.title}>

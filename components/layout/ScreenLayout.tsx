@@ -40,7 +40,7 @@ export function ScreenLayout({
 
   return (
     <SafeAreaView style={containerStyle}>
-      <View style={contentContainerStyle}>{children}</View>
+      <View style={[contentContainerStyle, padded && { paddingHorizontal: Spacing.lg }]}>{children}</View>
     </SafeAreaView>
   )
 }

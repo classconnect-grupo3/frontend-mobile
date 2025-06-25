@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { useState } from "react"
 import { Controller, useForm } from "react-hook-form"
-import { Modal, Platform, TextInput, TouchableOpacity, View, Text, StyleSheet, Switch } from "react-native"
+import { Modal, Platform, TextInput, TouchableOpacity, View, Text, StyleSheet, Switch, ScrollView } from "react-native"
 import { z } from "zod"
 import { styles } from "@/styles/modalStyle"
 import { MaterialIcons } from "@expo/vector-icons"
@@ -64,9 +64,9 @@ export function NewAssignmentModal({ visible, onClose, onCreate, type }: Assignm
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <View style={styles.overlay}>
-        <View style={styles.modal}>
+        <ScrollView style={styles.scrollableContent} showsVerticalScrollIndicator={false}>
           <View style={modalStyles.header}>
             <Text style={styles.title}>{type === "exam" ? "Nuevo Examen" : "Nueva Tarea"}</Text>
             <TouchableOpacity onPress={handleClose} style={modalStyles.closeButton}>
@@ -267,7 +267,7 @@ export function NewAssignmentModal({ visible, onClose, onCreate, type }: Assignm
           <TouchableOpacity onPress={handleClose}>
             <Text style={styles.cancel}>Cancelar</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
     </Modal>
   )

@@ -132,7 +132,7 @@ export default function MyCoursesScreen() {
   )
 
   return (
-    <ScreenLayout>
+    <ScreenLayout scrollable={false}>
     <View style={styles.container}>
       <Header />
 

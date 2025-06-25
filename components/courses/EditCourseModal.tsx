@@ -9,6 +9,7 @@ import { useState } from 'react';
 import React from 'react';
 import { styles } from '@/styles/createCourseStyles';
 import { useAuth } from '@/contexts/sessionAuth';
+import { Course } from '@/contexts/CoursesContext';
 
 const schema = z.object({
   title: z.string().min(1),
@@ -23,7 +24,7 @@ type FormData = z.infer<typeof schema>;
 export function EditCourseModal({ visible, onClose, course, onSuccess }: {
   visible: boolean;
   onClose: () => void;
-  course: any;
+  course: Course
   onSuccess: () => void;
 }) {
   const { control, handleSubmit, setValue, watch, formState: { errors, isValid, isDirty } } = useForm<FormData>({
@@ -49,6 +50,8 @@ export function EditCourseModal({ visible, onClose, course, onSuccess }: {
     }
     const { authState } = authContext;
 
+    const teacher_id = authState.user?.id
+
   const onSubmit = async (data: FormData) => {
     try {
     //   await courseClient.put(`/courses/${course.id}`, {
@@ -64,6 +67,7 @@ export function EditCourseModal({ visible, onClose, course, onSuccess }: {
             description: data.description,
             start_date: data.startDate.toISOString(),
             end_date: data.endDate.toISOString(),
+            teacher_id: teacher_id,
             capacity: parseInt(data.capacity),
         };
         console.log('Creating course with data:', body);
