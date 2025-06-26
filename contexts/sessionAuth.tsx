@@ -1,12 +1,12 @@
 "use client"
-
-import React from "react"
 import { useContext, createContext, type PropsWithChildren, useState, useEffect } from "react"
 import { client } from "@/lib/http"
 import { router } from "expo-router"
 import * as SecureStore from "expo-secure-store"
 import { fetchProfileImage } from "@/firebaseConfig"
 import axios from "axios"
+import { PhoneAuthProvider, signInWithCredential } from "firebase/auth"
+import { auth } from "@/firebaseConfig"
 
 type AuthState = {
   token: string | null
@@ -25,16 +25,20 @@ interface AuthContextType {
   register: (name: string, surname: string, email: string, password: string) => Promise<any>
   login: (email: string, password: string) => Promise<any>
   loginWithGoogle(
-    idToken: string, 
+    idToken: string,
     userInfo: {
       uid: string
       name: string
       surname: string
       profilePicUrl: string | null
-    }): Promise<any>
+    },
+  ): Promise<any>
   logout: () => Promise<any>
   fetchUser: (token: string) => Promise<any>
   setProfilePicUrl: (url: string | null) => void
+  // Add new functions for PIN verification
+  sendVerificationPin: (phoneNumber: string, recaptchaVerifier: any) => Promise<string>
+  verifyPinAndCompleteRegistration: (verificationId: string, pin: string, userData: any) => Promise<void>
 }
 
 const TOKEN_KEY = "session"
@@ -130,14 +134,14 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         console.log("TOKEN: ", token)
         console.log("USER: ", user)
 
-        console.log('User data for saved in login:', user);
+        console.log("User data for saved in login:", user)
 
-        setAuthState({ token, authenticated: true, location, user });
+        setAuthState({ token, authenticated: true, location, user })
 
-        router.replace("/(tabs)");
+        router.replace("/(tabs)")
       } catch (error: any) {
         if (error.response?.status === 401) {
-          throw new Error("Email o contraseña incorrectos");
+          throw new Error("Email o contraseña incorrectos")
         }
         if (axios.isAxiosError(error)) {
           console.error("Axios error:", {
@@ -146,11 +150,11 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
             responseData: error.response?.data,
             responseStatus: error.response?.status,
             headers: error.response?.headers,
-          });
+          })
         } else {
-          console.error("Unexpected login error:", error);
+          console.error("Unexpected login error:", error)
         }
-        throw error;
+        throw error
       }
     }
 
@@ -208,11 +212,12 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const loginWithGoogle = async (
     idToken: string,
     userInfo: {
-      uid: string,
+      uid: string
       name: string
       surname: string
       profilePicUrl: string
-    }) => {
+    },
+  ) => {
     try {
       console.log("🔐 Starting Google login with token:", idToken.substring(0, 50) + "...")
 
@@ -273,6 +278,42 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     router.replace("/(login)")
   }
 
+  const sendVerificationPin = async (phoneNumber: string, recaptchaVerifier: any) => {
+    try {
+      const phoneProvider = new PhoneAuthProvider(auth)
+      const verificationId = await phoneProvider.verifyPhoneNumber(phoneNumber, recaptchaVerifier)
+      return verificationId
+    } catch (error) {
+      console.error("Firebase Phone Auth Error:", error)
+      throw new Error("No se pudo enviar el PIN. Verifica el número e intenta de nuevo.")
+    }
+  }
+
+  const verifyPinAndCompleteRegistration = async (verificationId: string, pin: string, userData: any) => {
+    try {
+      const credential = PhoneAuthProvider.credential(verificationId, pin)
+      // This step verifies the code with Firebase. We don't need to sign in.
+      // If the code is wrong, it will throw an error.
+      await signInWithCredential(auth, credential)
+
+      // If PIN is correct, proceed with backend registration
+      const { name, surname, email, password } = userData
+      await register(name, surname, email, password)
+
+      // After successful registration, log the user in
+      await login(email, password)
+    } catch (error: any) {
+      console.error("PIN Verification/Registration Error:", error)
+      if (error.code === "auth/invalid-verification-code") {
+        throw new Error("El PIN ingresado es incorrecto.")
+      }
+      if (error.code === "auth/session-expired") {
+        throw new Error("El código de verificación ha expirado. Por favor, solicita uno nuevo.")
+      }
+      throw new Error("No se pudo completar el registro.")
+    }
+  }
+
   const value = {
     authState,
     register,
@@ -281,6 +322,8 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     logout,
     fetchUser,
     setProfilePicUrl,
+    sendVerificationPin,
+    verifyPinAndCompleteRegistration,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -1,5 +1,5 @@
 import { initializeApp, getApp, getApps } from "firebase/app"
-import { getAuth } from "firebase/auth"
+import { getAuth, PhoneAuthProvider } from "firebase/auth"
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, listAll } from "firebase/storage"
 
 // Initialize Firebase
@@ -169,4 +169,12 @@ const fetchProfileImage = async (userId) => {
   }
 }
 
-export { fbApp, fbStorage, auth, uploadProfilePicToFirebase as uploadToFirebase, listFiles, fetchProfileImage }
+export {
+  fbApp,
+  fbStorage,
+  auth,
+  uploadProfilePicToFirebase as uploadToFirebase,
+  listFiles,
+  fetchProfileImage,
+  PhoneAuthProvider,
+}

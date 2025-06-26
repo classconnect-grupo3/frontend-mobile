@@ -17,7 +17,6 @@ import { useForm, Controller } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Toast from "react-native-toast-message"
-import { useAuth } from "@/contexts/sessionAuth"
 import { useRouter } from "expo-router"
 import { styles } from "@/styles/loginStyle"
 import { Link } from "expo-router"
@@ -41,7 +40,6 @@ const schema = z
 type FormData = z.infer<typeof schema>
 
 export default function RegisterScreen() {
-  const auth = useAuth()
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -75,22 +73,17 @@ export default function RegisterScreen() {
   const onSubmit = async (data: FormData) => {
     try {
       setIsRegistering(true)
-      if (auth) {
-        await auth.register(data.name, data.surname, data.email, data.password)
-        Toast.show({
-          type: "success",
-          text1: "Registro exitoso",
-          text2: "Ahora puedes iniciar sesión",
-        })
-        router.replace("/(login)")
-      } else {
-        throw new Error("El contexto de autenticación no está disponible")
-      }
+      // Instead of registering directly, we navigate to the PIN verification screen,
+      // passing the registration data along.
+      router.push({
+        pathname: "/(login)/verify-pin",
+        params: { ...data },
+      })
     } catch (e: any) {
       Toast.show({
         type: "error",
-        text1: "Error al registrarse",
-        text2: e?.response?.data?.detail ?? e?.message ?? "Algo salió mal",
+        text1: "Error",
+        text2: "No se pudo iniciar el proceso de registro.",
       })
     } finally {
       setIsRegistering(false)
