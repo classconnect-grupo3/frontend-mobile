@@ -20,3 +20,17 @@ To rebuild the APK, run the following command:
 ```bash
 eas build --platform android --profile production
 ```
+
+## Users for testing purpouses
+
+1. user 1
+   - email:u@u.com
+   - password: 123456
+
+2. user 2
+   - email: llorensinaki22@gmail.com
+   - password: 12345678
+
+3. user 3
+   - email:u2@gmail.com
+   - password: 123456

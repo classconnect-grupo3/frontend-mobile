@@ -213,6 +213,7 @@ export const CourseMembersFooter = ({
         {
           headers: {
             Authorization: `Bearer ${authState?.token}`,
+            "X-Teacher-UUID": authState.user?.id,
           },
         },
       )
@@ -252,6 +253,7 @@ export const CourseMembersFooter = ({
         {
           headers: {
             Authorization: `Bearer ${authState?.token}`,
+            "X-Teacher-UUID": authState.user?.id,
           },
         },
       )
@@ -737,6 +739,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     marginBottom: 8,
     minHeight: 80,
+    color: "#333",
   },
   characterCount: {
     fontSize: 12,

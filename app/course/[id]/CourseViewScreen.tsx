@@ -22,7 +22,6 @@ import { StudentFeedbackForm } from "@/components/courses/feedback/StudentFeedba
 import type { JSX } from "react"
 import { SubmissionsListModal } from "@/components/courses/course/SubmissionsListModal"
 import { GradeSubmissionModal } from "@/components/courses/course/GradeSubmissionModal"
-import { GradesSummary } from "@/components/courses/course/GradesSummary"
 import { ScreenLayout } from "@/components/layout/ScreenLayout"
 import { CourseTabs } from "@/components/courses/course/CourseTabs"
 import { ForumSection } from "@/components/courses/forum/ForumSection"
@@ -168,6 +167,22 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const auth = useAuth()
   const authState = auth?.authState
   const course = courses.find((c) => c.id === id)
+
+  // Función para obtener el estado de inscripción del usuario actual
+  const getCurrentUserEnrollmentStatus = () => {
+    if (teacher || !authState?.user?.id) return "active"
+
+    const currentStudent = membersData.students.find((s) => s.uid === authState.user?.id)
+    if (!currentStudent?.enrollment) return "active"
+
+    if (currentStudent.enrollment.status === "completed") return "completed"
+    if (currentStudent.enrollment.status === "dropped" || currentStudent.enrollment.reason_for_unenrollment)
+      return "dropped"
+    return "active"
+  }
+
+  const userEnrollmentStatus = getCurrentUserEnrollmentStatus()
+  const isStudentDisapproved = !teacher && userEnrollmentStatus === "dropped"
 
   useEffect(() => {
     if (course?.id && authState?.token && !hasFetchedAssignments) {
@@ -373,6 +388,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
       const teacher = teacher_id ? (userMap[teacher_id] ?? null) : null
 
+      course.teacher_name = teacher ? `${teacher.name}` : "Docente no encontrado"
+
       const auxTeachers = aux_teachers_ids.map((id: string) => userMap[id]).filter(Boolean) as UserDataGet[]
 
       const students = students_ids.map((id: string) => userMap[id]).filter(Boolean) as UserDataGet[]
@@ -423,7 +440,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
   // Tabs sin la sección "General"
   const tabs = [
-    ...(teacher ? [] : [{ id: "grades", label: "Notas", icon: "barschart" }]),
+    // ...(teacher ? [] : [{ id: "grades", label: "Notas", icon: "barschart" }]),
     { id: "tasks", label: "Tareas", icon: "filetext1" },
     { id: "exams", label: "Exámenes", icon: "solution1" },
     { id: "modules", label: "Módulos", icon: "book" },
@@ -478,8 +495,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case "grades":
-        return <GradesSummary assignments={allAssignments} />
+      // case "grades":
+      //   return <GradesSummary assignments={allAssignments} />
       case "tasks":
         return (
           <AssignmentsSection
@@ -496,6 +513,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             onAddQuestions={handleAddQuestions}
             onViewQuestions={handleViewQuestions}
             onViewSubmissions={handleViewSubmissions}
+            userEnrollmentStatus={userEnrollmentStatus}
+            currentUserData={membersData.students.find((s) => s.uid === authState?.user?.id)}
           />
         )
       case "exams":
@@ -514,6 +533,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             onAddQuestions={handleAddQuestions}
             onViewQuestions={handleViewQuestions}
             onViewSubmissions={handleViewSubmissions}
+            userEnrollmentStatus={userEnrollmentStatus}
+            currentUserData={membersData.students.find((s) => s.uid === authState?.user?.id)}
           />
         )
       case "modules":
