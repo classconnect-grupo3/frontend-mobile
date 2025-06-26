@@ -24,12 +24,8 @@ import { Link } from "expo-router"
 import { useState, useEffect, useRef } from "react"
 import { MaterialIcons } from "@expo/vector-icons"
 
-import * as WebBrowser from "expo-web-browser"
-import * as Google from "expo-auth-session/providers/google"
-import { makeRedirectUri } from "expo-auth-session"
 import React from "react"
-
-WebBrowser.maybeCompleteAuthSession()
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton"
 
 const schema = z.object({
   email: z.string().email("Ingresa un email válido"),
@@ -65,38 +61,6 @@ export default function LoginScreen() {
       useNativeDriver: true,
     }).start()
   }, [])
-
-  // Google Sign-In
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    redirectUri: makeRedirectUri({
-      useProxy: true,
-    }),
-    scopes: ["openid", "profile", "email"],
-    responseType: "id_token",
-  })
-
-  useEffect(() => {
-    if (response?.type === "success") {
-      const { id_token } = response.params
-
-      if (auth && id_token) {
-        setIsLoggingIn(true)
-        auth
-          .loginWithGoogle(id_token)
-          .catch((e: any) => {
-            Toast.show({
-              type: "error",
-              text1: "Error al iniciar sesión con Google",
-              text2: e?.message ?? "Algo salió mal",
-            })
-          })
-          .finally(() => {
-            setIsLoggingIn(false)
-          })
-      }
-    }
-  }, [response])
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -203,18 +167,7 @@ export default function LoginScreen() {
           </View>
 
           {/* Botón Login con Google */}
-          <TouchableOpacity
-            style={localStyles.googleButton}
-            onPress={() => promptAsync()}
-            disabled={!request || isLoggingIn}
-          >
-            <Image
-              source={require("@/assets/images/google-logo.png")}
-              style={localStyles.googleIcon}
-              resizeMode="contain"
-            />
-            <Text style={localStyles.googleButtonText}>Continuar con Google</Text>
-          </TouchableOpacity>
+          <GoogleSignInButton disabled={isLoggingIn} />
 
           <View style={localStyles.registerContainer}>
             <Text style={localStyles.registerText}>¿No tienes una cuenta?</Text>

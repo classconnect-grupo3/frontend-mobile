@@ -5,6 +5,13 @@
   },
   "build": {
     "development": {
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyD2_QDBPxUXP5JTRvMBL-UDzw2Ka1gd-dc",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "users-service-auth-4b330.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "users-service-auth-4b330",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "gs://users-service-auth-4b330.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:1029642815370:android:81e4cdf7cd77f8e5feaa73"
+      },
       "developmentClient": true,
       "distribution": "internal"
     },
