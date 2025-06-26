@@ -27,6 +27,8 @@ interface Props {
   onAddQuestions?: (assignmentId: string) => void
   onViewQuestions?: (assignmentId: string) => void
   onViewSubmissions?: (assignmentId: string) => void
+  userEnrollmentStatus?: string
+  currentUserData?: any
 }
 
 type FilterStatus = "all" | "no_submission" | "draft" | "submitted" | "late"
@@ -49,6 +51,8 @@ export const AssignmentsSection = ({
   onAddQuestions,
   onViewQuestions,
   onViewSubmissions,
+  userEnrollmentStatus = "active",
+  currentUserData,
 }: Props) => {
   const [showAssignmentModal, setShowAssignmentModal] = useState(false)
   const [assignmentModalType, setAssignmentModalType] = useState<"task" | "exam">("task")
@@ -84,6 +88,14 @@ export const AssignmentsSection = ({
       })
     })
   }
+
+  // Función para verificar si el estudiante puede interactuar con las tareas
+  const canStudentInteract = () => {
+    if (isTeacher) return true
+    return userEnrollmentStatus !== "dropped"
+  }
+
+  const isStudentDisapproved = !isTeacher && userEnrollmentStatus === "dropped"
 
   // Aplicar filtros y ordenamiento
   useEffect(() => {
@@ -585,7 +597,7 @@ export const AssignmentsSection = ({
               <Text style={styles.assignmentTitle} numberOfLines={2}>
                 {assignment.title}
               </Text>
-              { !isTeacher && (
+              {!isTeacher && (
                 <FontAwesome
                   name={isExpanded ? "chevron-up" : "chevron-down"}
                   size={16}
@@ -703,17 +715,19 @@ export const AssignmentsSection = ({
           {!isTeacher && (
             <View style={styles.studentActions}>
               <TouchableOpacity
-                style={[styles.actionButton, isReadOnly && styles.disabledButton]}
+                style={[styles.actionButton, (isReadOnly || !canStudentInteract()) && styles.disabledButton]}
                 onPress={(e) => {
                   e.stopPropagation()
-                  if (!isReadOnly) setSelectedAssignment(assignment)
+                  if (!isReadOnly && canStudentInteract()) setSelectedAssignment(assignment)
                 }}
-                disabled={isReadOnly}
+                disabled={isReadOnly || !canStudentInteract()}
               >
-                <Text style={styles.actionButtonText}>Responder preguntas</Text>
+                <Text style={styles.actionButtonText}>
+                  {!canStudentInteract() ? "No disponible" : "Responder preguntas"}
+                </Text>
               </TouchableOpacity>
 
-              {assignment.submission && (
+              {assignment.submission && canStudentInteract() && (
                 <View style={styles.submissionInfo}>
                   <Text style={styles.submissionStatus}>
                     📥 {isSubmitted ? "✔ Entregada" : isLate ? "⏳ Entrega tardía" : "📝 Borrador"}
@@ -837,6 +851,31 @@ export const AssignmentsSection = ({
     )
   }
 
+  const renderDisapprovedMessage = () => {
+    if (!isStudentDisapproved) return null
+
+    const reason = currentUserData?.enrollment?.reason_for_unenrollment
+
+    return (
+      <View style={styles.disapprovedContainer}>
+        <View style={styles.disapprovedCard}>
+          <MaterialIcons name="block" size={48} color="#f44336" />
+          <Text style={styles.disapprovedTitle}>No tenés acceso a esta parte del curso</Text>
+          <Text style={styles.disapprovedMessage}>
+            Tu inscripción en este curso ha sido desaprobada, por lo que no puedes interactuar ni con las tareas ni con los exámenes.
+          </Text>
+          {reason && (
+            <View style={styles.reasonContainer}>
+              <Text style={styles.reasonLabel}>Motivo:</Text>
+              <Text style={styles.reasonText}>{reason}</Text>
+            </View>
+          )}
+          <Text style={styles.contactMessage}>Si crees que esto es un error, contacta con el docente del curso.</Text>
+        </View>
+      </View>
+    )
+  }
+
   return (
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionHeader}>{label}</Text>
@@ -860,6 +899,8 @@ export const AssignmentsSection = ({
 
       {loading ? (
         <Text style={styles.loadingText}>Cargando {label.toLowerCase()}...</Text>
+      ) : isStudentDisapproved ? (
+        renderDisapprovedMessage()
       ) : !filteredAssignments || filteredAssignments.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialIcons name="assignment" size={48} color="#ccc" />
@@ -1427,7 +1468,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 6,
   },
-    gradeIndicator: {
+  gradeIndicator: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f8f9fa",
@@ -1509,6 +1550,69 @@ const styles = StyleSheet.create({
   feedbackText: {
     fontSize: 14,
     color: "#666",
+    lineHeight: 20,
+  },
+  disapprovedContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  disapprovedCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: "#f44336",
+    maxWidth: 400,
+  },
+  disapprovedTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#f44336",
+    marginTop: 16,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  disapprovedMessage: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  reasonContainer: {
+    backgroundColor: "#fff3cd",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    width: "100%",
+    borderLeftWidth: 3,
+    borderLeftColor: "#ffc107",
+  },
+  reasonLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#856404",
+    marginBottom: 4,
+  },
+  reasonText: {
+    fontSize: 14,
+    color: "#856404",
+    lineHeight: 20,
+  },
+  contactMessage: {
+    fontSize: 14,
+    color: "#999",
+    textAlign: "center",
+    fontStyle: "italic",
     lineHeight: 20,
   },
 })

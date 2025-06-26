@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from "expo-router"
 import { useCourses } from "@/contexts/CoursesContext"
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from "react-native"
 import { useEffect, useState } from "react"
-import { AntDesign, MaterialIcons } from "@expo/vector-icons"
 import { styles as modalStyles } from "@/styles/modalStyle"
 import { styles as courseStyles } from "@/styles/courseStyles"
 import { styles as homeScreenStyles } from "@/styles/homeScreenStyles"
@@ -27,7 +26,10 @@ import { GradesSummary } from "@/components/courses/course/GradesSummary"
 import { ScreenLayout } from "@/components/layout/ScreenLayout"
 import { CourseTabs } from "@/components/courses/course/CourseTabs"
 import { ForumSection } from "@/components/courses/forum/ForumSection"
+import { CourseMembersFooter } from "@/components/courses/course/CourseMembersFooter"
+import { CourseStatisticsSection } from "@/components/statistics/CourseStatisticsSection"
 import React from "react"
+import { AntDesign, MaterialIcons } from "@expo/vector-icons"
 
 interface Question {
   id: string
@@ -93,10 +95,24 @@ interface UserData {
   is_admin: boolean
 }
 
+interface Enrollment {
+  completed_date: string | null
+  course_id: string
+  enrolled_at: string
+  favourite: boolean
+  feedback: any[]
+  id: string
+  reason_for_unenrollment: string | null
+  status: "active" | "completed" | "dropped"
+  student_id: string
+  updated_at: string
+}
+
 interface UserDataGet {
   uid: string
   name: string
   email: string
+  enrollment?: Enrollment
 }
 
 interface Student {
@@ -126,8 +142,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const { id } = useLocalSearchParams()
   const router = useRouter()
   const { courses, reloadCourses } = useCourses()
-  const [showAlumnos, setShowAlumnos] = useState(false)
   const [allAssignments, setAllAssignments] = useState<Assignment[]>([])
+  const [showAlumnos, setShowAlumnos] = useState(false)
   const [loadingAssignments, setLoadingAssignments] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [hasFetchedAssignments, setHasFetchedAssignments] = useState(false)
@@ -149,11 +165,27 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const [selectedAssignmentForSubmissions, setSelectedAssignmentForSubmissions] = useState<Assignment | null>(null)
   const [showGradeModal, setShowGradeModal] = useState(false)
   const [selectedSubmissionForGrading, setSelectedSubmissionForGrading] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState<string>("overview")
+  const [activeTab, setActiveTab] = useState<string>("tasks")
 
   const auth = useAuth()
   const authState = auth?.authState
   const course = courses.find((c) => c.id === id)
+
+  // Función para obtener el estado de inscripción del usuario actual
+  const getCurrentUserEnrollmentStatus = () => {
+    if (teacher || !authState?.user?.id) return "active"
+
+    const currentStudent = membersData.students.find((s) => s.uid === authState.user?.id)
+    if (!currentStudent?.enrollment) return "active"
+
+    if (currentStudent.enrollment.status === "completed") return "completed"
+    if (currentStudent.enrollment.status === "dropped" || currentStudent.enrollment.reason_for_unenrollment)
+      return "dropped"
+    return "active"
+  }
+
+  const userEnrollmentStatus = getCurrentUserEnrollmentStatus()
+  const isStudentDisapproved = !teacher && userEnrollmentStatus === "dropped"
 
   useEffect(() => {
     if (course?.id && authState?.token && !hasFetchedAssignments) {
@@ -298,6 +330,26 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
+  const fetchCourseEnrollments = async (): Promise<Enrollment[]> => {
+    try {
+      if (!authState?.token) {
+        throw new Error("No auth token available")
+      }
+
+      const { data: enrollments } = await courseClient.get(`/courses/${course.id}/enrollments`, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`,
+        },
+      })
+
+      console.log("Course enrollments:", enrollments)
+      return enrollments || []
+    } catch (e) {
+      console.error("Error fetching course enrollments:", e)
+      return []
+    }
+  }
+
   const fetchCourseMembers = async () => {
     try {
       setLoadingMembers(true)
@@ -306,31 +358,40 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         throw new Error("No auth token available")
       }
 
-      const { data: members } = await courseClient.get(
-        `/courses/${course.id}/members`,
-        {
+      const [membersResponse, enrollments] = await Promise.all([
+        courseClient.get(`/courses/${course.id}/members`, {
           headers: {
             Authorization: `Bearer ${authState.token}`,
           },
-        },
-      )
+        }),
+        fetchCourseEnrollments(),
+      ])
 
+      const members = membersResponse.data
       console.log("Course members:", members)
 
       const { teacher_id, aux_teachers_ids = [], students_ids = [], user_info = [] } = members
 
-      // Creamos un mapa rápido para acceder por uid
+      // Create enrollment map for quick lookup
+      const enrollmentMap: Record<string, Enrollment> = {}
+      for (const enrollment of enrollments) {
+        enrollmentMap[enrollment.student_id] = enrollment
+      }
+
+      // Create user map for quick lookup
       const userMap: Record<string, UserDataGet> = {}
       for (const user of user_info) {
         userMap[user.uid] = {
           uid: user.uid,
           name: user.name,
           email: user.email,
-          // ...agregá otras propiedades si las necesitas
+          enrollment: enrollmentMap[user.uid], // Add enrollment info
         }
       }
 
-      const teacher = teacher_id ? userMap[teacher_id] ?? null : null
+      const teacher = teacher_id ? (userMap[teacher_id] ?? null) : null
+
+      course.teacher_name = teacher ? `${teacher.name}` : "Docente no encontrado"
 
       const auxTeachers = aux_teachers_ids
         .map((id: string) => userMap[id])
@@ -359,14 +420,13 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
-
-  const handleApproveStudent = async (studentId: string, name: string, surname: string) => {
+  const handleApproveStudent = async (studentId: string, name: string) => {
     try {
-      console.log(`Aprobar estudiante: ${name} ${surname} (${studentId})`)
+      console.log(`Aprobar estudiante: ${name} (${studentId})`)
       Toast.show({
         type: "success",
         text1: "Estudiante aprobado",
-        text2: `${name} ${surname} ha sido aprobado en el curso`,
+        text2: `${name} ha sido aprobado en el curso`,
       })
     } catch (error) {
       console.error("Error approving student:", error)
@@ -378,13 +438,13 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
-  const handleRejectStudent = async (studentId: string, name: string, surname: string) => {
+  const handleRejectStudent = async (studentId: string, name: string) => {
     try {
-      console.log(`Desaprobar estudiante: ${name} ${surname} (${studentId})`)
+      console.log(`Desaprobar estudiante: ${name} (${studentId})`)
       Toast.show({
         type: "success",
         text1: "Estudiante removido",
-        text2: `${name} ${surname} ha sido removido del curso`,
+        text2: `${name} ha sido removido del curso`,
       })
     } catch (error) {
       console.error("Error rejecting student:", error)
@@ -396,21 +456,21 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
-  const handleRemoveAuxTeacher = async (teacherId: string, name: string, surname: string) => {
+  const handleRemoveAuxTeacher = async (teacherId: string, name: string) => {
     try {
       const url = `/courses/${course.id}/aux-teacher/remove?auxTeacherId=${teacherId}&teacherId=${authState?.user?.id}`
 
       await courseClient.delete(url, {
         headers: {
-          Authorization: `Bearer ${authState.token}`,
+          Authorization: `Bearer ${authState?.token}`,
         },
       })
 
-      console.log(`Remover docente auxiliar exitoso: ${name} ${surname} (${teacherId})`)
+      console.log(`Remover docente auxiliar exitoso: ${name} (${teacherId})`)
       Toast.show({
         type: "success",
         text1: "Docente auxiliar removido",
-        text2: `${name} ${surname} ya no es docente auxiliar`,
+        text2: `${name} ya no es docente auxiliar`,
       })
       fetchCourseMembers()
     } catch (error) {
@@ -560,13 +620,13 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   )
 
   const tabs = [
-    { id: "overview", label: "General", icon: "home" },
-    ...(teacher ? [] : [{ id: "grades", label: "Notas", icon: "barschart" }]),
+    // ...(teacher ? [] : [{ id: "grades", label: "Notas", icon: "barschart" }]),
     { id: "tasks", label: "Tareas", icon: "filetext1" },
     { id: "exams", label: "Exámenes", icon: "solution1" },
     { id: "modules", label: "Módulos", icon: "book" },
     { id: "forum", label: "Foro", icon: "message1" },
     { id: "feedback", label: "Feedback", icon: "star" },
+    { id: "statistics", label: "Estadísticas", icon: "barschart" },
   ]
 
   const handleAddQuestions = (assignmentId: string) => {
@@ -647,8 +707,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
                         is_admin: false,
                       }}
                       isTeacher={teacher}
-                      onApprove={() => handleApproveStudent(student.uid, student.name, student.surname)}
-                      onReject={() => handleRejectStudent(student.uid, student.name, student.surname)}
+                      onApprove={() => handleApproveStudent(student.uid, student.name)}
+                      onReject={() => handleRejectStudent(student.uid, student.name)}
                     />
                   ))
                 )}
@@ -681,7 +741,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
                     teacher={auxTeacher}
                     isMain={false}
                     isTeacher={teacher}
-                    onRemove={() => handleRemoveAuxTeacher(auxTeacher.uid, auxTeacher.name, auxTeacher.surname)}
+                    onRemove={() => handleRemoveAuxTeacher(auxTeacher.uid, auxTeacher.name)}
                   />
                 ))
               )}
@@ -713,6 +773,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             onAddQuestions={handleAddQuestions}
             onViewQuestions={handleViewQuestions}
             onViewSubmissions={handleViewSubmissions}
+            userEnrollmentStatus={userEnrollmentStatus}
+            currentUserData={membersData.students.find((s) => s.uid === authState?.user?.id)}
           />
         )
       case "exams":
@@ -731,6 +793,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             onAddQuestions={handleAddQuestions}
             onViewQuestions={handleViewQuestions}
             onViewSubmissions={handleViewSubmissions}
+            userEnrollmentStatus={userEnrollmentStatus}
+            currentUserData={membersData.students.find((s) => s.uid === authState?.user?.id)}
           />
         )
       case "modules":
@@ -739,6 +803,8 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         return <ForumSection courseId={course.id} isTeacher={teacher} membersData={membersData} />
       case "feedback":
         return <FeedbackSection courseId={course.id} isTeacher={teacher} />
+      case "statistics":
+        return <CourseStatisticsSection courseId={course.id} membersData={membersData} />
       default:
         return null
     }
@@ -758,7 +824,20 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         />
 
         {/* Tabs y contenido */}
-        <CourseTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} renderContent={renderTabContent} />
+        <View style={styles.contentContainer}>
+          <CourseTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} renderContent={renderTabContent} />
+
+          {/* Footer de miembros siempre visible */}
+          <CourseMembersFooter
+            membersData={membersData}
+            loading={loadingMembers}
+            isTeacher={teacher}
+            onRemoveAuxTeacher={handleRemoveAuxTeacher}
+            onDeleteCourse={() => setShowConfirmModal(true)}
+            courseId={course.id}
+            onMembersUpdate={fetchCourseMembers}
+          />
+        </View>
 
         {/* Modales */}
         <Modal visible={showConfirmModal} transparent animationType="fade">
@@ -816,7 +895,15 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             courseId={course.id}
             studentId={selectedStudent.uid}
             studentName={`${selectedStudent.name} ${selectedStudent.surname}`}
-            onSuccess={handleFeedbackSuccess}
+            onSuccess={() => {
+              Toast.show({
+                type: "success",
+                text1: "Feedback enviado",
+                text2: "El feedback ha sido enviado al estudiante",
+              })
+              setShowStudentForm(false)
+              setSelectedStudent(null)
+            }}
           />
         )}
         <SubmissionsListModal
@@ -845,6 +932,9 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 }
 
 const styles = StyleSheet.create({
+  contentContainer: {
+    flex: 1,
+  },
   overviewContainer: {
     padding: 16,
   },
