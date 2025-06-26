@@ -50,7 +50,8 @@ export function FeedbackSummary({ courseId, visible, onClose }: FeedbackSummaryP
 
       console.log("Feedback summary data:", data)
 
-      const data_string = JSON.stringify(data)
+      // const data_string = JSON.stringify(data)
+      const data_string = data.summary 
 
       const summaryText = data_string
       console.log("Extracted summary text:", summaryText)

@@ -275,7 +275,7 @@ export const AssignmentsSection = ({
           },
         },
       )
-      console.log("Entrega enviada:", data)
+      console.log("Entrega enviada:", data.data)
       Toast.show({ type: "success", text1: "Entrega enviada exitosamente" })
     } catch (error) {
       console.error("Error al enviar la entrega:", error)
@@ -287,6 +287,7 @@ export const AssignmentsSection = ({
   const renderExpandedDetails = (assignment: Assignment) => {
     const isGraded = assignment.submission?.score !== undefined && assignment.submission?.score !== null
     const hasGrade = isGraded && assignment.submission?.score >= 0
+    const hasAIGrade = assignment.submission?.ai_score !== undefined && assignment.submission?.ai_score !== null
 
     const formatDate = (dateString: string) => {
       return new Date(dateString).toLocaleDateString("es-ES", {
@@ -375,7 +376,7 @@ export const AssignmentsSection = ({
         </View>
 
         {/* Sección de calificación y retroalimentación */}
-        {!isTeacher && assignment.submission && hasGrade && (
+        {!isTeacher && assignment.submission && (hasGrade || hasAIGrade) && (
           <View style={styles.detailsSection}>
             <Text style={styles.detailsSectionTitle}>Calificación</Text>
 
@@ -394,7 +395,15 @@ export const AssignmentsSection = ({
                   }
                 />
                 <View style={styles.gradeInfo}>
-                  <Text style={styles.gradeScore}>{assignment.submission.score}/100</Text>
+                  <View style={styles.gradeScoreContainer}>
+                    <Text style={styles.gradeScore}>{assignment.submission.score ?? "N/A"}/100</Text>
+                    {hasAIGrade && (
+                      <View style={styles.aiScoreBadge}>
+                        <MaterialIcons name="smart-toy" size={14} color="#fff" />
+                        <Text style={styles.aiScoreText}>IA: {assignment.submission.ai_score}/100</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text
                     style={[
                       styles.gradeLabel,
@@ -447,6 +456,17 @@ export const AssignmentsSection = ({
               <View style={styles.feedbackContainer}>
                 <Text style={styles.feedbackTitle}>Comentarios del docente:</Text>
                 <Text style={styles.feedbackText}>{assignment.submission.feedback}</Text>
+              </View>
+            )}
+
+            {/* Retroalimentación de la IA */}
+            {assignment.submission.ai_feedback && (
+              <View style={[styles.feedbackContainer, styles.aiFeedbackContainer]}>
+                <View style={styles.aiFeedbackHeader}>
+                  <MaterialIcons name="smart-toy" size={18} color="#6d28d9" />
+                  <Text style={[styles.feedbackTitle, styles.aiFeedbackTitle]}>Feedback de la IA</Text>
+                </View>
+                <Text style={styles.feedbackText}>{assignment.submission.ai_feedback}</Text>
               </View>
             )}
           </View>
@@ -862,7 +882,8 @@ export const AssignmentsSection = ({
           <MaterialIcons name="block" size={48} color="#f44336" />
           <Text style={styles.disapprovedTitle}>No tenés acceso a esta parte del curso</Text>
           <Text style={styles.disapprovedMessage}>
-            Tu inscripción en este curso ha sido desaprobada, por lo que no puedes interactuar ni con las tareas ni con los exámenes.
+            Tu inscripción en este curso ha sido desaprobada, por lo que no puedes interactuar ni con las tareas ni con
+            los exámenes.
           </Text>
           {reason && (
             <View style={styles.reasonContainer}>
@@ -1614,5 +1635,38 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontStyle: "italic",
     lineHeight: 20,
+  },
+  aiFeedbackContainer: {
+    borderLeftColor: "#6d28d9", // Un color violeta para distinguirlo
+    backgroundColor: "#f5f3ff",
+  },
+  aiFeedbackHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  aiFeedbackTitle: {
+    color: "#6d28d9",
+    marginLeft: 8,
+  },
+  gradeScoreContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  aiScoreBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#6d28d9",
+    borderRadius: 12,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    marginLeft: 8,
+  },
+  aiScoreText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
   },
 })
