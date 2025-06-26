@@ -5,9 +5,13 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "classconnect",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "scheme": "com.classconnect.firebase",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.classconnect.firebase",
@@ -58,7 +62,12 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to access Face ID biometric data."
+        }
+      ],
       "expo-location",
       [
         "@react-native-google-signin/google-signin",

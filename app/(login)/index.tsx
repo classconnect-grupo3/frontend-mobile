@@ -252,6 +252,18 @@ const localStyles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  googleButtonDisabled: {
+    backgroundColor: "#f5f5f5",
+    borderColor: "#e0e0e0",
   },
   googleIcon: {
     width: 24,
