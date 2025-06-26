@@ -23,9 +23,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, Controller } from "react-hook-form"
 import * as ImagePicker from "expo-image-picker"
 import { fetchProfileImage, uploadToFirebase } from "@/firebaseConfig"
-import React from "react"
 import { ScreenLayout } from "@/components/layout/ScreenLayout"
 import { Colors } from "@/styles/shared"
+import { MaterialIcons } from "@expo/vector-icons"
+import React from "react"
 
 const schema = z.object({
   name: z.string().min(1, "First name is required"),
@@ -203,6 +204,32 @@ export default function ProfileScreen() {
     setEditMode(false)
   }
 
+  const handleLogout = () => {
+    Alert.alert(
+      "Cerrar Sesión",
+      "¿Estás seguro que quieres cerrar sesión?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Cerrar Sesión",
+          style: "destructive",
+          onPress: () => {
+            Toast.show({
+              type: "success",
+              text1: "Sesión cerrada",
+              text2: "Has cerrado sesión exitosamente",
+            })
+            auth?.logout()
+          },
+        },
+      ],
+      { cancelable: true },
+    )
+  }
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -222,113 +249,123 @@ export default function ProfileScreen() {
 
   return (
     <ScreenLayout scrollable={false}>
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      {!permission || permission.status !== ImagePicker.PermissionStatus.GRANTED ? (
-        <View style={styles.permissionContainer}>
-          <Text style={styles.permissionTitle}>Permisos de cámara requeridos</Text>
-          <Text style={styles.permissionText}>Necesitas permitir el acceso a la cámara para usar esta función.</Text>
-          <Text style={styles.permissionStatus}>Estado: {permission?.status}</Text>
-          <TouchableOpacity
-            style={styles.permissionButton}
-            onPress={async () => {
-              const { status } = await requestPermission()
-              if (status === ImagePicker.PermissionStatus.GRANTED) {
-                Alert.alert("Permiso concedido")
-              } else {
-                Alert.alert("Permiso denegado")
-              }
-            }}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        {!permission || permission.status !== ImagePicker.PermissionStatus.GRANTED ? (
+          <View style={styles.permissionContainer}>
+            <Text style={styles.permissionTitle}>Permisos de cámara requeridos</Text>
+            <Text style={styles.permissionText}>Necesitas permitir el acceso a la cámara para usar esta función.</Text>
+            <Text style={styles.permissionStatus}>Estado: {permission?.status}</Text>
+            <TouchableOpacity
+              style={styles.permissionButton}
+              onPress={async () => {
+                const { status } = await requestPermission()
+                if (status === ImagePicker.PermissionStatus.GRANTED) {
+                  Alert.alert("Permiso concedido")
+                } else {
+                  Alert.alert("Permiso denegado")
+                }
+              }}
+            >
+              <Text style={styles.permissionButtonText}>Conceder Permiso</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <ScrollView
+            contentContainerStyle={styles.container}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.permissionButtonText}>Conceder Permiso</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.header}>
-            <Text style={styles.title}>Mi Perfil</Text>
-          </View>
-
-          <View style={styles.profileSection}>
-            <View style={styles.profileImageContainer}>
-              <Image
-                source={profileImageUrl ? { uri: profileImageUrl } : require("@/assets/images/profile_placeholder.png")}
-                style={styles.profileImage}
-              />
-              <TouchableOpacity onPress={handleChoosePhoto} style={styles.editPhotoButton}>
-                <Text style={styles.editPhotoIcon}>📷</Text>
-              </TouchableOpacity>
+            <View style={styles.header}>
+              <Text style={styles.title}>Mi Perfil</Text>
             </View>
-            <Text style={styles.profileName}>
-              {userData.name} {userData.surname}
-            </Text>
-          </View>
 
-          <View style={styles.infoSection}>
-            <View style={styles.infoCard}>
-              {(["name", "surname", "email"] as const).map((field) => (
-                <View style={styles.fieldContainer} key={field}>
-                  <Text style={styles.fieldLabel}>
-                    {field === "name" ? "Nombre" : field === "surname" ? "Apellido" : "Correo electrónico"}
-                  </Text>
-
-                  {editMode ? (
-                    <Controller
-                      control={control}
-                      name={field}
-                      render={({ field: { onChange, onBlur, value } }) => (
-                        <>
-                          <TextInput
-                            style={[styles.input, errors[field] && styles.inputError]}
-                            placeholder={`Ingresa tu ${field === "name" ? "nombre" : field === "surname" ? "apellido" : "correo"}`}
-                            value={value}
-                            onBlur={onBlur}
-                            onChangeText={onChange}
-                            autoCapitalize={field === "email" ? "none" : "words"}
-                            keyboardType={field === "email" ? "email-address" : "default"}
-                          />
-                          {errors[field] && <Text style={styles.errorText}>{errors[field]?.message}</Text>}
-                        </>
-                      )}
-                    />
-                  ) : (
-                    <Text style={styles.fieldValue}>
-                      {field === "name" ? userData.name : field === "surname" ? userData.surname : userData.email}
-                    </Text>
-                  )}
-                </View>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.buttonSection}>
-            {editMode ? (
-              <View style={styles.editButtonsContainer}>
-                <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                  <Text style={styles.cancelButtonText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.saveButton, (!isValid || isSubmitting) && styles.disabledButton]}
-                  onPress={handleSubmit(handleSave)}
-                  disabled={!isValid || isSubmitting}
-                >
-                  <Text style={styles.saveButtonText}>{isSubmitting ? "Guardando..." : "Guardar Cambios"}</Text>
+            <View style={styles.profileSection}>
+              <View style={styles.profileImageContainer}>
+                <Image
+                  source={
+                    profileImageUrl ? { uri: profileImageUrl } : require("@/assets/images/profile_placeholder.png")
+                  }
+                  style={styles.profileImage}
+                />
+                <TouchableOpacity onPress={handleChoosePhoto} style={styles.editPhotoButton}>
+                  <Text style={styles.editPhotoIcon}>📷</Text>
                 </TouchableOpacity>
               </View>
-            ) : (
-              <TouchableOpacity style={styles.editButton} onPress={() => setEditMode(true)}>
-                <Text style={styles.editButtonText}>Editar</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+              <Text style={styles.profileName}>
+                {userData.name} {userData.surname}
+              </Text>
+            </View>
 
-          <Toast />
-        </ScrollView>
-      )}
-    </KeyboardAvoidingView>
+            <View style={styles.infoSection}>
+              <View style={styles.infoCard}>
+                {(["name", "surname", "email"] as const).map((field) => (
+                  <View style={styles.fieldContainer} key={field}>
+                    <Text style={styles.fieldLabel}>
+                      {field === "name" ? "Nombre" : field === "surname" ? "Apellido" : "Correo electrónico"}
+                    </Text>
+
+                    {editMode ? (
+                      <Controller
+                        control={control}
+                        name={field}
+                        render={({ field: { onChange, onBlur, value } }) => (
+                          <>
+                            <TextInput
+                              style={[styles.input, errors[field] && styles.inputError]}
+                              placeholder={`Ingresa tu ${field === "name" ? "nombre" : field === "surname" ? "apellido" : "correo"}`}
+                              value={value}
+                              onBlur={onBlur}
+                              onChangeText={onChange}
+                              autoCapitalize={field === "email" ? "none" : "words"}
+                              keyboardType={field === "email" ? "email-address" : "default"}
+                            />
+                            {errors[field] && <Text style={styles.errorText}>{errors[field]?.message}</Text>}
+                          </>
+                        )}
+                      />
+                    ) : (
+                      <Text style={styles.fieldValue}>
+                        {field === "name" ? userData.name : field === "surname" ? userData.surname : userData.email}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.buttonSection}>
+              {editMode ? (
+                <View style={styles.editButtonsContainer}>
+                  <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveButton, (!isValid || isSubmitting) && styles.disabledButton]}
+                    onPress={handleSubmit(handleSave)}
+                    disabled={!isValid || isSubmitting}
+                  >
+                    <Text style={styles.saveButtonText}>{isSubmitting ? "Guardando..." : "Guardar Cambios"}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.editButton} onPress={() => setEditMode(true)}>
+                  <Text style={styles.editButtonText}>Editar</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Logout Section */}
+            <View style={styles.logoutSection}>
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <MaterialIcons name="logout" size={20} color="#fff" style={styles.logoutIcon} />
+                <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Toast />
+          </ScrollView>
+        )}
+      </KeyboardAvoidingView>
     </ScreenLayout>
   )
 }
@@ -544,5 +581,31 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: "#adb5bd",
+  },
+  logoutSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+    marginTop: 16,
+  },
+  logoutButton: {
+    backgroundColor: "#dc3545",
+    height: 48,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  logoutIcon: {
+    marginRight: 8,
+  },
+  logoutButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 })

@@ -64,6 +64,7 @@ export const CourseMembersFooter = ({
   const authState = auth?.authState
 
   const totalMembers = 1 + membersData.auxTeachers.length + membersData.students.length
+  console.log("members data:", membersData)
 
   const getEnrollmentStatus = (enrollment?: Enrollment) => {
     if (!enrollment) return "active"
@@ -302,10 +303,10 @@ export const CourseMembersFooter = ({
           <View style={styles.membersPreview}>
             {/* Mostrar avatares de los primeros miembros */}
             {membersData.teacher && <MemberAvatar name={membersData.teacher.name} role="teacher" />}
-            {membersData.auxTeachers.slice(0, 2).map((teacher) => (
+            {membersData.auxTeachers.map((teacher) => (
               <MemberAvatar key={teacher.uid} name={teacher.name} role="aux_teacher" />
             ))}
-            {membersData.students.slice(0, 3).map((student) => (
+            {membersData.students.map((student) => (
               <MemberAvatar key={student.uid} name={student.name} role="student" />
             ))}
             {totalMembers > 6 && (
@@ -351,7 +352,7 @@ export const CourseMembersFooter = ({
             {membersData.students.length === 0 ? (
               <Text style={styles.emptyText}>No hay estudiantes inscritos</Text>
             ) : (
-              <ScrollView style={styles.studentsContainer}>
+              <ScrollView>
                 {membersData.students.map((student) => (
                   <MemberCard key={student.uid} member={student} role="student" showActions={isTeacher} />
                 ))}
@@ -618,9 +619,6 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 6,
     backgroundColor: "#ffeaea",
-  },
-  studentsContainer: {
-    maxHeight: 300,
   },
   emptyText: {
     fontSize: 13,

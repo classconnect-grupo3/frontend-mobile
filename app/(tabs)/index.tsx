@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native"
+import { View, Text, Image, TouchableOpacity, StyleSheet, Modal } from "react-native"
 import { router } from "expo-router"
 import { useAuth } from "@/contexts/sessionAuth"
 import { useCourses } from "@/contexts/CoursesContext"
@@ -9,6 +9,7 @@ import { WideCourseCard } from "@/components/courses/WideCourseCard"
 import { ScreenLayout } from "@/components/layout/ScreenLayout"
 import { Colors, Typography, Spacing, LayoutStyles } from "@/styles/shared"
 import { MaterialIcons } from "@expo/vector-icons"
+import Toast from "react-native-toast-message"
 import React from "react"
 
 interface Task {
@@ -23,6 +24,7 @@ export default function HomeScreen() {
   const auth = useAuth()
   const { courses, reloadCourses, isLoadingCourses } = useCourses()
   const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([])
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
 
   const authState = auth?.authState
   const user = authState?.user
@@ -51,7 +53,26 @@ export default function HomeScreen() {
   }, [authState?.authenticated])
 
   const handleProfilePress = () => {
+    setShowProfileMenu(true)
+  }
+
+  const handleProfileMenuClose = () => {
+    setShowProfileMenu(false)
+  }
+
+  const handleGoToProfile = () => {
+    setShowProfileMenu(false)
     router.push("/profile")
+  }
+
+  const handleLogout = () => {
+    setShowProfileMenu(false)
+    Toast.show({
+      type: "success",
+      text1: "Sesión cerrada",
+      text2: "Has cerrado sesión exitosamente",
+    })
+    auth?.logout()
   }
 
   const recentCourses = courses?.slice(0, 5) || []
@@ -66,14 +87,44 @@ export default function HomeScreen() {
         <TouchableOpacity onPress={handleProfilePress} style={styles.profileButton}>
           <Image
             source={
-              user?.profilePicUrl
-                ? { uri: user.profilePicUrl }
-                : require("@/assets/images/profile_placeholder.png")
+              user?.profilePicUrl ? { uri: user.profilePicUrl } : require("@/assets/images/profile_placeholder.png")
             }
             style={styles.profileImage}
           />
         </TouchableOpacity>
       </View>
+
+      {/* Profile Menu Modal */}
+      <Modal visible={showProfileMenu} transparent={true} animationType="fade" onRequestClose={handleProfileMenuClose}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={handleProfileMenuClose}>
+          <View style={styles.profileMenu}>
+            <View style={styles.profileMenuHeader}>
+              <Image
+                source={
+                  user?.profilePicUrl ? { uri: user.profilePicUrl } : require("@/assets/images/profile_placeholder.png")
+                }
+                style={styles.profileMenuImage}
+              />
+              <View style={styles.profileMenuInfo}>
+                <Text style={styles.profileMenuName}>{user?.name || "Usuario"}</Text>
+                <Text style={styles.profileMenuEmail}>{user?.email || ""}</Text>
+              </View>
+            </View>
+
+            <View style={styles.profileMenuDivider} />
+
+            <TouchableOpacity style={styles.profileMenuItem} onPress={handleGoToProfile}>
+              <MaterialIcons name="person" size={20} color="#333" />
+              <Text style={styles.profileMenuItemText}>Ver perfil</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.profileMenuItem} onPress={handleLogout}>
+              <MaterialIcons name="logout" size={20} color="#dc3545" />
+              <Text style={[styles.profileMenuItemText, styles.logoutText]}>Cerrar sesión</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Welcome Section */}
       <View style={[LayoutStyles.section, styles.welcomeSection]}>
@@ -109,10 +160,12 @@ export default function HomeScreen() {
         ) : recentCourses.length > 0 ? (
           <View>
             {recentCourses.map((course, idx) => (
-              <WideCourseCard 
+              <WideCourseCard
                 key={idx}
-                course={course} 
-                onPress={() => router.push(course.role === "teacher" ? `/course/${course.id}` : `/course/${course.id}/student`)}
+                course={course}
+                onPress={() =>
+                  router.push(course.role === "teacher" ? `/course/${course.id}` : `/course/${course.id}/student`)
+                }
                 showFavoriteButton={course.role === "student"}
               />
             ))}
@@ -125,6 +178,8 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
+
+      <Toast />
     </ScreenLayout>
   )
 }
@@ -148,6 +203,68 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: Colors.lightGray,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+    paddingTop: 60,
+    paddingRight: 16,
+  },
+  profileMenu: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    minWidth: 250,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  profileMenuHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+  },
+  profileMenuImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.lightGray,
+    marginRight: 12,
+  },
+  profileMenuInfo: {
+    flex: 1,
+  },
+  profileMenuName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 2,
+  },
+  profileMenuEmail: {
+    fontSize: 14,
+    color: "#666",
+  },
+  profileMenuDivider: {
+    height: 1,
+    backgroundColor: "#e9ecef",
+    marginHorizontal: 16,
+  },
+  profileMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  profileMenuItemText: {
+    fontSize: 16,
+    color: "#333",
+    marginLeft: 12,
+  },
+  logoutText: {
+    color: "#dc3545",
   },
   welcomeSection: {
     marginBottom: Spacing.xl,

@@ -385,7 +385,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           uid: user.uid,
           name: user.name,
           email: user.email,
-          enrollment: enrollmentMap[user.uid], // Add enrollment info
+          enrollment: enrollmentMap[user.uid] ?? "active", // Add enrollment info
         }
       }
 
@@ -397,11 +397,12 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         .map((id: string) => userMap[id])
         .filter(Boolean) as UserDataGet[]
 
-      const students = students_ids ? 
+      const students = 
         students_ids
         .map((id: string) => userMap[id])
         .filter(Boolean) as UserDataGet[]
-        : []
+
+      console.log("Students:", students)
 
       setMembersData({
         teacher,
