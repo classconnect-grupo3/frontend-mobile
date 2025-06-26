@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useContext, createContext, type PropsWithChildren, useState, useEffect } from "react"
 import { client } from "@/lib/http"
 import { router } from "expo-router"
@@ -23,7 +24,14 @@ interface AuthContextType {
   authState: AuthState
   register: (name: string, surname: string, email: string, password: string) => Promise<any>
   login: (email: string, password: string) => Promise<any>
-  loginWithGoogle(id_token: string): Promise<any>
+  loginWithGoogle(
+    idToken: string, 
+    userInfo: {
+      uid: string
+      name: string
+      surname: string
+      profilePicUrl: string | null
+    }): Promise<any>
   logout: () => Promise<any>
   fetchUser: (token: string) => Promise<any>
   setProfilePicUrl: (url: string | null) => void
@@ -89,7 +97,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const setProfilePicUrl = (url: string | null) => {
     setAuthState((prevState) => {
-      if (!prevState.user) return prevState // or handle as needed
+      if (!prevState.user) return prevState
       return {
         ...prevState,
         user: {
@@ -163,8 +171,6 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
       client.defaults.headers.common["Authorization"] = `Bearer ${token}`
 
-      // const user = await fetchUser(token);
-
       console.log("User data for saved in login:", user)
 
       setAuthState({ token, authenticated: true, location, user })
@@ -186,62 +192,60 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     }
   }
 
-  const loginWithGoogle = async (idToken: string) => {
+  const loginWithGoogle = async (
+    idToken: string,
+    userInfo: {
+      uid: string,
+      name: string
+      surname: string
+      profilePicUrl: string
+    }) => {
     try {
-      console.log("🚀 Starting Google login with backend...")
-      console.log("📋 ID Token:", idToken.substring(0, 50) + "...")
+      console.log("🔐 Starting Google login with token:", idToken.substring(0, 50) + "...")
 
       const { data } = await client.post("/login/google", {
         id_token: idToken,
       })
 
-      console.log("✅ Google Login backend response:", data)
+      console.log("✅ Google Login response:", data)
 
       const token = data.id_token
-      const user_info = data.user_info
-      const location = data.user_location ?? null
-
-      let profilePicUrl = null
-      try {
-        profilePicUrl = await fetchProfileImage(user_info.uid)
-      } catch (e) {
-        console.log("⚠️ No profile image found for Google user")
-      }
 
       const user = {
-        id: user_info.uid,
-        name: user_info.name,
-        surname: user_info.surname || "", // Google might not provide surname
-        profilePicUrl,
+        id: userInfo.uid,
+        name: userInfo.name,
+        surname: userInfo.surname,
+        profilePicUrl: userInfo.profilePicUrl,
       }
 
+      // Store authentication data
       await SecureStore.setItemAsync(TOKEN_KEY, token)
       await SecureStore.setItemAsync(USER_ID_KEY, user.id)
       await SecureStore.setItemAsync(USER_NAME_KEY, user.name)
       await SecureStore.setItemAsync(USER_SURNAME_KEY, user.surname)
-      if (location) {
-        await SecureStore.setItemAsync(USER_LOCATION_KEY, location)
-      }
+      //if (location) {
+      //  await SecureStore.setItemAsync(USER_LOCATION_KEY, location)
+      //}
 
       client.defaults.headers.common["Authorization"] = `Bearer ${token}`
-
-      console.log("✅ Google user data saved:", user)
 
       setAuthState({
         token,
         authenticated: true,
-        location,
+        location: "todo",
         user,
       })
 
+      console.log("🎉 Google login successful, redirecting to tabs")
       router.replace("/(tabs)")
     } catch (error) {
       console.error("❌ Google login error:", error)
       if (axios.isAxiosError(error)) {
-        console.error("Backend error details:", {
-          status: error.response?.status,
-          data: error.response?.data,
+        console.error("Google login axios error:", {
           message: error.message,
+          code: error.code,
+          responseData: error.response?.data,
+          responseStatus: error.response?.status,
         })
       }
       throw error
@@ -250,20 +254,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const logout = async () => {
     await SecureStore.deleteItemAsync(TOKEN_KEY)
-    await SecureStore.deleteItemAsync(USER_ID_KEY)
-    await SecureStore.deleteItemAsync(USER_NAME_KEY)
-    await SecureStore.deleteItemAsync(USER_SURNAME_KEY)
-    await SecureStore.deleteItemAsync(USER_LOCATION_KEY)
-
     client.defaults.headers.common["Authorization"] = ""
 
-    setAuthState({
-      token: null,
-      authenticated: false,
-      location: null,
-      user: null,
-    })
-
+    setAuthState({ token: null, authenticated: false, location: null, user: null })
     router.replace("/(login)")
   }
 

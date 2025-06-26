@@ -23,16 +23,9 @@ import { styles } from "@/styles/loginStyle"
 import { Link } from "expo-router"
 import { useState, useEffect, useRef } from "react"
 import { MaterialIcons } from "@expo/vector-icons"
-import Constants from "expo-constants"
 
-import * as WebBrowser from "expo-web-browser"
-import * as Google from "expo-auth-session/providers/google"
-import { makeRedirectUri } from "expo-auth-session"
-import { signInWithCredential, GoogleAuthProvider, fbAuth } from "@/firebaseConfig"
 import React from "react"
-
-// Importante: Completar la sesión de autenticación web
-WebBrowser.maybeCompleteAuthSession()
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton"
 
 const schema = z.object({
   email: z.string().email("Ingresa un email válido"),
@@ -69,165 +62,6 @@ export default function LoginScreen() {
     }).start()
   }, [])
 
-  // ✅ FORZAR el uso del proxy de Expo para desarrollo
-  const getRedirectUri = () => {
-    return `https://auth.expo.io/@${Constants.expoConfig?.owner || "inakillorens"}/${Constants.expoConfig?.slug || "classconnect-frontend-mobile"}`
-  }
-
-  const redirectUri = getRedirectUri()
-
-  // ✅ CONFIGURACIÓN CORREGIDA - Forzar HTTPS para desarrollo
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    // ✅ Web Client ID
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-
-    // ✅ SOLUCIÓN: Usar URL HTTPS explícita para desarrollo
-    redirectUri: redirectUri,
-
-    scopes: ["openid", "profile", "email"],
-    responseType: "id_token",
-    extraParams: {
-      prompt: "select_account",
-    },
-  })
-
-  // 🔍 DEBUGGING: Ver la configuración
-  console.log("🔍 DEBUGGING Google OAuth Config:")
-  console.log("📋 Client ID:", process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.substring(0, 30) + "...")
-  console.log("🌐 Redirect URI:", redirectUri)
-  console.log("🏗️ Development mode:", __DEV__)
-
-  useEffect(() => {
-    const handleGoogleResponse = async () => {
-      console.log("🔍 DEBUGGING: Response received:", response?.type)
-
-      if (response?.type === "success") {
-        console.log("✅ Google OAuth Success - Full response:", JSON.stringify(response, null, 2))
-        const { id_token, access_token } = response.params
-
-        console.log("🎫 ID Token present:", !!id_token)
-        console.log("🔑 Access Token present:", !!access_token)
-        console.log("🎫 ID Token (first 50 chars):", id_token?.substring(0, 50) + "...")
-
-        if (!id_token) {
-          console.error("❌ No ID token received from Google")
-          Toast.show({
-            type: "error",
-            text1: "Error de autenticación",
-            text2: "No se recibió token de Google",
-          })
-          return
-        }
-
-        if (!auth) {
-          console.error("❌ Auth context not available")
-          Toast.show({
-            type: "error",
-            text1: "Error de configuración",
-            text2: "Contexto de autenticación no disponible",
-          })
-          return
-        }
-
-        try {
-          setIsLoggingIn(true)
-          console.log("🔐 Step 1: Creating Firebase credential...")
-
-          // ✅ Crear credencial de Firebase con el ID token de Google
-          const credential = GoogleAuthProvider.credential(id_token)
-          console.log("✅ Step 1 Complete: Firebase credential created")
-
-          console.log("🔐 Step 2: Signing in with Firebase...")
-          // ✅ Autenticar con Firebase
-          const firebaseUserCredential = await signInWithCredential(fbAuth, credential)
-          console.log("✅ Step 2 Complete: Firebase authentication successful")
-          console.log("👤 Firebase User ID:", firebaseUserCredential.user.uid)
-          console.log("📧 Firebase User Email:", firebaseUserCredential.user.email)
-
-          console.log("🔐 Step 3: Getting Firebase ID token...")
-          // ✅ Obtener el ID token de Firebase (este es el que necesita tu backend)
-          const firebaseIdToken = await firebaseUserCredential.user.getIdToken()
-          console.log("✅ Step 3 Complete: Firebase ID token obtained")
-          console.log("🎫 Firebase ID token (first 50 chars):", firebaseIdToken.substring(0, 50) + "...")
-
-          console.log("🔐 Step 4: Sending to backend...")
-          // ✅ Enviar el token de Firebase a tu backend
-          await auth.loginWithGoogle(firebaseIdToken)
-          console.log("✅ Step 4 Complete: Backend login successful")
-
-          Toast.show({
-            type: "success",
-            text1: "¡Bienvenido!",
-            text2: "Has iniciado sesión con Google exitosamente",
-          })
-        } catch (error: any) {
-          console.error("❌ ERROR in Google login process:")
-          console.error("❌ Error type:", typeof error)
-          console.error("❌ Error message:", error?.message)
-          console.error("❌ Error code:", error?.code)
-          console.error("❌ Full error:", JSON.stringify(error, null, 2))
-
-          // Manejo específico de errores
-          let errorMessage = "Error desconocido"
-          let errorTitle = "Error al iniciar sesión"
-
-          if (error?.code === "auth/invalid-credential") {
-            errorTitle = "Credenciales inválidas"
-            errorMessage = "El token de Google no es válido"
-          } else if (error?.code === "auth/network-request-failed") {
-            errorTitle = "Error de conexión"
-            errorMessage = "Verifica tu conexión a internet"
-          } else if (error?.code === "auth/too-many-requests") {
-            errorTitle = "Demasiados intentos"
-            errorMessage = "Espera un momento antes de intentar de nuevo"
-          } else if (error?.message?.includes("backend") || error?.response) {
-            errorTitle = "Error del servidor"
-            errorMessage = "Problema con el servidor. Intenta más tarde"
-            console.error("❌ Backend error details:", error?.response?.data)
-          } else if (error?.message) {
-            errorMessage = error.message
-          }
-
-          Toast.show({
-            type: "error",
-            text1: errorTitle,
-            text2: errorMessage,
-          })
-        } finally {
-          setIsLoggingIn(false)
-        }
-      } else if (response?.type === "error") {
-        console.error("❌ Google OAuth Error:")
-        console.error("❌ Error type:", response.error?.type)
-        console.error("❌ Error message:", response.error?.message)
-        console.error("❌ Full error:", JSON.stringify(response.error, null, 2))
-
-        Toast.show({
-          type: "error",
-          text1: "Error de autenticación",
-          text2: response.error?.message || "No se pudo conectar con Google",
-        })
-      } else if (response?.type === "cancel") {
-        console.log("⚠️ Google OAuth cancelled by user")
-        Toast.show({
-          type: "info",
-          text1: "Autenticación cancelada",
-          text2: "Has cancelado el inicio de sesión con Google",
-        })
-      } else if (response?.type === "dismiss") {
-        console.log("⚠️ Google OAuth dismissed")
-        // No mostrar toast para dismiss, es normal
-      } else if (response) {
-        console.log("🔍 Unknown response type:", response.type)
-        console.log("🔍 Full response:", JSON.stringify(response, null, 2))
-      }
-    }
-
-    if (response) {
-      handleGoogleResponse()
-    }
-  }, [response, auth])
-
   const onSubmit = async (data: FormData) => {
     try {
       setIsLoggingIn(true)
@@ -244,35 +78,6 @@ export default function LoginScreen() {
       })
     } finally {
       setIsLoggingIn(false)
-    }
-  }
-
-  const handleGoogleSignIn = async () => {
-    try {
-      console.log("🚀 Starting Google Sign-In...")
-      console.log("📋 Request ready:", !!request)
-      console.log("🔧 Using redirect URI:", redirectUri)
-
-      if (!request) {
-        console.error("❌ Google request not ready")
-        Toast.show({
-          type: "error",
-          text1: "Error de configuración",
-          text2: "Google Sign-In no está configurado correctamente",
-        })
-        return
-      }
-
-      console.log("📱 Prompting Google Auth...")
-      const result = await promptAsync()
-      console.log("📋 Google Auth Result:", JSON.stringify(result, null, 2))
-    } catch (error) {
-      console.error("❌ Error starting Google Sign-In:", error)
-      Toast.show({
-        type: "error",
-        text1: "Error al iniciar sesión",
-        text2: "No se pudo iniciar el proceso de autenticación con Google",
-      })
     }
   }
 
@@ -361,24 +166,8 @@ export default function LoginScreen() {
             <View style={localStyles.divider} />
           </View>
 
-          <TouchableOpacity
-            style={[localStyles.googleButton, (!request || isLoggingIn) && localStyles.googleButtonDisabled]}
-            onPress={handleGoogleSignIn}
-            disabled={!request || isLoggingIn}
-          >
-            {isLoggingIn ? (
-              <ActivityIndicator size="small" color="#666" />
-            ) : (
-              <>
-                <Image
-                  source={require("@/assets/images/google-logo.png")}
-                  style={localStyles.googleIcon}
-                  resizeMode="contain"
-                />
-                <Text style={localStyles.googleButtonText}>Continuar con Google</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {/* Botón Login con Google */}
+          <GoogleSignInButton disabled={isLoggingIn} />
 
           <View style={localStyles.registerContainer}>
             <Text style={localStyles.registerText}>¿No tienes una cuenta?</Text>
