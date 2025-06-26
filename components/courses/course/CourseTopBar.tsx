@@ -15,9 +15,10 @@ interface Props {
   canEdit?: boolean
   course?: Course
   onEditSuccess?: () => void
+  teacherName?: string
 }
 
-export function CourseTopBar({ role, onBack, canEdit = false, course, onEditSuccess }: Props) {
+export function CourseTopBar({ role, onBack, canEdit = false, course, onEditSuccess, teacherName }: Props) {
   const [showEditModal, setShowEditModal] = useState(false)
   const authContext = useAuth()
   const authState = authContext?.authState
@@ -91,7 +92,7 @@ export function CourseTopBar({ role, onBack, canEdit = false, course, onEditSucc
           <View style={styles.infoItem}>
             <MaterialIcons name="person" size={16} color="#666" />
             <Text style={styles.infoItemLabel}>Docente</Text>
-            <Text style={styles.infoItemValue}>{course.teacher_name}</Text>
+            <Text style={styles.infoItemValue}>{teacherName}</Text>
           </View>
         </View>
 

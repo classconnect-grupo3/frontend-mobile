@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { View, Text, Image, TouchableOpacity, FlatList, StyleSheet } from "react-native"
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native"
 import { router } from "expo-router"
 import { useAuth } from "@/contexts/sessionAuth"
 import { useCourses } from "@/contexts/CoursesContext"

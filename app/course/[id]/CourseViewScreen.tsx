@@ -22,12 +22,14 @@ import { StudentFeedbackForm } from "@/components/courses/feedback/StudentFeedba
 import type { JSX } from "react"
 import { SubmissionsListModal } from "@/components/courses/course/SubmissionsListModal"
 import { GradeSubmissionModal } from "@/components/courses/course/GradeSubmissionModal"
+import { GradesSummary } from "@/components/courses/course/GradesSummary"
 import { ScreenLayout } from "@/components/layout/ScreenLayout"
 import { CourseTabs } from "@/components/courses/course/CourseTabs"
 import { ForumSection } from "@/components/courses/forum/ForumSection"
 import { CourseMembersFooter } from "@/components/courses/course/CourseMembersFooter"
 import { CourseStatisticsSection } from "@/components/statistics/CourseStatisticsSection"
 import React from "react"
+import { AntDesign, MaterialIcons } from "@expo/vector-icons"
 
 interface Question {
   id: string
@@ -141,6 +143,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const router = useRouter()
   const { courses, reloadCourses } = useCourses()
   const [allAssignments, setAllAssignments] = useState<Assignment[]>([])
+  const [showAlumnos, setShowAlumnos] = useState(false)
   const [loadingAssignments, setLoadingAssignments] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [hasFetchedAssignments, setHasFetchedAssignments] = useState(false)
@@ -390,9 +393,15 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
       course.teacher_name = teacher ? `${teacher.name}` : "Docente no encontrado"
 
-      const auxTeachers = aux_teachers_ids.map((id: string) => userMap[id]).filter(Boolean) as UserDataGet[]
+      const auxTeachers = aux_teachers_ids
+        .map((id: string) => userMap[id])
+        .filter(Boolean) as UserDataGet[]
 
-      const students = students_ids.map((id: string) => userMap[id]).filter(Boolean) as UserDataGet[]
+      const students = students_ids ? 
+        students_ids
+        .map((id: string) => userMap[id])
+        .filter(Boolean) as UserDataGet[]
+        : []
 
       setMembersData({
         teacher,
@@ -411,13 +420,49 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
+  const handleApproveStudent = async (studentId: string, name: string) => {
+    try {
+      console.log(`Aprobar estudiante: ${name} (${studentId})`)
+      Toast.show({
+        type: "success",
+        text1: "Estudiante aprobado",
+        text2: `${name} ha sido aprobado en el curso`,
+      })
+    } catch (error) {
+      console.error("Error approving student:", error)
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "No se pudo aprobar al estudiante",
+      })
+    }
+  }
+
+  const handleRejectStudent = async (studentId: string, name: string) => {
+    try {
+      console.log(`Desaprobar estudiante: ${name} (${studentId})`)
+      Toast.show({
+        type: "success",
+        text1: "Estudiante removido",
+        text2: `${name} ha sido removido del curso`,
+      })
+    } catch (error) {
+      console.error("Error rejecting student:", error)
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "No se pudo remover al estudiante",
+      })
+    }
+  }
+
   const handleRemoveAuxTeacher = async (teacherId: string, name: string) => {
     try {
       const url = `/courses/${course.id}/aux-teacher/remove?auxTeacherId=${teacherId}&teacherId=${authState?.user?.id}`
 
       await courseClient.delete(url, {
         headers: {
-          Authorization: `Bearer ${authState.token}`,
+          Authorization: `Bearer ${authState?.token}`,
         },
       })
 
@@ -438,7 +483,142 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
-  // Tabs sin la sección "General"
+  const handleSendFeedbackToStudent = (student: UserData) => {
+    if (!student.is_active) {
+      Toast.show({
+        type: "warning",
+        text1: "Estudiante inactivo",
+        text2: "No se puede enviar feedback a estudiantes inactivos",
+      })
+      return
+    }
+
+    setSelectedStudent(student)
+    setShowStudentForm(true)
+  }
+
+  const handleFeedbackSuccess = () => {
+    Toast.show({
+      type: "success",
+      text1: "Feedback enviado",
+      text2: "El feedback ha sido enviado al estudiante",
+    })
+    setShowStudentForm(false)
+    setSelectedStudent(null)
+  }
+
+  const StudentCard = ({
+    student,
+    isTeacher,
+    onApprove,
+    onReject,
+  }: {
+    student: UserData
+    isTeacher: boolean
+    onApprove: () => void
+    onReject: () => void
+  }) => (
+    <View style={memberCardStyles.studentCard}>
+      <View style={memberCardStyles.userInfo}>
+        <View style={memberCardStyles.avatar}>
+          <Text style={memberCardStyles.avatarText}>
+            {student.name.charAt(0)}
+            {student.surname.charAt(0)}
+          </Text>
+        </View>
+        <View style={memberCardStyles.userDetails}>
+          <Text style={memberCardStyles.userName}>
+            {student.name} {student.surname}
+          </Text>
+          <Text style={memberCardStyles.userEmail}>{student.email}</Text>
+          <View style={memberCardStyles.statusContainer}>
+            <View
+              style={[memberCardStyles.statusBadge, { backgroundColor: student.is_active ? "#e8f5e8" : "#ffeaea" }]}
+            >
+              <Text style={[memberCardStyles.statusText, { color: student.is_active ? "#2e7d32" : "#d32f2f" }]}>
+                {student.is_active ? "Activo" : "Inactivo"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {isTeacher && (
+          <TouchableOpacity
+            style={[memberCardStyles.feedbackButton, !student.is_active && memberCardStyles.feedbackButtonDisabled]}
+            onPress={() => handleSendFeedbackToStudent(student)}
+            disabled={!student.is_active}
+          >
+            <MaterialIcons name="feedback" size={18} color={student.is_active ? "#fff" : "#999"} />
+            <Text
+              style={[
+                memberCardStyles.feedbackButtonText,
+                !student.is_active && memberCardStyles.feedbackButtonTextDisabled,
+              ]}
+            >
+              Feedback
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {isTeacher && (
+        <View style={memberCardStyles.actions}>
+          <TouchableOpacity style={[memberCardStyles.actionButton, memberCardStyles.approveButton]} onPress={onApprove}>
+            <AntDesign name="check" size={16} color="#fff" />
+            <Text style={memberCardStyles.approveButtonText}>Aprobar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[memberCardStyles.actionButton, memberCardStyles.rejectButton]} onPress={onReject}>
+            <AntDesign name="close" size={16} color="#fff" />
+            <Text style={memberCardStyles.rejectButtonText}>Remover</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  )
+
+  const TeacherCard = ({
+    teacher,
+    isMain,
+    isTeacher = false,
+    onRemove,
+  }: {
+    teacher: UserDataGet
+    isMain: boolean
+    isTeacher?: boolean
+    onRemove?: () => void
+  }) => (
+    <View style={memberCardStyles.teacherCard}>
+      <View style={memberCardStyles.userInfo}>
+        <View style={[memberCardStyles.avatar, { backgroundColor: isMain ? "#e3f2fd" : "#f3e5f5" }]}>
+          <Text style={[memberCardStyles.avatarText, { color: isMain ? "#1976d2" : "#7b1fa2" }]}>
+            {teacher.name.charAt(0)} 
+          </Text>
+        </View>
+        <View style={memberCardStyles.userDetails}>
+          <View style={memberCardStyles.teacherHeader}>
+            <Text style={memberCardStyles.userName}>
+              {teacher.name}
+            </Text>
+            {isMain && (
+              <View style={memberCardStyles.mainTeacherBadge}>
+                <Text style={memberCardStyles.mainTeacherText}>Principal</Text>
+              </View>
+            )}
+          </View>
+          <Text style={memberCardStyles.userEmail}>{teacher.email}</Text>
+        </View>
+      </View>
+
+      {!isMain && isTeacher && onRemove && (
+        <TouchableOpacity style={[memberCardStyles.actionButton, memberCardStyles.removeButton]} onPress={onRemove}>
+          <AntDesign name="delete" size={16} color="#fff" />
+          <Text style={memberCardStyles.removeButtonText}>Remover</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  )
+
   const tabs = [
     // ...(teacher ? [] : [{ id: "grades", label: "Notas", icon: "barschart" }]),
     { id: "tasks", label: "Tareas", icon: "filetext1" },
@@ -495,8 +675,88 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      // case "grades":
-      //   return <GradesSummary assignments={allAssignments} />
+      case "overview":
+        return (
+          <View style={styles.overviewContainer}>
+            {/* Sección de alumnos */}
+            <TouchableOpacity style={courseStyles.materialToggle} onPress={() => setShowAlumnos(!showAlumnos)}>
+              <View style={courseStyles.materialToggleRow}>
+                <AntDesign name={showAlumnos ? "up" : "down"} size={16} color="#333" style={courseStyles.arrowIcon} />
+                <Text style={courseStyles.materialToggleText}>Ver alumnos ({membersData.students.length})</Text>
+              </View>
+            </TouchableOpacity>
+
+            {showAlumnos && (
+              <View style={courseStyles.listContainer}>
+                {loadingMembers ? (
+                  <Text style={courseStyles.listItem}>Cargando alumnos...</Text>
+                ) : membersData.students.length === 0 ? (
+                  <Text style={courseStyles.listItem}>No hay alumnos inscritos</Text>
+                ) : (
+                  membersData.students.map((student, i) => (
+                    <StudentCard
+                      key={student.uid}
+                      student={{
+                        ...student,
+                        surname: "", // surname is included in name
+                        phone: "",
+                        latitude: 0,
+                        longitude: 0,
+                        is_active: true,
+                        is_blocked: false,
+                        is_admin: false,
+                      }}
+                      isTeacher={teacher}
+                      onApprove={() => handleApproveStudent(student.uid, student.name)}
+                      onReject={() => handleRejectStudent(student.uid, student.name)}
+                    />
+                  ))
+                )}
+              </View>
+            )}
+
+            {/* Docente Titular */}
+            <Text style={courseStyles.sectionHeader}>Docente Titular</Text>
+            <View style={courseStyles.listContainer}>
+              {loadingMembers ? (
+                <Text style={courseStyles.listItem}>Cargando...</Text>
+              ) : membersData.teacher ? (
+                <TeacherCard teacher={membersData.teacher} isMain={true} />
+              ) : (
+                <Text style={courseStyles.listItem}>No se encontró información del docente</Text>
+              )}
+            </View>
+
+            {/* Docentes auxiliares */}
+            <Text style={courseStyles.sectionHeader}>Docentes auxiliares ({membersData.auxTeachers.length})</Text>
+            <View style={courseStyles.listContainer}>
+              {loadingMembers ? (
+                <Text style={courseStyles.listItem}>Cargando...</Text>
+              ) : membersData.auxTeachers.length === 0 ? (
+                <Text style={courseStyles.listItem}>No hay docentes auxiliares asignados</Text>
+              ) : (
+                membersData.auxTeachers.map((auxTeacher, i) => (
+                  <TeacherCard
+                    key={auxTeacher.uid}
+                    teacher={auxTeacher}
+                    isMain={false}
+                    isTeacher={teacher}
+                    onRemove={() => handleRemoveAuxTeacher(auxTeacher.uid, auxTeacher.name)}
+                  />
+                ))
+              )}
+            </View>
+
+            {/* Botón eliminar curso */}
+            {teacher && (
+              <TouchableOpacity style={courseStyles.deleteButton} onPress={() => setShowConfirmModal(true)}>
+                <Text style={courseStyles.buttonText}>Eliminar curso</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )
+      case "grades":
+        return <GradesSummary assignments={allAssignments} />
       case "tasks":
         return (
           <AssignmentsSection
@@ -559,6 +819,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           onBack={() => router.back()}
           canEdit={teacher}
           course={course}
+          teacherName={membersData.teacher?.name || ""}
           onEditSuccess={reloadCourses}
         />
 
@@ -673,5 +934,167 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
+  },
+  overviewContainer: {
+    padding: 16,
+  },
+})
+
+const memberCardStyles = StyleSheet.create({
+  studentCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: "#2196F3",
+  },
+  teacherCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4CAF50",
+  },
+  userInfo: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#e3f2fd",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1976d2",
+  },
+  userDetails: {
+    flex: 1,
+  },
+  teacherHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 8,
+  },
+  statusContainer: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  mainTeacherBadge: {
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  mainTeacherText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  feedbackButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginLeft: 8,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  feedbackButtonDisabled: {
+    backgroundColor: "#ccc",
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  feedbackButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  feedbackButtonTextDisabled: {
+    color: "#999",
+  },
+  actions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 4,
+  },
+  approveButton: {
+    backgroundColor: "#4CAF50",
+  },
+  approveButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  rejectButton: {
+    backgroundColor: "#f44336",
+  },
+  rejectButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  removeButton: {
+    backgroundColor: "#ff9800",
+    paddingHorizontal: 16,
+  },
+  removeButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
   },
 })

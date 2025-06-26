@@ -61,14 +61,12 @@ export function FeedbackSummary({ courseId, visible, onClose }: FeedbackSummaryP
       }
 
       setSummary(summaryText)
-    } catch (error) {
-      console.error("Error fetching feedback summary:", error)
-      setError("No se pudo generar el resumen. Intente nuevamente más tarde.")
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "No se pudo generar el resumen",
-      })
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        setError("No hay suficientes feedbacks para generar un resumen.")
+      } else {
+        setError("No se pudo generar el resumen. Intente nuevamente más tarde.")
+      }
     } finally {
       setLoading(false)
     }

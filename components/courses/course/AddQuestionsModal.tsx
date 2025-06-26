@@ -214,7 +214,7 @@ export function AddQuestionsModal({ visible, assignment, onClose, onSuccess }: P
         due_date: assignment.due_date,
         type: assignment.type,
         status: "active",
-        grace_period: 1,
+        grace_period: 30,
         passing_score: assignment.passing_score || 60, // Mantener el passing_score existente o usar 60 por defecto
         total_points: 100, // Siempre 100 puntos
         questions: apiQuestions,

@@ -130,14 +130,27 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         console.log("TOKEN: ", token)
         console.log("USER: ", user)
 
-        setAuthState({
-          token,
-          authenticated: true,
-          user,
-          location: location ?? null,
-        })
-      } catch (e) {
-        console.error("Error loading auth state from SecureStore", e)
+        console.log('User data for saved in login:', user);
+
+        setAuthState({ token, authenticated: true, location, user });
+
+        router.replace("/(tabs)");
+      } catch (error: any) {
+        if (error.response?.status === 401) {
+          throw new Error("Email o contraseña incorrectos");
+        }
+        if (axios.isAxiosError(error)) {
+          console.error("Axios error:", {
+            message: error.message,
+            code: error.code,
+            responseData: error.response?.data,
+            responseStatus: error.response?.status,
+            headers: error.response?.headers,
+          });
+        } else {
+          console.error("Unexpected login error:", error);
+        }
+        throw error;
       }
     }
 

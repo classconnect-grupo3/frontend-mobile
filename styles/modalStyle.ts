@@ -3,13 +3,19 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: '#00000088',
+    backgroundColor: "#fff",
     justifyContent: 'center',
     alignItems: 'center',
     color: '#333',
+    marginVertical: 16,
+  },
+  scrollableContent: {
+    flex: 1,
+    padding: 16,
   },
   modal: {
     width: '85%',
+    maxHeight: '80%',
     backgroundColor: '#fff',
     padding: 20,
     borderRadius: 12,
