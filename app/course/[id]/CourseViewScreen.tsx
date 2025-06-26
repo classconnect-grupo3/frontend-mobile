@@ -94,10 +94,24 @@ interface UserData {
   is_admin: boolean
 }
 
+interface Enrollment {
+  completed_date: string | null
+  course_id: string
+  enrolled_at: string
+  favourite: boolean
+  feedback: any[]
+  id: string
+  reason_for_unenrollment: string | null
+  status: "active" | "completed" | "dropped"
+  student_id: string
+  updated_at: string
+}
+
 interface UserDataGet {
   uid: string
   name: string
   email: string
+  enrollment?: Enrollment
 }
 
 interface Student {
@@ -298,6 +312,26 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
     }
   }
 
+  const fetchCourseEnrollments = async (): Promise<Enrollment[]> => {
+    try {
+      if (!authState?.token) {
+        throw new Error("No auth token available")
+      }
+
+      const { data: enrollments } = await courseClient.get(`/courses/${course.id}/enrollments`, {
+        headers: {
+          Authorization: `Bearer ${authState.token}`,
+        },
+      })
+
+      console.log("Course enrollments:", enrollments)
+      return enrollments || []
+    } catch (e) {
+      console.error("Error fetching course enrollments:", e)
+      return []
+    }
+  }
+
   const fetchCourseMembers = async () => {
     try {
       setLoadingMembers(true)
@@ -306,23 +340,34 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
         throw new Error("No auth token available")
       }
 
-      const { data: members } = await courseClient.get(`/courses/${course.id}/members`, {
-        headers: {
-          Authorization: `Bearer ${authState.token}`,
-        },
-      })
+      const [membersResponse, enrollments] = await Promise.all([
+        courseClient.get(`/courses/${course.id}/members`, {
+          headers: {
+            Authorization: `Bearer ${authState.token}`,
+          },
+        }),
+        fetchCourseEnrollments(),
+      ])
 
+      const members = membersResponse.data
       console.log("Course members:", members)
 
       const { teacher_id, aux_teachers_ids = [], students_ids = [], user_info = [] } = members
 
-      // Creamos un mapa rápido para acceder por uid
+      // Create enrollment map for quick lookup
+      const enrollmentMap: Record<string, Enrollment> = {}
+      for (const enrollment of enrollments) {
+        enrollmentMap[enrollment.student_id] = enrollment
+      }
+
+      // Create user map for quick lookup
       const userMap: Record<string, UserDataGet> = {}
       for (const user of user_info) {
         userMap[user.uid] = {
           uid: user.uid,
           name: user.name,
           email: user.email,
+          enrollment: enrollmentMap[user.uid], // Add enrollment info
         }
       }
 

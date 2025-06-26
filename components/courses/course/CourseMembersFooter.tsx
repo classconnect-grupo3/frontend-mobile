@@ -5,13 +5,27 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Modal 
 import { AntDesign } from "@expo/vector-icons"
 import Toast from "react-native-toast-message"
 import { courseClient } from "@/lib/courseClient"
-import React from "react"
 import { useAuth } from "@/contexts/sessionAuth"
+import React from "react"
+
+interface Enrollment {
+  completed_date: string | null
+  course_id: string
+  enrolled_at: string
+  favourite: boolean
+  feedback: any[]
+  id: string
+  reason_for_unenrollment: string | null
+  status: "active" | "completed" | "dropped"
+  student_id: string
+  updated_at: string
+}
 
 interface UserDataGet {
   uid: string
   name: string
   email: string
+  enrollment?: Enrollment
 }
 
 interface CourseMembersData {
@@ -26,8 +40,8 @@ interface Props {
   isTeacher: boolean
   onRemoveAuxTeacher: (teacherId: string, name: string) => void
   onDeleteCourse: () => void
-  courseId: string // Add this new prop
-  onMembersUpdate: () => void // Add this new prop
+  courseId: string
+  onMembersUpdate: () => void
 }
 
 export const CourseMembersFooter = ({
@@ -45,9 +59,45 @@ export const CourseMembersFooter = ({
   const [selectedStudentForAction, setSelectedStudentForAction] = useState<UserDataGet | null>(null)
   const [disapprovalReason, setDisapprovalReason] = useState("")
   const [loadingAction, setLoadingAction] = useState(false)
-  const { authState } = useAuth()
+
+  const auth = useAuth()
+  const authState = auth?.authState
 
   const totalMembers = 1 + membersData.auxTeachers.length + membersData.students.length
+
+  const getEnrollmentStatus = (enrollment?: Enrollment) => {
+    if (!enrollment) return "active"
+    if (enrollment.status === "completed") return "completed"
+    if (enrollment.status === "dropped" || enrollment.reason_for_unenrollment) return "dropped"
+    return "active"
+  }
+
+  const getStatusDisplay = (enrollment?: Enrollment) => {
+    const status = getEnrollmentStatus(enrollment)
+    switch (status) {
+      case "completed":
+        return {
+          label: "Aprobado",
+          color: "#4CAF50",
+          backgroundColor: "#E8F5E8",
+          icon: "checkcircle",
+        }
+      case "dropped":
+        return {
+          label: "Desaprobado",
+          color: "#f44336",
+          backgroundColor: "#FFEBEE",
+          icon: "closecircle",
+        }
+      default:
+        return {
+          label: "En curso",
+          color: "#FF9800",
+          backgroundColor: "#FFF3E0",
+          icon: "clockcircle",
+        }
+    }
+  }
 
   const MemberAvatar = ({ name, role }: { name: string; role: "teacher" | "aux_teacher" | "student" }) => {
     const getInitials = (fullName: string) => {
@@ -75,6 +125,16 @@ export const CourseMembersFooter = ({
     )
   }
 
+  const StatusBadge = ({ enrollment }: { enrollment?: Enrollment }) => {
+    const statusInfo = getStatusDisplay(enrollment)
+    return (
+      <View style={[styles.statusBadge, { backgroundColor: statusInfo.backgroundColor }]}>
+        <AntDesign name={statusInfo.icon as any} size={12} color={statusInfo.color} />
+        <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
+      </View>
+    )
+  }
+
   const MemberCard = ({
     member,
     role,
@@ -83,46 +143,64 @@ export const CourseMembersFooter = ({
     member: UserDataGet
     role: "teacher" | "aux_teacher" | "student"
     showActions?: boolean
-  }) => (
-    <View style={styles.memberCard}>
-      <MemberAvatar name={member.name} role={role} />
-      <View style={styles.memberInfo}>
-        <Text style={styles.memberName}>{member.name}</Text>
-        <Text style={styles.memberEmail}>{member.email}</Text>
-        {role === "teacher" && <Text style={styles.roleLabel}>Docente Principal</Text>}
-        {role === "aux_teacher" && <Text style={styles.roleLabel}>Docente Auxiliar</Text>}
-      </View>
-      {showActions && role === "aux_teacher" && (
-        <TouchableOpacity style={styles.removeButton} onPress={() => onRemoveAuxTeacher(member.uid, member.name)}>
-          <AntDesign name="close" size={16} color="#f44336" />
-        </TouchableOpacity>
-      )}
-      {showActions && role === "student" && isTeacher && (
-        <View style={styles.studentActions}>
-          <TouchableOpacity
-            style={styles.approveButton}
-            onPress={() => {
-              setSelectedStudentForAction(member)
-              setShowApproveModal(true)
-            }}
-          >
-            <AntDesign name="check" size={14} color="#fff" />
-            <Text style={styles.approveButtonText}>Aprobar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.disapproveButton}
-            onPress={() => {
-              setSelectedStudentForAction(member)
-              setShowDisapproveModal(true)
-            }}
-          >
-            <AntDesign name="close" size={14} color="#fff" />
-            <Text style={styles.disapproveButtonText}>Desaprobar</Text>
-          </TouchableOpacity>
+  }) => {
+    const status = getEnrollmentStatus(member.enrollment)
+    const canApprove = status === "active"
+    const canDisapprove = status === "active"
+
+    return (
+      <View style={styles.memberCard}>
+        <MemberAvatar name={member.name} role={role} />
+        <View style={styles.memberInfo}>
+          <Text style={styles.memberName}>{member.name}</Text>
+          <Text style={styles.memberEmail}>{member.email}</Text>
+          {role === "teacher" && <Text style={styles.roleLabel}>Docente Principal</Text>}
+          {role === "aux_teacher" && <Text style={styles.roleLabel}>Docente Auxiliar</Text>}
+          {role === "student" && (
+            <View style={styles.studentStatusContainer}>
+              <StatusBadge enrollment={member.enrollment} />
+              {member.enrollment?.reason_for_unenrollment && (
+                <Text style={styles.unenrollmentReason}>Razón: {member.enrollment.reason_for_unenrollment}</Text>
+              )}
+            </View>
+          )}
         </View>
-      )}
-    </View>
-  )
+        {showActions && role === "aux_teacher" && (
+          <TouchableOpacity style={styles.removeButton} onPress={() => onRemoveAuxTeacher(member.uid, member.name)}>
+            <AntDesign name="close" size={16} color="#f44336" />
+          </TouchableOpacity>
+        )}
+        {showActions && role === "student" && isTeacher && (
+          <View style={styles.studentActions}>
+            {canApprove && (
+              <TouchableOpacity
+                style={styles.approveButton}
+                onPress={() => {
+                  setSelectedStudentForAction(member)
+                  setShowApproveModal(true)
+                }}
+              >
+                <AntDesign name="check" size={14} color="#fff" />
+                <Text style={styles.approveButtonText}>Aprobar</Text>
+              </TouchableOpacity>
+            )}
+            {canDisapprove && (
+              <TouchableOpacity
+                style={styles.disapproveButton}
+                onPress={() => {
+                  setSelectedStudentForAction(member)
+                  setShowDisapproveModal(true)
+                }}
+              >
+                <AntDesign name="close" size={14} color="#fff" />
+                <Text style={styles.disapproveButtonText}>Desaprobar</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
+    )
+  }
 
   const handleApproveStudent = async () => {
     if (!selectedStudentForAction) return
@@ -134,13 +212,10 @@ export const CourseMembersFooter = ({
         {},
         {
           headers: {
-            Authorization: `Bearer ${authState.token}`,
-            "X-Teacher-UUID": authState.user?.id,
+            Authorization: `Bearer ${authState?.token}`,
           },
         },
       )
-
-      console.log("Approve response:", response.data)
 
       Toast.show({
         type: "success",
@@ -153,7 +228,7 @@ export const CourseMembersFooter = ({
       onMembersUpdate()
     } catch (error) {
       console.error("Error approving student:", error)
-      console.log("Error details:", error.response?.data || error.message)
+      console.log("more details:", error.response?.data || error.message)
       Toast.show({
         type: "error",
         text1: "Error",
@@ -176,8 +251,7 @@ export const CourseMembersFooter = ({
         },
         {
           headers: {
-            Authorization: `Bearer ${authState.token}`,
-            "X-Teacher-UUID": authState.user?.id,
+            Authorization: `Bearer ${authState?.token}`,
           },
         },
       )
@@ -214,6 +288,10 @@ export const CourseMembersFooter = ({
     )
   }
 
+  const activeStudents = membersData.students.filter((s) => getEnrollmentStatus(s.enrollment) === "active").length
+  const completedStudents = membersData.students.filter((s) => getEnrollmentStatus(s.enrollment) === "completed").length
+  const droppedStudents = membersData.students.filter((s) => getEnrollmentStatus(s.enrollment) === "dropped").length
+
   return (
     <View style={styles.container}>
       {/* Header compacto */}
@@ -237,7 +315,7 @@ export const CourseMembersFooter = ({
           <View style={styles.headerInfo}>
             <Text style={styles.headerTitle}>Miembros del curso</Text>
             <Text style={styles.headerSubtitle}>
-              {membersData.students.length} estudiantes • {1 + membersData.auxTeachers.length} docentes
+              {activeStudents} activos • {completedStudents} aprobados • {droppedStudents} desaprobados
             </Text>
           </View>
         </View>
@@ -271,7 +349,7 @@ export const CourseMembersFooter = ({
             {membersData.students.length === 0 ? (
               <Text style={styles.emptyText}>No hay estudiantes inscritos</Text>
             ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.studentsScroll}>
+              <ScrollView style={styles.studentsContainer}>
                 {membersData.students.map((student) => (
                   <MemberCard key={student.uid} member={student} role="student" showActions={isTeacher} />
                 ))}
@@ -290,6 +368,7 @@ export const CourseMembersFooter = ({
           )}
         </View>
       )}
+
       {/* Approval Modal */}
       <Modal visible={showApproveModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -511,25 +590,35 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     fontWeight: "500",
   },
+  studentStatusContainer: {
+    marginTop: 4,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  unenrollmentReason: {
+    fontSize: 10,
+    color: "#999",
+    fontStyle: "italic",
+    marginTop: 4,
+  },
   removeButton: {
     padding: 8,
     borderRadius: 6,
     backgroundColor: "#ffeaea",
   },
-  studentsScroll: {
-    marginTop: 8,
-  },
-  studentCard: {
-    alignItems: "center",
-    marginRight: 16,
-    width: 60,
-  },
-  studentName: {
-    fontSize: 11,
-    color: "#333",
-    textAlign: "center",
-    marginTop: 6,
-    fontWeight: "500",
+  studentsContainer: {
+    maxHeight: 300,
   },
   emptyText: {
     fontSize: 13,
@@ -648,7 +737,6 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     marginBottom: 8,
     minHeight: 80,
-    color: "#333",
   },
   characterCount: {
     fontSize: 12,
