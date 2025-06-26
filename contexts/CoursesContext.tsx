@@ -86,7 +86,14 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
       const isFavorite = (id: string) => favoriteIds.includes(id);
       console.log("courses fetched: ", allData.data)
 
+      // how can i extend to add the ones from data.aux_teacher?
       const teacherCourses = (allData.data.teacher ?? []).map((c: any) => ({
+        ...c,
+        role: "teacher",
+        is_favorite: isFavorite(c.id),
+      }));
+
+      const auxTeacherCourses = (allData.data.aux_teacher ?? []).map((c: any) => ({
         ...c,
         role: "teacher",
         is_favorite: isFavorite(c.id),
@@ -98,7 +105,7 @@ export const CoursesProvider = ({ children }: { children: React.ReactNode }) => 
         is_favorite: isFavorite(c.id),
       }));
 
-      const allCourses = [...teacherCourses, ...studentCourses];
+      const allCourses = [...teacherCourses,...auxTeacherCourses, ...studentCourses];
       setCourses(allCourses);
 
       const favorites = allCourses.filter((c) => c.is_favorite);

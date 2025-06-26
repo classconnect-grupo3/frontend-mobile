@@ -28,8 +28,8 @@ import { CourseTabs } from "@/components/courses/course/CourseTabs"
 import { ForumSection } from "@/components/courses/forum/ForumSection"
 import { CourseMembersFooter } from "@/components/courses/course/CourseMembersFooter"
 import { CourseStatisticsSection } from "@/components/statistics/CourseStatisticsSection"
-import React from "react"
 import { AntDesign, MaterialIcons } from "@expo/vector-icons"
+import React from "react"
 
 interface Question {
   id: string
@@ -171,9 +171,22 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   const authState = auth?.authState
   const course = courses.find((c) => c.id === id)
 
+  const isAuxTeacher = () => {
+    if (!authState?.user?.id) return false
+    return membersData.auxTeachers.some((auxTeacher) => auxTeacher.uid === authState.user?.id)
+  }
+
+  const hasTeacherPermissions = () => {
+    return teacher || isAuxTeacher()
+  }
+
+  const canDeleteCourse = () => {
+    return teacher && !isAuxTeacher()
+  }
+
   // Función para obtener el estado de inscripción del usuario actual
   const getCurrentUserEnrollmentStatus = () => {
-    if (teacher || !authState?.user?.id) return "active"
+    if (hasTeacherPermissions() || !authState?.user?.id) return "active"
 
     const currentStudent = membersData.students.find((s) => s.uid === authState.user?.id)
     if (!currentStudent?.enrollment) return "active"
@@ -185,7 +198,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
   }
 
   const userEnrollmentStatus = getCurrentUserEnrollmentStatus()
-  const isStudentDisapproved = !teacher && userEnrollmentStatus === "dropped"
+  const isStudentDisapproved = !hasTeacherPermissions() && userEnrollmentStatus === "dropped"
 
   useEffect(() => {
     if (course?.id && authState?.token && !hasFetchedAssignments) {
@@ -368,6 +381,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
       ])
 
       const members = membersResponse.data
+      console.log("course id:", course.id)
       console.log("Course members:", members)
 
       const { teacher_id, aux_teachers_ids = [], students_ids = [], user_info = [] } = members
@@ -393,14 +407,17 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
 
       course.teacher_name = teacher ? `${teacher.name}` : "Docente no encontrado"
 
-      const auxTeachers = aux_teachers_ids
-        .map((id: string) => userMap[id])
-        .filter(Boolean) as UserDataGet[]
+      let auxTeachers: UserDataGet[] = []
+      if (aux_teachers_ids != null) {
+        auxTeachers = aux_teachers_ids.map((id: string) => userMap[id]).filter(Boolean) as UserDataGet[]
+      }
 
-      const students = 
-        students_ids
-        .map((id: string) => userMap[id])
-        .filter(Boolean) as UserDataGet[]
+      console.log("Aux Teachers:", auxTeachers)
+
+      let students: UserDataGet[] = []
+      if (students_ids != null && students_ids.length > 0) {
+        students = students_ids.map((id: string) => userMap[id]).filter(Boolean) as UserDataGet[]
+      }
 
       console.log("Students:", students)
 
@@ -593,14 +610,12 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
       <View style={memberCardStyles.userInfo}>
         <View style={[memberCardStyles.avatar, { backgroundColor: isMain ? "#e3f2fd" : "#f3e5f5" }]}>
           <Text style={[memberCardStyles.avatarText, { color: isMain ? "#1976d2" : "#7b1fa2" }]}>
-            {teacher.name.charAt(0)} 
+            {teacher.name.charAt(0)}
           </Text>
         </View>
         <View style={memberCardStyles.userDetails}>
           <View style={memberCardStyles.teacherHeader}>
-            <Text style={memberCardStyles.userName}>
-              {teacher.name}
-            </Text>
+            <Text style={memberCardStyles.userName}>{teacher.name}</Text>
             {isMain && (
               <View style={memberCardStyles.mainTeacherBadge}>
                 <Text style={memberCardStyles.mainTeacherText}>Principal</Text>
@@ -707,7 +722,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
                         is_blocked: false,
                         is_admin: false,
                       }}
-                      isTeacher={teacher}
+                      isTeacher={hasTeacherPermissions()}
                       onApprove={() => handleApproveStudent(student.uid, student.name)}
                       onReject={() => handleRejectStudent(student.uid, student.name)}
                     />
@@ -741,15 +756,15 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
                     key={auxTeacher.uid}
                     teacher={auxTeacher}
                     isMain={false}
-                    isTeacher={teacher}
+                    isTeacher={canDeleteCourse()} // Solo el docente titular puede remover auxiliares
                     onRemove={() => handleRemoveAuxTeacher(auxTeacher.uid, auxTeacher.name)}
                   />
                 ))
               )}
             </View>
 
-            {/* Botón eliminar curso */}
-            {teacher && (
+            {/* Botón eliminar curso - Solo para docente titular */}
+            {canDeleteCourse() && (
               <TouchableOpacity style={courseStyles.deleteButton} onPress={() => setShowConfirmModal(true)}>
                 <Text style={courseStyles.buttonText}>Eliminar curso</Text>
               </TouchableOpacity>
@@ -768,7 +783,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             setAssignments={setAllAssignments}
             loading={loadingAssignments}
             onSubmit={handleSubmitAssignment}
-            isTeacher={teacher}
+            isTeacher={hasTeacherPermissions()}
             onDownload={handleDownload}
             onRefresh={fetchAssignments}
             onAddQuestions={handleAddQuestions}
@@ -788,7 +803,7 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
             setAssignments={setAllAssignments}
             loading={loadingAssignments}
             onSubmit={handleSubmitAssignment}
-            isTeacher={teacher}
+            isTeacher={hasTeacherPermissions()}
             onDownload={handleDownload}
             onRefresh={fetchAssignments}
             onAddQuestions={handleAddQuestions}
@@ -799,11 +814,11 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           />
         )
       case "modules":
-        return <ModulesSection courseId={course.id} isTeacher={teacher} />
+        return <ModulesSection courseId={course.id} isTeacher={hasTeacherPermissions()} />
       case "forum":
-        return <ForumSection courseId={course.id} isTeacher={teacher} membersData={membersData} />
+        return <ForumSection courseId={course.id} isTeacher={hasTeacherPermissions()} membersData={membersData} />
       case "feedback":
-        return <FeedbackSection courseId={course.id} isTeacher={teacher} />
+        return <FeedbackSection courseId={course.id} isTeacher={hasTeacherPermissions()} />
       case "statistics":
         return <CourseStatisticsSection courseId={course.id} membersData={membersData} />
       default:
@@ -816,9 +831,9 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
       <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
         {/* Header fijo */}
         <CourseTopBar
-          role={teacher ? "Docente" : "Alumno"}
+          role={hasTeacherPermissions() ? (teacher ? "Docente" : "Docente Auxiliar") : "Alumno"}
           onBack={() => router.back()}
-          canEdit={teacher}
+          canEdit={hasTeacherPermissions()}
           course={course}
           teacherName={membersData.teacher?.name || ""}
           onEditSuccess={reloadCourses}
@@ -832,9 +847,9 @@ export default function CourseViewScreen({ teacher }: Props): JSX.Element {
           <CourseMembersFooter
             membersData={membersData}
             loading={loadingMembers}
-            isTeacher={teacher}
+            isTeacher={hasTeacherPermissions()}
             onRemoveAuxTeacher={handleRemoveAuxTeacher}
-            onDeleteCourse={() => setShowConfirmModal(true)}
+            onDeleteCourse={canDeleteCourse() ? () => setShowConfirmModal(true) : undefined}
             courseId={course.id}
             onMembersUpdate={fetchCourseMembers}
           />
