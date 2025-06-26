@@ -1,4 +1,5 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 
 // Optionally import the services that you want to use
 // import {...} from 'firebase/auth';
@@ -22,6 +23,7 @@ if (getApps().length === 0) {
 
 const fbApp = getApp();
 const fbStorage = getStorage();
+const fbAuth = getAuth(fbApp);
 
 const listFiles = async () => {
   const storage = getStorage();
@@ -224,6 +226,9 @@ const fetchProfileImage = async (userId) => {
 export {
   fbApp,
   fbStorage,
+  fbAuth,
+  signInWithCredential,
+  GoogleAuthProvider,
   uploadProfilePicToFirebase as uploadToFirebase,
   listFiles,
   fetchProfileImage

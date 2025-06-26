@@ -80,6 +80,7 @@ export function FeedbackForm({ visible, onClose, courseId, onSuccess }: Feedback
       }
     } catch (error) {
       console.error("Error al enviar feedback:", error)
+      console.log("Detalles del error:", error.response?.data || error.message)
       Toast.show({
         type: "error",
         text1: "Error",

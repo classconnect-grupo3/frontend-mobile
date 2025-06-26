@@ -54,6 +54,8 @@ export function SubmissionsListModal({ visible, assignment, onClose, onGradeSubm
         },
       })
 
+      console.log("Submissions fetched:", submissions)
+
       const studentIds = Array.from(
         new Set(submissions.map((s: StudentSubmission) => s.student_uuid).filter(Boolean))
       )

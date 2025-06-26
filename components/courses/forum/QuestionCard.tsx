@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native"
 import { AntDesign, MaterialIcons } from "@expo/vector-icons"
 import type { ForumQuestion, UserRole } from "@/types/forum"
+import { VoteButtons } from "./VoteButtons"
 import React from "react"
 
 interface Props {
@@ -34,13 +35,21 @@ export const QuestionCard = ({ question, userRole, onPress, onVote, onEdit, onDe
         <View style={styles.authorInfo}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              {userRole ? `${userRole.name.charAt(0)}` : "?"}
+              {userRole
+                ? (() => {
+                    const userNameInitial = userRole.name.charAt(0)
+                    const userSurnameInitial = userRole.name
+                      .split(" ")
+                      .slice(1)
+                      .map((n) => n.charAt(0))
+                      .join("")
+                    return `${userNameInitial}${userSurnameInitial}`.toUpperCase()
+                  })()
+                : "?"}
             </Text>
           </View>
           <View style={styles.authorDetails}>
-            <Text style={styles.authorName}>
-              {userRole ? `${userRole.name} ` : "Usuario desconocido"}
-            </Text>
+            <Text style={styles.authorName}>{userRole ? userRole.name : "Usuario desconocido"}</Text>
             {roleBadge && (
               <View style={[styles.roleBadge, { backgroundColor: roleBadge.bgColor }]}>
                 <Text style={[styles.roleBadgeText, { color: roleBadge.color }]}>{roleBadge.text}</Text>
@@ -94,51 +103,37 @@ export const QuestionCard = ({ question, userRole, onPress, onVote, onEdit, onDe
           </View>
         </View>
 
-        {isOwnQuestion && (
-          <>
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={(e) => {
-                e.stopPropagation()
-                onEdit?.()
-              }}
-            >
-              <AntDesign name="edit" size={16} color="#666" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={(e) => {
-                e.stopPropagation()
-                onDelete?.()
-              }}
-            >
-              <AntDesign name="delete" size={16} color="#f44336" />
-            </TouchableOpacity>
-          </>
-        )}
+        <View style={styles.rightSection}>
+          {isOwnQuestion && (
+            <View style={styles.ownActions}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={(e) => {
+                  e.stopPropagation()
+                  onEdit?.()
+                }}
+              >
+                <AntDesign name="edit" size={16} color="#666" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={(e) => {
+                  e.stopPropagation()
+                  onDelete?.()
+                }}
+              >
+                <AntDesign name="delete" size={16} color="#f44336" />
+              </TouchableOpacity>
+            </View>
+          )}
 
-        <View style={styles.voteContainer}>
-          <TouchableOpacity
-            style={styles.voteButton}
-            onPress={(e) => {
-              e.stopPropagation()
-              onVote(1)
-            }}
-            disabled={!currentUserId}
-          >
-            <AntDesign name="up" size={16} color="#007AFF" />
-          </TouchableOpacity>
-          <Text style={styles.voteCount}>{question.vote_count}</Text>
-          <TouchableOpacity
-            style={styles.voteButton}
-            onPress={(e) => {
-              e.stopPropagation()
-              onVote(-1)
-            }}
-            disabled={!currentUserId}
-          >
-            <AntDesign name="down" size={16} color="#007AFF" />
-          </TouchableOpacity>
+          <VoteButtons
+            votes={question.votes || []}
+            currentUserId={currentUserId}
+            onVote={onVote}
+            disabled={isOwnQuestion}
+            size="small"
+          />
         </View>
       </View>
     </TouchableOpacity>
@@ -258,6 +253,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flex: 1,
   },
   stat: {
     flexDirection: "row",
@@ -292,33 +288,23 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "500",
   },
-  voteContainer: {
+  rightSection: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
-  voteButton: {
-    padding: 6,
-    borderRadius: 4,
-    backgroundColor: "#f5f5f5",
-  },
-  voteCount: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#333",
-    marginHorizontal: 8,
-    minWidth: 20,
-    textAlign: "center",
+  ownActions: {
+    flexDirection: "row",
+    gap: 4,
   },
   editButton: {
     padding: 6,
     borderRadius: 4,
     backgroundColor: "#f5f5f5",
-    marginRight: 8,
   },
   deleteButton: {
     padding: 6,
     borderRadius: 4,
     backgroundColor: "#ffeaea",
-    marginRight: 8,
   },
 })

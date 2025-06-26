@@ -91,7 +91,7 @@ export function CourseTopBar({ role, onBack, canEdit = false, course, onEditSucc
           <View style={styles.infoItem}>
             <MaterialIcons name="person" size={16} color="#666" />
             <Text style={styles.infoItemLabel}>Docente</Text>
-            <Text style={styles.infoItemValue}>{course?.teacher_name}</Text>
+            <Text style={styles.infoItemValue}>{course.teacher_name}</Text>
           </View>
         </View>
 

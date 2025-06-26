@@ -144,6 +144,9 @@ export const ForumSection = ({ courseId, isTeacher, membersData }: Props) => {
           },
         })
 
+        console.log("Fetched questions:", data[data.length - 1]) 
+        console.log("Votes: ", data[data.length - 1].votes)
+
         if (isUsingSearch) {
           const searchResponse = data as ForumSearchResponse
           setAllQuestions(searchResponse.questions || [])
